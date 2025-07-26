@@ -50,6 +50,10 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.bootJar {
+    archiveFileName.set("clinic-management-1.0.0.jar")
+}
+
 kotlin {
     jvmToolchain(17)
 }

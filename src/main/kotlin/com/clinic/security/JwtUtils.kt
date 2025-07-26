@@ -5,8 +5,8 @@ import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Component
-import java.security.Key
 import java.util.*
+import javax.crypto.SecretKey
 
 @Component
 class JwtUtils {
@@ -17,7 +17,7 @@ class JwtUtils {
     @Value("\${jwt.expiration}")
     private var jwtExpirationMs: Int = 0
 
-    private val key: Key by lazy {
+    private val key: SecretKey by lazy {
         Keys.hmacShaKeyFor(jwtSecret.toByteArray())
     }
 
@@ -33,19 +33,19 @@ class JwtUtils {
 
     fun getUserNameFromJwtToken(token: String): String {
         return Jwts.parser()
-            .setSigningKey(key)
+            .verifyWith(key)
             .build()
-            .parseClaimsJws(token)
-            .body
+            .parseSignedClaims(token)
+            .payload
             .subject
     }
 
     fun validateJwtToken(authToken: String): Boolean {
         try {
             Jwts.parser()
-                .setSigningKey(key)
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(authToken)
+                .parseSignedClaims(authToken)
             return true
         } catch (e: SecurityException) {
             println("Invalid JWT signature: ${e.message}")
