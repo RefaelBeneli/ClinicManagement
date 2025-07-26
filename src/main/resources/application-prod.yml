@@ -28,9 +28,9 @@ jwt:
   secret: ${JWT_SECRET:${random.value}}
   expiration: 86400000 # 24 hours
 
-# CORS configuration - Update with your frontend URL
+# CORS configuration - Allow Netlify domain
 cors:
-  allowed-origins: ${FRONTEND_URL:http://localhost:3000}
+  allowed-origins: ${FRONTEND_URL:https://frolicking-granita-900c53.netlify.app}
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
   allowed-headers: "*"
 
