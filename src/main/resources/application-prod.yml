@@ -4,7 +4,7 @@ spring:
   
   # Production Database (Railway PostgreSQL)
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/clinic_db}
+    url: jdbc:${DATABASE_URL:postgresql://localhost:5432/clinic_db}
     username: ${PGUSER:clinic_user}
     password: ${PGPASSWORD:password}
     driver-class-name: org.postgresql.Driver
