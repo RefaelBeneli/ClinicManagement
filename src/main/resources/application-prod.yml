@@ -2,11 +2,11 @@ spring:
   application:
     name: clinic-management
   
-  # Production Database (AWS RDS PostgreSQL)
+  # Production Database (Railway PostgreSQL)
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/clinic_db}
-    username: ${DATABASE_USERNAME:clinic_user}
-    password: ${DATABASE_PASSWORD:password}
+    username: ${PGUSER:clinic_user}
+    password: ${PGPASSWORD:password}
     driver-class-name: org.postgresql.Driver
   
   # JPA configuration for production
