@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: clinic-management
+  
+  # Production Database (AWS RDS PostgreSQL)
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/clinic_db}
+    username: ${DATABASE_USERNAME:clinic_user}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  
+  # JPA configuration for production
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update  # Changed from create-drop to update for production
+    show-sql: false  # Disable SQL logging in production
+    properties:
+      hibernate:
+        format_sql: false
+
+# Server configuration
+server:
+  port: ${PORT:8085}
+
+# JWT configuration
+jwt:
+  secret: ${JWT_SECRET:${random.value}}
+  expiration: 86400000 # 24 hours
+
+# CORS configuration - Update with your frontend URL
+cors:
+  allowed-origins: ${FRONTEND_URL:http://localhost:3000}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "*"
+
+# Logging
+logging:
+  level:
+    com.clinic: INFO
+    org.springframework.security: WARN 
