@@ -19,6 +19,14 @@ const Dashboard: React.FC = () => {
     dateOfBirth: '',
     notes: ''
   });
+  const [newMeetingData, setNewMeetingData] = useState({
+    clientId: '',
+    meetingDate: '',
+    meetingTime: '',
+    duration: 60,
+    price: 150,
+    notes: ''
+  });
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -89,6 +97,51 @@ const Dashboard: React.FC = () => {
       email: '',
       phone: '',
       dateOfBirth: '',
+      notes: ''
+    });
+  };
+
+  const handleMeetingInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewMeetingData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveMeeting = async () => {
+    try {
+      // Combine date and time into a single datetime
+      const meetingDateTime = new Date(`${newMeetingData.meetingDate}T${newMeetingData.meetingTime}`);
+      
+      const meetingRequest = {
+        clientId: parseInt(newMeetingData.clientId),
+        meetingDate: meetingDateTime.toISOString(),
+        duration: newMeetingData.duration,
+        price: newMeetingData.price,
+        notes: newMeetingData.notes
+      };
+
+      // Import the meetings API if not already imported
+      const { meetings } = await import('../services/api');
+      await meetings.create(meetingRequest);
+      
+      alert('Meeting scheduled successfully!');
+      handleCancelScheduleMeeting();
+    } catch (error) {
+      console.error('Error scheduling meeting:', error);
+      alert('Failed to schedule meeting. Please try again.');
+    }
+  };
+
+  const handleCancelScheduleMeeting = () => {
+    setShowScheduleMeetingModal(false);
+    setNewMeetingData({
+      clientId: '',
+      meetingDate: '',
+      meetingTime: '',
+      duration: 60,
+      price: 150,
       notes: ''
     });
   };
@@ -267,7 +320,6 @@ const Dashboard: React.FC = () => {
               <button className="close-button" onClick={() => setShowScheduleMeetingModal(false)}>&times;</button>
             </div>
             <div className="modal-body">
-              <p>Please add clients first before scheduling meetings.</p>
               {clientList.length === 0 ? (
                 <div className="no-clients">
                   <p>No clients available. Add a client first to schedule meetings.</p>
@@ -279,16 +331,99 @@ const Dashboard: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="coming-soon">
-                  <p>Full meeting scheduling coming soon!</p>
-                  <p>Available clients: {clientList.map(c => c.fullName).join(', ')}</p>
-                </div>
+                <form onSubmit={(e) => { e.preventDefault(); handleSaveMeeting(); }}>
+                  <div className="form-group">
+                    <label htmlFor="clientId">Select Client *</label>
+                    <select
+                      id="clientId"
+                      name="clientId"
+                      value={newMeetingData.clientId}
+                      onChange={handleMeetingInputChange}
+                      required
+                    >
+                      <option value="">Choose a client...</option>
+                      {clientList.map((client) => (
+                        <option key={client.id} value={client.id}>
+                          {client.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="meetingDate">Date *</label>
+                      <input
+                        type="date"
+                        id="meetingDate"
+                        name="meetingDate"
+                        value={newMeetingData.meetingDate}
+                        onChange={handleMeetingInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="meetingTime">Time *</label>
+                      <input
+                        type="time"
+                        id="meetingTime"
+                        name="meetingTime"
+                        value={newMeetingData.meetingTime}
+                        onChange={handleMeetingInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="duration">Duration (minutes) *</label>
+                      <select
+                        id="duration"
+                        name="duration"
+                        value={newMeetingData.duration}
+                        onChange={handleMeetingInputChange}
+                        required
+                      >
+                        <option value={30}>30 minutes</option>
+                        <option value={45}>45 minutes</option>
+                        <option value={60}>60 minutes</option>
+                        <option value={90}>90 minutes</option>
+                        <option value={120}>120 minutes</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="price">Price ($) *</label>
+                      <input
+                        type="number"
+                        id="price"
+                        name="price"
+                        value={newMeetingData.price}
+                        onChange={handleMeetingInputChange}
+                        min="0"
+                        step="0.01"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="notes">Notes</label>
+                    <textarea
+                      id="notes"
+                      name="notes"
+                      value={newMeetingData.notes}
+                      onChange={handleMeetingInputChange}
+                      placeholder="Any additional notes about this meeting..."
+                    />
+                  </div>
+                  <div className="modal-actions">
+                    <button type="submit" className="btn-primary">
+                      Schedule Meeting
+                    </button>
+                    <button type="button" className="btn-cancel" onClick={handleCancelScheduleMeeting}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               )}
-              <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowScheduleMeetingModal(false)}>
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         </div>

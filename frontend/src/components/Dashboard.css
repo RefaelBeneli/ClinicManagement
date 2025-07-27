@@ -295,6 +295,41 @@
   min-height: 80px;
 }
 
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.no-clients {
+  text-align: center;
+  padding: 2rem;
+  color: #718096;
+}
+
+.no-clients p {
+  margin-bottom: 1rem;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
