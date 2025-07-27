@@ -34,7 +34,8 @@ data class AuthResponse(
     val type: String = "Bearer",
     val username: String,
     val email: String,
-    val fullName: String
+    val fullName: String,
+    val role: String
 )
 
 data class MessageResponse(

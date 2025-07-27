@@ -2,8 +2,13 @@ package com.clinic.entity
 
 import jakarta.persistence.*
 import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import java.time.LocalDateTime
+
+enum class Role {
+    USER, ADMIN
+}
 
 @Entity
 @Table(name = "users")
@@ -12,36 +17,37 @@ data class User(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
     
-    @Column(unique = true, nullable = false)
-    private val username: String,
+    @Column(nullable = false, unique = true)
+    private val username: String = "",
     
     @Column(nullable = false)
-    private val password: String,
+    val email: String = "",
     
     @Column(nullable = false)
-    val email: String,
+    val fullName: String = "",
     
-    @Column(name = "full_name", nullable = false)
-    val fullName: String,
+    @Column(nullable = false)
+    private val password: String = "",
     
-    @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now(),
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    val role: Role = Role.USER,
     
-    @Column(name = "is_enabled", nullable = false)
-    private val enabled: Boolean = true
+    @Column(nullable = false)
+    private val enabled: Boolean = true,
+    
+    @Column(nullable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now()
 ) : UserDetails {
     
-    override fun getAuthorities(): Collection<GrantedAuthority> = emptyList()
+    override fun getAuthorities(): Collection<GrantedAuthority> {
+        return listOf(SimpleGrantedAuthority("ROLE_${role.name}"))
+    }
     
     override fun getPassword(): String = password
-    
     override fun getUsername(): String = username
-    
     override fun isAccountNonExpired(): Boolean = true
-    
     override fun isAccountNonLocked(): Boolean = true
-    
     override fun isCredentialsNonExpired(): Boolean = true
-    
     override fun isEnabled(): Boolean = enabled
 } 

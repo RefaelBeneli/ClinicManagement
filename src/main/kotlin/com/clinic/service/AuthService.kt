@@ -42,7 +42,8 @@ class AuthService {
             token = jwt,
             username = user.username,
             email = user.email,
-            fullName = user.fullName
+            fullName = user.fullName,
+            role = user.role.name
         )
     }
 
