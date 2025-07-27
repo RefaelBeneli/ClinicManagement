@@ -90,4 +90,5 @@ hs_err_pid*
 
 # Application specific
 application-secrets.yml
-application-local.yml
+application-local.ymlnode_modules/
+package-lock.json
