@@ -4,6 +4,7 @@ import { clients } from '../services/api';
 import { Client, ClientRequest, Meeting, MeetingStatus, UpdateMeetingRequest } from '../types';
 import AdminPanel from './AdminPanel';
 import Calendar from './Calendar';
+import MeetingPanel from './MeetingPanel';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -15,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showScheduleMeetingModal, setShowScheduleMeetingModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showMeetingPanel, setShowMeetingPanel] = useState(false);
   const [newClientData, setNewClientData] = useState<ClientRequest>({
     fullName: '',
     email: '',
@@ -83,6 +85,16 @@ const Dashboard: React.FC = () => {
   const handleCloseCalendar = () => {
     console.log('📅 Closing calendar view...');
     setShowCalendar(false);
+  };
+
+  const handleManageMeetings = () => {
+    console.log('📊 Opening meeting management panel...');
+    setShowMeetingPanel(true);
+  };
+
+  const handleCloseMeetingPanel = () => {
+    console.log('📊 Closing meeting management panel...');
+    setShowMeetingPanel(false);
   };
 
   const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -295,6 +307,7 @@ const Dashboard: React.FC = () => {
             <div className="actions-grid">
               <button className="action-button" onClick={handleAddClient}>Add New Client</button>
               <button className="action-button" onClick={handleScheduleMeeting}>Schedule Meeting</button>
+              <button className="action-button" onClick={handleManageMeetings}>Manage Meetings</button>
               <button className="action-button" onClick={handleAddPersonalSession}>Add Personal Session</button>
               <button className="action-button" onClick={handleViewCalendar}>View Calendar</button>
             </div>
@@ -567,6 +580,13 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Meeting Management Panel */}
+      {showMeetingPanel && (
+        <MeetingPanel 
+          onClose={handleCloseMeetingPanel} 
+        />
       )}
 
       {/* Calendar Modal */}
