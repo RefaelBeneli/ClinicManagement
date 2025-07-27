@@ -53,13 +53,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (credentials: LoginRequest) => {
     try {
       const response: AuthResponse = await auth.login(credentials);
-      const { token: newToken, username, email, fullName } = response;
+      const { token: newToken, username, email, fullName, role } = response;
       
       const userData: User = {
         id: 0, // Will be updated when we get user data
         username,
         email,
-        fullName
+        fullName,
+        role
       };
 
       setToken(newToken);

@@ -36,6 +36,31 @@
   font-weight: 500;
 }
 
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.admin {
+  background: #ffeaa7;
+  color: #d63031;
+  border: 1px solid #fdcb6e;
+}
+
+.role-badge.user {
+  background: #a7f3d0;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+
+.admin-section {
+  margin-bottom: 30px;
+}
+
 .logout-button {
   background: #e53e3e;
   color: white;

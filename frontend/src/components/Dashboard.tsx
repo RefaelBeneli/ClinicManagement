@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { clients } from '../services/api';
 import { Client, ClientRequest } from '../types';
+import AdminPanel from './AdminPanel';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -99,6 +100,9 @@ const Dashboard: React.FC = () => {
           <h1>Clinic Management Dashboard</h1>
           <div className="user-info">
             <span>Welcome, {user?.fullName}</span>
+            <span className={`role-badge ${user?.role?.toLowerCase()}`}>
+              {user?.role}
+            </span>
             <button onClick={handleLogout} className="logout-button">
               Logout
             </button>
@@ -107,6 +111,13 @@ const Dashboard: React.FC = () => {
       </header>
 
       <main className="dashboard-main">
+        {/* Admin Panel - Only visible to admin users */}
+        {user?.role === 'ADMIN' && (
+          <div className="admin-section">
+            <AdminPanel />
+          </div>
+        )}
+
         <div className="dashboard-grid">
           <div className="dashboard-card">
             <h2>Quick Stats</h2>
