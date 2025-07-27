@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { clients } from '../services/api';
 import { Client, ClientRequest, Meeting, MeetingStatus, UpdateMeetingRequest } from '../types';
 import AdminPanel from './AdminPanel';
+import Calendar from './Calendar';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -13,6 +14,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showScheduleMeetingModal, setShowScheduleMeetingModal] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [newClientData, setNewClientData] = useState<ClientRequest>({
     fullName: '',
     email: '',
@@ -74,7 +76,13 @@ const Dashboard: React.FC = () => {
   };
 
   const handleViewCalendar = () => {
-    alert('Calendar view coming soon!');
+    console.log('📅 Opening calendar view...');
+    setShowCalendar(true);
+  };
+
+  const handleCloseCalendar = () => {
+    console.log('📅 Closing calendar view...');
+    setShowCalendar(false);
   };
 
   const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -559,6 +567,14 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Calendar Modal */}
+      {showCalendar && (
+        <Calendar 
+          meetings={meetingList} 
+          onClose={handleCloseCalendar} 
+        />
       )}
     </div>
   );
