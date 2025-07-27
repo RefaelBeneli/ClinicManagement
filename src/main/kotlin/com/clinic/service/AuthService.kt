@@ -68,6 +68,22 @@ class AuthService {
 
     fun getCurrentUser(): User {
         val authentication = SecurityContextHolder.getContext().authentication
-        return authentication.principal as User
+        
+        return when (val principal = authentication.principal) {
+            is User -> principal
+            is org.springframework.security.core.userdetails.UserDetails -> {
+                // If it's a UserDetails but not our User entity, load by username
+                userRepository.findByUsername(principal.username)
+                    .orElseThrow { RuntimeException("User not found: ${principal.username}") }
+            }
+            is String -> {
+                // If principal is just a username string
+                userRepository.findByUsername(principal)
+                    .orElseThrow { RuntimeException("User not found: $principal") }
+            }
+            else -> {
+                throw RuntimeException("Invalid authentication principal type: ${principal?.javaClass?.simpleName}")
+            }
+        }
     }
 } 
