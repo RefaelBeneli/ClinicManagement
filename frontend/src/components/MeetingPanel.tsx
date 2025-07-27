@@ -22,10 +22,6 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose }) => {
     fetchMeetings();
   }, []);
 
-  useEffect(() => {
-    filterAndSortMeetings();
-  }, [meetings, searchTerm, statusFilter, paymentFilter, sortBy, sortOrder]);
-
   const fetchMeetings = async () => {
     try {
       setLoading(true);
@@ -84,6 +80,10 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose }) => {
 
     setFilteredMeetings(filtered);
   }, [meetings, searchTerm, statusFilter, paymentFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    filterAndSortMeetings();
+  }, [filterAndSortMeetings]);
 
   const handleStatusUpdate = async (meetingId: number, newStatus: MeetingStatus) => {
     try {
