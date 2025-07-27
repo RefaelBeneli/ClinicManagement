@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { clients } from '../services/api';
-import { Client, ClientRequest, Meeting, MeetingStatus, UpdateMeetingRequest } from '../types';
+import { Client, ClientRequest, Meeting, MeetingStatus } from '../types';
 import AdminPanel from './AdminPanel';
 import Calendar from './Calendar';
 import MeetingPanel from './MeetingPanel';

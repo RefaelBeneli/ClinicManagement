@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Meeting, MeetingStatus, UpdateMeetingRequest } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Meeting, MeetingStatus } from '../types';
 import { meetings as meetingsApi } from '../services/api';
 import './MeetingPanel.css';
 
@@ -40,7 +40,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose }) => {
     }
   };
 
-  const filterAndSortMeetings = () => {
+  const filterAndSortMeetings = useCallback(() => {
     let filtered = [...meetings];
 
     // Apply search filter
@@ -83,7 +83,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose }) => {
     });
 
     setFilteredMeetings(filtered);
-  };
+  }, [meetings, searchTerm, statusFilter, paymentFilter, sortBy, sortOrder]);
 
   const handleStatusUpdate = async (meetingId: number, newStatus: MeetingStatus) => {
     try {
