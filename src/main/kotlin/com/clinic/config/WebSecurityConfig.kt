@@ -72,35 +72,34 @@ class WebSecurityConfig {
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
         
-        // Use allowedOriginPatterns for more flexible matching
+        // VERY PERMISSIVE CORS - Allow all Netlify subdomains and localhost
         configuration.allowedOriginPatterns = listOf(
             "http://localhost:*",
-            "https://frolicking-granita-900c53.netlify.app",
-            "https://*.netlify.app"
+            "http://127.0.0.1:*", 
+            "https://*.netlify.app",
+            "https://*.netlify.com",
+            "https://frolicking-granita-900c53.netlify.app"
         )
         
-        // Allow all common HTTP methods
-        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH")
+        // Allow ALL HTTP methods
+        configuration.allowedMethods = listOf("*")
         
-        // Allow all headers
+        // Allow ALL headers
         configuration.allowedHeaders = listOf("*")
         
-        // Expose common headers that frontend might need
+        // Expose ALL headers that might be needed
         configuration.exposedHeaders = listOf(
-            "Authorization",
-            "Content-Type",
-            "X-Requested-With",
-            "Access-Control-Allow-Origin",
-            "Access-Control-Allow-Credentials"
+            "*"
         )
         
-        // Allow credentials (important for JWT tokens)
+        // CRITICAL: Allow credentials for JWT
         configuration.allowCredentials = true
         
-        // Set max age for preflight requests
-        configuration.maxAge = 3600L
+        // Longer cache time for preflight to reduce requests
+        configuration.maxAge = 7200L // 2 hours
         
         val source = UrlBasedCorsConfigurationSource()
+        // Apply to ALL endpoints
         source.registerCorsConfiguration("/**", configuration)
         return source
     }

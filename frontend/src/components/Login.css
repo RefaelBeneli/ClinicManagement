@@ -128,4 +128,47 @@
 .register-button:hover {
   background: #667eea;
   color: white;
+}
+
+/* CORS Test Section */
+.cors-test-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.cors-test-section h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.cors-test-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.cors-test-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.cors-test-result {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  padding: 1rem;
+  font-size: 0.8rem;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  color: #495057;
+  margin: 0;
 } 

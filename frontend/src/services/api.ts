@@ -20,35 +20,76 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ||
     ? 'https://web-production-9aa8.up.railway.app/api'
     : 'http://localhost:8085/api');
 
-// Create axios instance
+console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('🌍 Current hostname:', window.location.hostname);
+
+// Create axios instance with enhanced CORS support
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: true, // Important for CORS with credentials
+  timeout: 30000, // 30 second timeout
 });
 
-// Add token to requests
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Handle token expiration
-apiClient.interceptors.response.use(
-  (response) => response,
+// Enhanced request interceptor with debugging
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => {
+    console.error('📤 Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Enhanced response interceptor with CORS error detection
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log('📥 API Response:', response.config.method?.toUpperCase(), response.config.url, '✅', response.status);
+    return response;
+  },
+  (error) => {
+    console.error('📥 API Error:', error.config?.method?.toUpperCase(), error.config?.url);
+    
+    // Detect CORS errors
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+      console.error('🚫 POSSIBLE CORS ERROR:', {
+        message: error.message,
+        code: error.code,
+        config: error.config,
+        response: error.response
+      });
+      alert('🚫 CORS/Network Error detected! Please:\n1. Hard refresh (Ctrl+Shift+R)\n2. Clear cache\n3. Try incognito mode');
+    }
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
+
+// CORS Test Function
+export const testCORS = async () => {
+  try {
+    console.log('🧪 Testing CORS connection...');
+    const response = await apiClient.get('/auth/cors-test');
+    console.log('✅ CORS Test Success:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ CORS Test Failed:', error);
+    throw error;
+  }
+};
 
 // Auth API
 export const auth = {

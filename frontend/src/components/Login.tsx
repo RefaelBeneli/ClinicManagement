@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { testCORS } from '../services/api';
 import './Login.css';
 
 const Login: React.FC = () => {
@@ -11,6 +12,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [corsTestResult, setCorsTestResult] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,6 +50,15 @@ const Login: React.FC = () => {
 
   const handleRegisterClick = () => {
     navigate('/register');
+  };
+
+  const handleCorsTest = async () => {
+    try {
+      const result = await testCORS();
+      setCorsTestResult(JSON.stringify(result, null, 2));
+    } catch (error) {
+      setCorsTestResult(JSON.stringify(error, null, 2));
+    }
   };
 
   return (
@@ -94,6 +105,14 @@ const Login: React.FC = () => {
           <button onClick={handleRegisterClick} className="register-button">
             Register
           </button>
+        </div>
+
+        <div className="cors-test-section">
+          <h3>CORS Test</h3>
+          <button onClick={handleCorsTest} className="cors-test-button">
+            Test CORS
+          </button>
+          <pre className="cors-test-result">{corsTestResult}</pre>
         </div>
       </div>
     </div>

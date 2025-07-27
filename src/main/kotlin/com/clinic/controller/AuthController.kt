@@ -52,4 +52,14 @@ class AuthController {
             ResponseEntity.badRequest().body(MessageResponse("Failed to get user info"))
         }
     }
+
+    @GetMapping("/cors-test")
+    fun corsTest(): ResponseEntity<Map<String, Any>> {
+        return ResponseEntity.ok(mapOf(
+            "message" to "CORS is working!",
+            "timestamp" to System.currentTimeMillis(),
+            "server" to "Spring Boot Backend",
+            "headers" to "CORS headers should be present"
+        ))
+    }
 } 
