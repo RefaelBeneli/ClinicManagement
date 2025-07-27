@@ -36,6 +36,7 @@ data class MeetingResponse(
 )
 
 data class UpdateMeetingRequest(
+    val clientId: Long?,
     val meetingDate: LocalDateTime?,
     val duration: Int?,
     val price: BigDecimal?,
@@ -48,4 +49,24 @@ data class PaymentUpdateRequest(
     @field:NotNull(message = "Payment status is required")
     val isPaid: Boolean,
     val paymentDate: LocalDateTime? = if (isPaid == true) LocalDateTime.now() else null
+)
+
+// Revenue tracking DTOs
+data class RevenueStatsRequest(
+    val period: String, // "daily", "monthly", "yearly", "custom"
+    val startDate: LocalDateTime? = null,
+    val endDate: LocalDateTime? = null
+)
+
+data class RevenueResponse(
+    val totalRevenue: BigDecimal,
+    val paidRevenue: BigDecimal,
+    val unpaidRevenue: BigDecimal,
+    val totalMeetings: Int,
+    val paidMeetings: Int,
+    val unpaidMeetings: Int,
+    val completedMeetings: Int,
+    val period: String,
+    val startDate: LocalDateTime,
+    val endDate: LocalDateTime
 ) 

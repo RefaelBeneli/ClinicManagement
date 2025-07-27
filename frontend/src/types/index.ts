@@ -68,6 +68,7 @@ export interface MeetingRequest {
 }
 
 export interface UpdateMeetingRequest {
+  clientId?: number;
   meetingDate?: string;
   duration?: number;
   price?: number;
@@ -113,4 +114,30 @@ export enum PersonalMeetingStatus {
 
 export interface MessageResponse {
   message: string;
+}
+
+// Revenue tracking types
+export interface RevenueStatsRequest {
+  period: 'daily' | 'monthly' | 'yearly' | 'custom';
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface RevenueResponse {
+  totalRevenue: number;
+  paidRevenue: number;
+  unpaidRevenue: number;
+  totalMeetings: number;
+  paidMeetings: number;
+  unpaidMeetings: number;
+  completedMeetings: number;
+  period: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface DashboardStats {
+  meetingsToday: number;
+  unpaidSessions: number;
+  monthlyRevenue: number;
 } 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { clients } from '../services/api';
-import { Client, ClientRequest, Meeting, MeetingStatus } from '../types';
+import { clients, meetings } from '../services/api';
+import { Client, ClientRequest, Meeting, MeetingStatus, RevenueResponse, DashboardStats } from '../types';
 import AdminPanel from './AdminPanel';
 import Calendar from './Calendar';
 import MeetingPanel from './MeetingPanel';
@@ -13,12 +13,28 @@ const Dashboard: React.FC = () => {
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Revenue tracking state
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    meetingsToday: 0,
+    unpaidSessions: 0,
+    monthlyRevenue: 0
+  });
+  const [revenueStats, setRevenueStats] = useState<RevenueResponse | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'monthly' | 'yearly' | 'custom'>('monthly');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [revenueLoading, setRevenueLoading] = useState(false);
+  
+  // Modal states
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showScheduleMeetingModal, setShowScheduleMeetingModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMeetingPanel, setShowMeetingPanel] = useState(false);
   const [showClientDetailsModal, setShowClientDetailsModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  
+  // Form states
   const [newClientData, setNewClientData] = useState<ClientRequest>({
     fullName: '',
     email: '',
@@ -35,6 +51,41 @@ const Dashboard: React.FC = () => {
     notes: ''
   });
 
+  // Fetch dashboard stats
+  const fetchDashboardStats = async () => {
+    try {
+      const stats = await meetings.getDashboardStats();
+      setDashboardStats(stats);
+    } catch (error: any) {
+      console.error('❌ Error fetching dashboard stats:', error);
+    }
+  };
+
+  // Fetch revenue stats
+  const fetchRevenueStats = async () => {
+    setRevenueLoading(true);
+    try {
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      
+      if (selectedPeriod === 'custom') {
+        if (!customStartDate || !customEndDate) {
+          throw new Error('Please select both start and end dates for custom period');
+        }
+        startDate = new Date(customStartDate).toISOString();
+        endDate = new Date(customEndDate).toISOString();
+      }
+      
+      const revenue = await meetings.getRevenueStats(selectedPeriod, startDate, endDate);
+      setRevenueStats(revenue);
+    } catch (error: any) {
+      console.error('❌ Error fetching revenue stats:', error);
+      setError(`Failed to load revenue data: ${error.message}`);
+    } finally {
+      setRevenueLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -42,18 +93,23 @@ const Dashboard: React.FC = () => {
         
         const [clientData, meetingData] = await Promise.all([
           clients.getAll(),
-          import('../services/api').then(api => api.meetings.getAll())
+          meetings.getAll()
         ]);
         
         console.log('📋 Clients loaded:', clientData.length);
         console.log('📅 Meetings loaded:', meetingData.length);
-        console.log('📊 Meeting data:', meetingData);
         
         setClientList(clientData);
         setMeetingList(meetingData);
+        
+        // Fetch dashboard and revenue stats
+        await Promise.all([
+          fetchDashboardStats(),
+          fetchRevenueStats()
+        ]);
+        
       } catch (error: any) {
         console.error('❌ Error fetching data:', error);
-        console.error('Error details:', error.response?.data || error.message);
         setError(`Failed to load data: ${error.response?.data?.message || error.message}`);
       } finally {
         setLoading(false);
@@ -62,6 +118,21 @@ const Dashboard: React.FC = () => {
 
     fetchData();
   }, []);
+
+  // Refresh revenue stats when period changes
+  useEffect(() => {
+    if (!loading) {
+      fetchRevenueStats();
+    }
+  }, [selectedPeriod, customStartDate, customEndDate]);
+
+  // Function to refresh all data (useful after payment updates)
+  const refreshData = async () => {
+    await Promise.all([
+      fetchDashboardStats(),
+      fetchRevenueStats()
+    ]);
+  };
 
   const handleLogout = () => {
     logout();
@@ -199,19 +270,20 @@ const Dashboard: React.FC = () => {
   const refreshMeetings = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Manually refreshing meetings...');
+      console.log('🔄 Manually refreshing data...');
       
-      const { meetings } = await import('../services/api');
       const meetingData = await meetings.getAll();
       
       console.log('📅 Refreshed meetings:', meetingData.length);
-      console.log('📊 Meeting data:', meetingData);
       
       setMeetingList(meetingData);
       setError('');
+      
+      // Also refresh revenue data
+      await refreshData();
     } catch (error: any) {
-      console.error('❌ Error refreshing meetings:', error);
-      setError(`Failed to refresh meetings: ${error.response?.data?.message || error.message}`);
+      console.error('❌ Error refreshing data:', error);
+      setError(`Failed to refresh data: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -277,15 +349,15 @@ const Dashboard: React.FC = () => {
                 <p>Active Clients</p>
               </div>
               <div className="stat-item">
-                <h3>0</h3>
+                <h3>{dashboardStats.meetingsToday}</h3>
                 <p>Meetings Today</p>
               </div>
               <div className="stat-item">
-                <h3>0</h3>
+                <h3>{dashboardStats.unpaidSessions}</h3>
                 <p>Unpaid Sessions</p>
               </div>
               <div className="stat-item">
-                <h3>$0</h3>
+                <h3>${dashboardStats.monthlyRevenue.toFixed(2)}</h3>
                 <p>Monthly Revenue</p>
               </div>
             </div>
@@ -330,6 +402,97 @@ const Dashboard: React.FC = () => {
               <button className="action-button" onClick={handleAddPersonalSession}>Add Personal Session</button>
               <button className="action-button" onClick={handleViewCalendar}>View Calendar</button>
             </div>
+          </div>
+
+          {/* Revenue Tracking Section */}
+          <div className="dashboard-card revenue-section">
+            <div className="revenue-header">
+              <h2>📊 Revenue Analytics</h2>
+              <div className="period-selector">
+                <select 
+                  value={selectedPeriod} 
+                  onChange={(e) => setSelectedPeriod(e.target.value as 'daily' | 'monthly' | 'yearly' | 'custom')}
+                  className="period-select"
+                >
+                  <option value="daily">Today</option>
+                  <option value="monthly">This Month</option>
+                  <option value="yearly">This Year</option>
+                  <option value="custom">Custom Period</option>
+                </select>
+              </div>
+            </div>
+
+            {selectedPeriod === 'custom' && (
+              <div className="custom-date-range">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="date-input"
+                />
+                <span>to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="date-input"
+                />
+              </div>
+            )}
+
+            {revenueLoading ? (
+              <div className="loading">Loading revenue data...</div>
+            ) : revenueStats ? (
+              <div className="revenue-stats">
+                <div className="revenue-grid">
+                  <div className="revenue-item total">
+                    <div className="revenue-amount">${revenueStats.totalRevenue.toFixed(2)}</div>
+                    <div className="revenue-label">Total Potential</div>
+                    <div className="revenue-count">{revenueStats.totalMeetings} meetings</div>
+                  </div>
+                  <div className="revenue-item paid">
+                    <div className="revenue-amount">${revenueStats.paidRevenue.toFixed(2)}</div>
+                    <div className="revenue-label">Paid Revenue</div>
+                    <div className="revenue-count">{revenueStats.paidMeetings} paid</div>
+                  </div>
+                  <div className="revenue-item unpaid">
+                    <div className="revenue-amount">${revenueStats.unpaidRevenue.toFixed(2)}</div>
+                    <div className="revenue-label">Pending Payment</div>
+                    <div className="revenue-count">{revenueStats.unpaidMeetings} unpaid</div>
+                  </div>
+                  <div className="revenue-item completed">
+                    <div className="revenue-amount">{revenueStats.completedMeetings}</div>
+                    <div className="revenue-label">Completed Sessions</div>
+                    <div className="revenue-count">
+                      {revenueStats.totalMeetings > 0 
+                        ? Math.round((revenueStats.completedMeetings / revenueStats.totalMeetings) * 100)
+                        : 0
+                      }% completion rate
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="revenue-summary">
+                  <div className="summary-item">
+                    <span className="summary-label">Collection Rate:</span>
+                    <span className="summary-value">
+                      {revenueStats.totalRevenue > 0 
+                        ? Math.round((revenueStats.paidRevenue / revenueStats.totalRevenue) * 100)
+                        : 0
+                      }%
+                    </span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="summary-label">Period:</span>
+                    <span className="summary-value">
+                      {new Date(revenueStats.startDate).toLocaleDateString()} - {new Date(revenueStats.endDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="no-data">No revenue data available</div>
+            )}
           </div>
 
           <div className="dashboard-card meetings-section">
@@ -604,7 +767,8 @@ const Dashboard: React.FC = () => {
       {/* Meeting Management Panel */}
       {showMeetingPanel && (
         <MeetingPanel 
-          onClose={handleCloseMeetingPanel} 
+          onClose={handleCloseMeetingPanel}
+          onRefresh={refreshData}
         />
       )}
 

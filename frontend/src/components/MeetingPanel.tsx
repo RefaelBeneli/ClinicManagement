@@ -5,9 +5,10 @@ import './MeetingPanel.css';
 
 interface MeetingPanelProps {
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
-const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose }) => {
+const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose }) => {
       );
       
       console.log('Meeting status updated successfully');
+      onRefresh?.(); // Call onRefresh if provided
     } catch (error: any) {
       console.error('Error updating meeting status:', error);
       alert('Failed to update meeting status');
@@ -119,6 +121,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose }) => {
       );
       
       console.log('Payment status updated successfully');
+      onRefresh?.(); // Call onRefresh if provided
     } catch (error: any) {
       console.error('Error updating payment status:', error);
       alert('Failed to update payment status');

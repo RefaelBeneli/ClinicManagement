@@ -6,6 +6,7 @@ import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/api/meetings")
@@ -71,12 +72,38 @@ class MeetingController {
     }
 
     @DeleteMapping("/{id}")
-    fun deleteMeeting(@PathVariable id: Long): ResponseEntity<MessageResponse> {
+    fun deleteMeeting(@PathVariable id: Long): ResponseEntity<*> {
         return try {
             meetingService.deleteMeeting(id)
             ResponseEntity.ok(MessageResponse("Meeting deleted successfully"))
         } catch (e: Exception) {
-            ResponseEntity.badRequest().body(MessageResponse("Failed to delete meeting"))
+            ResponseEntity.badRequest().body(MessageResponse("Error deleting meeting: ${e.message}"))
+        }
+    }
+
+    @GetMapping("/revenue")
+    fun getRevenueStats(
+        @RequestParam period: String,
+        @RequestParam(required = false) startDate: String? = null,
+        @RequestParam(required = false) endDate: String? = null
+    ): ResponseEntity<*> {
+        return try {
+            val start = startDate?.let { LocalDateTime.parse(it) }
+            val end = endDate?.let { LocalDateTime.parse(it) }
+            val stats = meetingService.getRevenueStats(period, start, end)
+            ResponseEntity.ok(stats)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error getting revenue stats: ${e.message}"))
+        }
+    }
+
+    @GetMapping("/dashboard-stats")
+    fun getDashboardStats(): ResponseEntity<*> {
+        return try {
+            val stats = meetingService.getDashboardStats()
+            ResponseEntity.ok(stats)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error getting dashboard stats: ${e.message}"))
         }
     }
 

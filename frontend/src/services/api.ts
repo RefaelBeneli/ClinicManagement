@@ -11,7 +11,9 @@ import {
   UpdateMeetingRequest,
   PersonalMeeting,
   PersonalMeetingRequest,
-  MessageResponse
+  MessageResponse,
+  RevenueResponse,
+  DashboardStats
 } from '../types';
 
 // Automatically detect production environment and use Railway backend
@@ -179,6 +181,20 @@ export const meetings = {
 
   getByMonth: async (year: number, month: number): Promise<Meeting[]> => {
     const response = await apiClient.get(`/meetings/month?year=${year}&month=${month}`);
+    return response.data;
+  },
+
+  // Revenue tracking methods
+  getRevenueStats: async (period: string, startDate?: string, endDate?: string): Promise<RevenueResponse> => {
+    let url = `/meetings/revenue?period=${period}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    const response = await apiClient.get(url);
+    return response.data;
+  },
+
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    const response = await apiClient.get('/meetings/dashboard-stats');
     return response.data;
   },
 };
