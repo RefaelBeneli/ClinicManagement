@@ -8,6 +8,7 @@ import {
   ClientRequest,
   Meeting,
   MeetingRequest,
+  UpdateMeetingRequest,
   PersonalMeeting,
   PersonalMeetingRequest,
   MessageResponse
@@ -117,7 +118,7 @@ export const meetings = {
     return response.data;
   },
 
-  update: async (id: number, meetingData: Partial<MeetingRequest>): Promise<Meeting> => {
+  update: async (id: number, meetingData: UpdateMeetingRequest): Promise<Meeting> => {
     const response = await apiClient.put(`/meetings/${id}`, meetingData);
     return response.data;
   },

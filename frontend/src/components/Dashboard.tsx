@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { clients } from '../services/api';
-import { Client, ClientRequest } from '../types';
+import { Client, ClientRequest, Meeting, MeetingStatus, UpdateMeetingRequest } from '../types';
 import AdminPanel from './AdminPanel';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [clientList, setClientList] = useState<Client[]>([]);
+  const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddClientModal, setShowAddClientModal] = useState(false);
@@ -29,19 +30,23 @@ const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchData = async () => {
       try {
-        const data = await clients.getAll();
-        setClientList(data);
+        const [clientData, meetingData] = await Promise.all([
+          clients.getAll(),
+          import('../services/api').then(api => api.meetings.getAll())
+        ]);
+        setClientList(clientData);
+        setMeetingList(meetingData);
       } catch (error) {
-        setError('Failed to load clients');
-        console.error('Error fetching clients:', error);
+        setError('Failed to load data');
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchClients();
+    fetchData();
   }, []);
 
   const handleLogout = () => {
@@ -124,7 +129,10 @@ const Dashboard: React.FC = () => {
 
       // Import the meetings API if not already imported
       const { meetings } = await import('../services/api');
-      await meetings.create(meetingRequest);
+      const newMeeting = await meetings.create(meetingRequest);
+      
+      // Add the new meeting to the local list
+      setMeetingList(prevMeetings => [...prevMeetings, newMeeting]);
       
       alert('Meeting scheduled successfully!');
       handleCancelScheduleMeeting();
@@ -144,6 +152,28 @@ const Dashboard: React.FC = () => {
       price: 150,
       notes: ''
     });
+  };
+
+  const handleUpdateMeetingStatus = async (meetingId: number, newStatus: MeetingStatus) => {
+    try {
+      // Import the meetings API
+      const { meetings } = await import('../services/api');
+      await meetings.update(meetingId, { status: newStatus });
+      
+      // Update the local meeting list
+      setMeetingList(prevMeetings => 
+        prevMeetings.map(meeting => 
+          meeting.id === meetingId 
+            ? { ...meeting, status: newStatus }
+            : meeting
+        )
+      );
+      
+      alert('Meeting status updated successfully!');
+    } catch (error) {
+      console.error('Error updating meeting status:', error);
+      alert('Failed to update meeting status. Please try again.');
+    }
   };
 
   return (
@@ -229,9 +259,54 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="dashboard-card">
-            <h2>Upcoming Sessions</h2>
-            <p>No upcoming sessions scheduled.</p>
+          <div className="dashboard-card meetings-section">
+            <h2>Your Meetings</h2>
+            {loading ? (
+              <p>Loading meetings...</p>
+            ) : error ? (
+              <p className="error">{error}</p>
+            ) : meetingList.length === 0 ? (
+              <p>No meetings scheduled yet. Use "Schedule Meeting" to add one!</p>
+            ) : (
+              <div className="meetings-list">
+                {meetingList.slice(0, 10).map((meeting) => (
+                  <div key={meeting.id} className="meeting-item">
+                    <div className="meeting-info">
+                      <h4>{meeting.client.fullName}</h4>
+                      <p className="meeting-date">
+                        {new Date(meeting.meetingDate).toLocaleDateString()} at{' '}
+                        {new Date(meeting.meetingDate).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </p>
+                      <p className="meeting-details">
+                        {meeting.duration} minutes - ${meeting.price}
+                        {meeting.isPaid && <span className="paid-badge">✓ Paid</span>}
+                      </p>
+                      {meeting.notes && <p className="meeting-notes">{meeting.notes}</p>}
+                    </div>
+                    <div className="meeting-actions">
+                      <div className="status-section">
+                        <span className={`status-badge ${meeting.status.toLowerCase()}`}>
+                          {meeting.status}
+                        </span>
+                        <select
+                          value={meeting.status}
+                          onChange={(e) => handleUpdateMeetingStatus(meeting.id, e.target.value as MeetingStatus)}
+                          className="status-select"
+                        >
+                          <option value={MeetingStatus.SCHEDULED}>Scheduled</option>
+                          <option value={MeetingStatus.COMPLETED}>Completed</option>
+                          <option value={MeetingStatus.CANCELLED}>Cancelled</option>
+                          <option value={MeetingStatus.NO_SHOW}>No Show</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -67,6 +67,15 @@ export interface MeetingRequest {
   notes?: string;
 }
 
+export interface UpdateMeetingRequest {
+  meetingDate?: string;
+  duration?: number;
+  price?: number;
+  isPaid?: boolean;
+  notes?: string;
+  status?: MeetingStatus;
+}
+
 export interface PersonalMeeting {
   id: number;
   therapistName: string;
