@@ -32,15 +32,23 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('🔄 Starting to fetch data...');
+        
         const [clientData, meetingData] = await Promise.all([
           clients.getAll(),
           import('../services/api').then(api => api.meetings.getAll())
         ]);
+        
+        console.log('📋 Clients loaded:', clientData.length);
+        console.log('📅 Meetings loaded:', meetingData.length);
+        console.log('📊 Meeting data:', meetingData);
+        
         setClientList(clientData);
         setMeetingList(meetingData);
-      } catch (error) {
-        setError('Failed to load data');
-        console.error('Error fetching data:', error);
+      } catch (error: any) {
+        console.error('❌ Error fetching data:', error);
+        console.error('Error details:', error.response?.data || error.message);
+        setError(`Failed to load data: ${error.response?.data?.message || error.message}`);
       } finally {
         setLoading(false);
       }
@@ -154,8 +162,31 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  const refreshMeetings = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Manually refreshing meetings...');
+      
+      const { meetings } = await import('../services/api');
+      const meetingData = await meetings.getAll();
+      
+      console.log('📅 Refreshed meetings:', meetingData.length);
+      console.log('📊 Meeting data:', meetingData);
+      
+      setMeetingList(meetingData);
+      setError('');
+    } catch (error: any) {
+      console.error('❌ Error refreshing meetings:', error);
+      setError(`Failed to refresh meetings: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpdateMeetingStatus = async (meetingId: number, newStatus: MeetingStatus) => {
     try {
+      console.log('🔄 Updating meeting status:', meetingId, 'to', newStatus);
+      
       // Import the meetings API
       const { meetings } = await import('../services/api');
       await meetings.update(meetingId, { status: newStatus });
@@ -169,10 +200,12 @@ const Dashboard: React.FC = () => {
         )
       );
       
+      console.log('✅ Meeting status updated successfully!');
       alert('Meeting status updated successfully!');
-    } catch (error) {
-      console.error('Error updating meeting status:', error);
-      alert('Failed to update meeting status. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Error updating meeting status:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      alert(`Failed to update meeting status: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -260,13 +293,37 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="dashboard-card meetings-section">
-            <h2>Your Meetings</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2>Your Meetings {!loading && `(${meetingList.length})`}</h2>
+              <button 
+                onClick={refreshMeetings} 
+                className="btn-secondary"
+                disabled={loading}
+                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+              >
+                {loading ? '🔄 Loading...' : '🔄 Refresh'}
+              </button>
+            </div>
             {loading ? (
               <p>Loading meetings...</p>
             ) : error ? (
-              <p className="error">{error}</p>
+              <div className="error">
+                <p><strong>Error:</strong> {error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="btn-secondary"
+                  style={{ marginTop: '10px' }}
+                >
+                  Reload Page
+                </button>
+              </div>
             ) : meetingList.length === 0 ? (
-              <p>No meetings scheduled yet. Use "Schedule Meeting" to add one!</p>
+              <div>
+                <p>No meetings scheduled yet. Use "Schedule Meeting" to add one!</p>
+                <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px' }}>
+                  💡 <strong>Tip:</strong> Make sure you have clients added first, then schedule meetings with them.
+                </p>
+              </div>
             ) : (
               <div className="meetings-list">
                 {meetingList.slice(0, 10).map((meeting) => (
