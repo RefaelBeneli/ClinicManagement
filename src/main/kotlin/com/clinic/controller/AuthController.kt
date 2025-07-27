@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
-@CrossOrigin(origins = ["http://localhost:3000", "https://frolicking-granita-900c53.netlify.app"], maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
 class AuthController {

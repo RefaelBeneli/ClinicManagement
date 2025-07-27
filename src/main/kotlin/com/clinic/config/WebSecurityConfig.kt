@@ -71,13 +71,34 @@ class WebSecurityConfig {
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOrigins = listOf(
-            "http://localhost:3000",
-            "https://frolicking-granita-900c53.netlify.app"
+        
+        // Use allowedOriginPatterns for more flexible matching
+        configuration.allowedOriginPatterns = listOf(
+            "http://localhost:*",
+            "https://frolicking-granita-900c53.netlify.app",
+            "https://*.netlify.app"
         )
-        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        
+        // Allow all common HTTP methods
+        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH")
+        
+        // Allow all headers
         configuration.allowedHeaders = listOf("*")
+        
+        // Expose common headers that frontend might need
+        configuration.exposedHeaders = listOf(
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials"
+        )
+        
+        // Allow credentials (important for JWT tokens)
         configuration.allowCredentials = true
+        
+        // Set max age for preflight requests
+        configuration.maxAge = 3600L
         
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", configuration)
