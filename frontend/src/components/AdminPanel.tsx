@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminPanel.css';
 
@@ -26,7 +26,7 @@ const AdminPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'clients' | 'meetings'>('dashboard');
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8085/api'}/admin/dashboard/stats`, {
         headers: {
@@ -42,9 +42,9 @@ const AdminPanel: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
     }
-  };
+  }, [token]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8085/api'}/admin/users?page=0&size=20`, {
         headers: {
@@ -60,7 +60,7 @@ const AdminPanel: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     const loadAdminData = async () => {
@@ -70,7 +70,7 @@ const AdminPanel: React.FC = () => {
     };
 
     loadAdminData();
-  }, [token]);
+  }, [fetchStats, fetchUsers]);
 
   if (loading) {
     return <div className="admin-loading">Loading admin panel...</div>;
