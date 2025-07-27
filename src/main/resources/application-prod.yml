@@ -13,7 +13,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop  # Temporarily recreate DB to add role column
+      ddl-auto: update  # Safe for production - only updates schema
     show-sql: false  # Disable SQL logging in production
     properties:
       hibernate:
