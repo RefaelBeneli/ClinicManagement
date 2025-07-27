@@ -17,6 +17,8 @@ const Dashboard: React.FC = () => {
   const [showScheduleMeetingModal, setShowScheduleMeetingModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMeetingPanel, setShowMeetingPanel] = useState(false);
+  const [showClientDetailsModal, setShowClientDetailsModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [newClientData, setNewClientData] = useState<ClientRequest>({
     fullName: '',
     email: '',
@@ -95,6 +97,18 @@ const Dashboard: React.FC = () => {
   const handleCloseMeetingPanel = () => {
     console.log('📊 Closing meeting management panel...');
     setShowMeetingPanel(false);
+  };
+
+  const handleViewClient = (client: Client) => {
+    console.log('👤 Opening client details for:', client.fullName);
+    setSelectedClient(client);
+    setShowClientDetailsModal(true);
+  };
+
+  const handleCloseClientDetails = () => {
+    console.log('👤 Closing client details modal...');
+    setShowClientDetailsModal(false);
+    setSelectedClient(null);
   };
 
   const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -294,7 +308,12 @@ const Dashboard: React.FC = () => {
                       <p>{client.email || 'No email'}</p>
                     </div>
                     <div className="client-actions">
-                      <button className="btn-small">View</button>
+                      <button 
+                        className="btn-small" 
+                        onClick={() => handleViewClient(client)}
+                      >
+                        View
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -595,6 +614,66 @@ const Dashboard: React.FC = () => {
           meetings={meetingList} 
           onClose={handleCloseCalendar} 
         />
+      )}
+
+      {/* Client Details Modal */}
+      {showClientDetailsModal && selectedClient && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Client Details</h3>
+              <button 
+                onClick={handleCloseClientDetails}
+                className="close-button"
+                style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="client-details">
+                <div className="detail-item">
+                  <label><strong>Full Name:</strong></label>
+                  <p>{selectedClient.fullName}</p>
+                </div>
+                <div className="detail-item">
+                  <label><strong>Email:</strong></label>
+                  <p>{selectedClient.email || 'Not provided'}</p>
+                </div>
+                <div className="detail-item">
+                  <label><strong>Phone:</strong></label>
+                  <p>{selectedClient.phone || 'Not provided'}</p>
+                </div>
+                <div className="detail-item">
+                  <label><strong>Date of Birth:</strong></label>
+                  <p>{selectedClient.dateOfBirth || 'Not provided'}</p>
+                </div>
+                <div className="detail-item">
+                  <label><strong>Status:</strong></label>
+                  <p>{selectedClient.isActive ? 'Active' : 'Inactive'}</p>
+                </div>
+                {selectedClient.notes && (
+                  <div className="detail-item">
+                    <label><strong>Notes:</strong></label>
+                    <p>{selectedClient.notes}</p>
+                  </div>
+                )}
+                <div className="detail-item">
+                  <label><strong>Joined:</strong></label>
+                  <p>{new Date(selectedClient.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                onClick={handleCloseClientDetails}
+                className="btn-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
