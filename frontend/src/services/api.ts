@@ -13,7 +13,11 @@ import {
   MessageResponse
 } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8085/api';
+// Automatically detect production environment and use Railway backend
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (window.location.hostname === 'frolicking-granita-900c53.netlify.app' 
+    ? 'https://web-production-9aa8.up.railway.app/api'
+    : 'http://localhost:8085/api');
 
 // Create axios instance
 const apiClient = axios.create({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminPanel.css';
 
@@ -26,9 +26,17 @@ const AdminPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'clients' | 'meetings'>('dashboard');
 
+  // Use the same API URL logic as the main API service
+  const apiUrl = useMemo(() => {
+    return process.env.REACT_APP_API_URL || 
+      (window.location.hostname === 'frolicking-granita-900c53.netlify.app' 
+        ? 'https://web-production-9aa8.up.railway.app/api'
+        : 'http://localhost:8085/api');
+  }, []);
+
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8085/api'}/admin/dashboard/stats`, {
+      const response = await fetch(`${apiUrl}/admin/dashboard/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -42,11 +50,11 @@ const AdminPanel: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
     }
-  }, [token]);
+  }, [apiUrl, token]);
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8085/api'}/admin/users?page=0&size=20`, {
+      const response = await fetch(`${apiUrl}/admin/users?page=0&size=20`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -60,7 +68,7 @@ const AdminPanel: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
-  }, [token]);
+  }, [apiUrl, token]);
 
   useEffect(() => {
     const loadAdminData = async () => {
