@@ -44,4 +44,10 @@ data class UpdatePersonalMeetingRequest(
     val isPaid: Boolean?,
     val notes: String?,
     val status: PersonalMeetingStatus?
+)
+
+data class PersonalMeetingPaymentUpdateRequest(
+    @field:NotNull(message = "Payment status is required")
+    val isPaid: Boolean,
+    val paymentDate: LocalDateTime? = if (isPaid == true) LocalDateTime.now() else null
 ) 

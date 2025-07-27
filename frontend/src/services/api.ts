@@ -11,6 +11,7 @@ import {
   UpdateMeetingRequest,
   PersonalMeeting,
   PersonalMeetingRequest,
+  UpdatePersonalMeetingRequest,
   MessageResponse,
   RevenueResponse,
   DashboardStats
@@ -216,7 +217,7 @@ export const personalMeetings = {
     return response.data;
   },
 
-  update: async (id: number, meetingData: Partial<PersonalMeetingRequest>): Promise<PersonalMeeting> => {
+  update: async (id: number, meetingData: UpdatePersonalMeetingRequest): Promise<PersonalMeeting> => {
     const response = await apiClient.put(`/personal-meetings/${id}`, meetingData);
     return response.data;
   },
@@ -236,6 +237,11 @@ export const personalMeetings = {
 
   getByMonth: async (year: number, month: number): Promise<PersonalMeeting[]> => {
     const response = await apiClient.get(`/personal-meetings/month?year=${year}&month=${month}`);
+    return response.data;
+  },
+
+  getStats: async (): Promise<any> => {
+    const response = await apiClient.get('/personal-meetings/stats');
     return response.data;
   },
 };

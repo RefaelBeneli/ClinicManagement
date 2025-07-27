@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { clients, meetings } from '../services/api';
 import { Client, ClientRequest, Meeting, MeetingStatus, RevenueResponse, DashboardStats } from '../types';
 import AdminPanel from './AdminPanel';
 import Calendar from './Calendar';
 import MeetingPanel from './MeetingPanel';
+import PersonalMeetingPanel from './PersonalMeetingPanel';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -31,6 +32,7 @@ const Dashboard: React.FC = () => {
   const [showScheduleMeetingModal, setShowScheduleMeetingModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMeetingPanel, setShowMeetingPanel] = useState(false);
+  const [showPersonalMeetingPanel, setShowPersonalMeetingPanel] = useState(false);
   const [showClientDetailsModal, setShowClientDetailsModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   
@@ -52,17 +54,17 @@ const Dashboard: React.FC = () => {
   });
 
   // Fetch dashboard stats
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = useCallback(async () => {
     try {
       const stats = await meetings.getDashboardStats();
       setDashboardStats(stats);
     } catch (error: any) {
       console.error('❌ Error fetching dashboard stats:', error);
     }
-  };
+  }, []);
 
   // Fetch revenue stats
-  const fetchRevenueStats = async () => {
+  const fetchRevenueStats = useCallback(async () => {
     setRevenueLoading(true);
     try {
       let startDate: string | undefined;
@@ -84,7 +86,7 @@ const Dashboard: React.FC = () => {
     } finally {
       setRevenueLoading(false);
     }
-  };
+  }, [selectedPeriod, customStartDate, customEndDate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -117,22 +119,22 @@ const Dashboard: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [fetchDashboardStats, fetchRevenueStats]);
 
   // Refresh revenue stats when period changes
   useEffect(() => {
     if (!loading) {
       fetchRevenueStats();
     }
-  }, [selectedPeriod, customStartDate, customEndDate]);
+  }, [selectedPeriod, customStartDate, customEndDate, fetchRevenueStats, loading]);
 
   // Function to refresh all data (useful after payment updates)
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     await Promise.all([
       fetchDashboardStats(),
       fetchRevenueStats()
     ]);
-  };
+  }, [fetchDashboardStats, fetchRevenueStats]);
 
   const handleLogout = () => {
     logout();
@@ -147,7 +149,13 @@ const Dashboard: React.FC = () => {
   };
 
   const handleAddPersonalSession = () => {
-    alert('Personal Session feature coming soon!');
+    console.log('🧘‍♀️ Opening personal meetings panel...');
+    setShowPersonalMeetingPanel(true);
+  };
+
+  const handleClosePersonalMeetingPanel = () => {
+    console.log('🧘‍♀️ Closing personal meetings panel...');
+    setShowPersonalMeetingPanel(false);
   };
 
   const handleViewCalendar = () => {
@@ -399,7 +407,7 @@ const Dashboard: React.FC = () => {
               <button className="action-button" onClick={handleAddClient}>Add New Client</button>
               <button className="action-button" onClick={handleScheduleMeeting}>Schedule Meeting</button>
               <button className="action-button" onClick={handleManageMeetings}>Manage Meetings</button>
-              <button className="action-button" onClick={handleAddPersonalSession}>Add Personal Session</button>
+              <button className="action-button" onClick={handleAddPersonalSession}>My Personal Sessions</button>
               <button className="action-button" onClick={handleViewCalendar}>View Calendar</button>
             </div>
           </div>
@@ -768,6 +776,14 @@ const Dashboard: React.FC = () => {
       {showMeetingPanel && (
         <MeetingPanel 
           onClose={handleCloseMeetingPanel}
+          onRefresh={refreshData}
+        />
+      )}
+
+      {/* Personal Meeting Panel */}
+      {showPersonalMeetingPanel && (
+        <PersonalMeetingPanel 
+          onClose={handleClosePersonalMeetingPanel}
           onRefresh={refreshData}
         />
       )}

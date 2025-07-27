@@ -98,6 +98,16 @@ export interface PersonalMeetingRequest {
   notes?: string;
 }
 
+export interface UpdatePersonalMeetingRequest {
+  therapistName?: string;
+  meetingDate?: string;
+  duration?: number;
+  price?: number;
+  isPaid?: boolean;
+  notes?: string;
+  status?: PersonalMeetingStatus;
+}
+
 export enum MeetingStatus {
   SCHEDULED = 'SCHEDULED',
   COMPLETED = 'COMPLETED',
