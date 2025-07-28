@@ -97,7 +97,7 @@ class MeetingController {
         }
     }
 
-    @GetMapping("/dashboard-stats")
+    @GetMapping("/user-dashboard-stats")
     fun getDashboardStats(): ResponseEntity<*> {
         return try {
             val stats = meetingService.getDashboardStats()

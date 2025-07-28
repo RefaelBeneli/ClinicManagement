@@ -200,7 +200,7 @@ export const meetings = {
   },
 
   getDashboardStats: async (): Promise<DashboardStats> => {
-    const response = await apiClient.get('/meetings/dashboard-stats');
+    const response = await apiClient.get('/meetings/user-dashboard-stats');
     return response.data;
   },
 };

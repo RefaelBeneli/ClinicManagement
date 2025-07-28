@@ -58,6 +58,7 @@ class WebSecurityConfig {
                 authz
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/h2-console/**").permitAll()
+                    .requestMatchers("OPTIONS", "/**").permitAll() // Allow all OPTIONS requests for CORS
                     .anyRequest().authenticated()
             }
             .headers { it.frameOptions().disable() } // For H2 console
