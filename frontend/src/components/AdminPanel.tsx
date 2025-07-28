@@ -16,13 +16,6 @@ interface AdminUser {
   createdAt: string;
 }
 
-interface DashboardStats {
-  totalUsers: number;
-  totalClients: number;
-  totalMeetings: number;
-  totalPersonalMeetings: number;
-}
-
 const AdminPanel: React.FC = () => {
   const { token } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
