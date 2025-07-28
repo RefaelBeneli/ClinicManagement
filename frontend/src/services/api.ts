@@ -256,6 +256,69 @@ export const personalMeetings = {
   },
 };
 
+// Calendar Integration API
+export const calendarIntegration = {
+  // Get current user's integration settings
+  getIntegration: async () => {
+    const response = await apiClient.get('/calendar/integration');
+    return response.data;
+  },
+
+  // Create a new integration (after OAuth callback)
+  createIntegration: async (request: any) => {
+    const response = await apiClient.post('/calendar/integration', request);
+    return response.data;
+  },
+
+  // Update existing integration settings (calendars, flags, etc.)
+  updateIntegration: async (request: any) => {
+    const response = await apiClient.patch('/calendar/integration', request);
+    return response.data;
+  },
+
+  // Disconnect integration completely
+  disconnectIntegration: async () => {
+    const response = await apiClient.delete('/calendar/integration');
+    return response.data;
+  },
+
+  // Generate Google OAuth authorization URL
+  getAuthUrl: async () => {
+    const response = await apiClient.get('/calendar/auth-url');
+    return response.data;
+  },
+
+  // Handle OAuth callback (front-end exchanges code for tokens via backend)
+  handleOAuthCallback: async (request: any) => {
+    const response = await apiClient.post('/calendar/oauth/callback', request);
+    return response.data;
+  },
+
+  // Sync status
+  getSyncStatus: async () => {
+    const response = await apiClient.get('/calendar/status');
+    return response.data;
+  },
+
+  // List user's Google calendars
+  getCalendars: async () => {
+    const response = await apiClient.get('/calendar/calendars');
+    return response.data;
+  },
+
+  // Enable sync
+  enableSync: async () => {
+    const response = await apiClient.post('/calendar/sync/enable');
+    return response.data;
+  },
+
+  // Disable sync
+  disableSync: async () => {
+    const response = await apiClient.post('/calendar/sync/disable');
+    return response.data;
+  },
+};
+
 // User Approval API (Admin only)
 export const userApproval = {
   getPendingUsers: async (): Promise<PendingUser[]> => {

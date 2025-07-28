@@ -28,6 +28,25 @@ const UserApprovalPanel: React.FC<UserApprovalPanelProps> = ({ onClose }) => {
     }
   };
 
+  const handleApprove = async (userId: number) => {
+    try {
+      await userApproval.approveUser(userId, { userId });
+      setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
+    } catch (error: any) {
+      alert('Failed to approve user: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleReject = async (userId: number) => {
+    const reason = prompt('Reason for rejection (optional):') || '';
+    try {
+      await userApproval.rejectUser(userId, { userId, reason });
+      setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
+    } catch (error: any) {
+      alert('Failed to reject user: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   return (
     <div className="user-approval-overlay">
       <div className="user-approval-panel">
@@ -48,6 +67,11 @@ const UserApprovalPanel: React.FC<UserApprovalPanelProps> = ({ onClose }) => {
                     <h4>{user.fullName}</h4>
                     <p>@{user.username}</p>
                     <p>{user.email}</p>
+                    <small>Joined: {new Date(user.createdAt).toLocaleDateString()}</small>
+                  </div>
+                  <div className="user-actions">
+                    <button className="approve-btn" onClick={() => handleApprove(user.id)}>Approve</button>
+                    <button className="reject-btn" onClick={() => handleReject(user.id)}>Reject</button>
                   </div>
                 </div>
               ))}
