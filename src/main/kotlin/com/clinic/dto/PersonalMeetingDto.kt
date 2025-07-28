@@ -1,6 +1,7 @@
 package com.clinic.dto
 
 import com.clinic.entity.PersonalMeetingStatus
+import com.clinic.entity.PersonalMeetingType
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
@@ -10,6 +11,14 @@ import java.time.LocalDateTime
 data class PersonalMeetingRequest(
     @field:NotBlank(message = "Therapist name is required")
     val therapistName: String,
+    
+    @field:NotNull(message = "Meeting type is required")
+    val meetingType: PersonalMeetingType = PersonalMeetingType.PERSONAL_THERAPY,
+    
+    @field:NotBlank(message = "Provider type is required")
+    val providerType: String = "Therapist",
+    
+    val providerCredentials: String? = null,
     
     @field:NotNull(message = "Meeting date is required")
     val meetingDate: LocalDateTime,
@@ -26,6 +35,9 @@ data class PersonalMeetingRequest(
 data class PersonalMeetingResponse(
     val id: Long,
     val therapistName: String,
+    val meetingType: PersonalMeetingType,
+    val providerType: String,
+    val providerCredentials: String?,
     val meetingDate: LocalDateTime,
     val duration: Int,
     val price: BigDecimal,
@@ -38,6 +50,9 @@ data class PersonalMeetingResponse(
 
 data class UpdatePersonalMeetingRequest(
     val therapistName: String?,
+    val meetingType: PersonalMeetingType?,
+    val providerType: String?,
+    val providerCredentials: String?,
     val meetingDate: LocalDateTime?,
     val duration: Int?,
     val price: BigDecimal?,

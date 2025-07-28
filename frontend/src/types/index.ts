@@ -129,6 +129,9 @@ export interface UpdateMeetingRequest {
 export interface PersonalMeeting {
   id: number;
   therapistName: string;
+  meetingType: PersonalMeetingType;
+  providerType: string;
+  providerCredentials?: string;
   meetingDate: string;
   duration: number;
   price: number;
@@ -141,6 +144,9 @@ export interface PersonalMeeting {
 
 export interface PersonalMeetingRequest {
   therapistName: string;
+  meetingType?: PersonalMeetingType;
+  providerType?: string;
+  providerCredentials?: string;
   meetingDate: string;
   duration?: number;
   price: number;
@@ -149,6 +155,9 @@ export interface PersonalMeetingRequest {
 
 export interface UpdatePersonalMeetingRequest {
   therapistName?: string;
+  meetingType?: PersonalMeetingType;
+  providerType?: string;
+  providerCredentials?: string;
   meetingDate?: string;
   duration?: number;
   price?: number;
@@ -169,6 +178,13 @@ export enum PersonalMeetingStatus {
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
   NO_SHOW = 'NO_SHOW'
+}
+
+export enum PersonalMeetingType {
+  PERSONAL_THERAPY = 'PERSONAL_THERAPY',
+  PROFESSIONAL_DEVELOPMENT = 'PROFESSIONAL_DEVELOPMENT',
+  SUPERVISION = 'SUPERVISION',
+  TEACHING_SESSION = 'TEACHING_SESSION'
 }
 
 export interface MessageResponse {

@@ -249,6 +249,11 @@ export const personalMeetings = {
     const response = await apiClient.get('/personal-meetings/stats');
     return response.data;
   },
+
+  getTypes: async (): Promise<string[]> => {
+    const response = await apiClient.get('/personal-meetings/types');
+    return response.data;
+  },
 };
 
 // User Approval API (Admin only)

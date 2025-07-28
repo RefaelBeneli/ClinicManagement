@@ -1,5 +1,6 @@
 package com.clinic.dto
 
+import com.clinic.entity.PersonalMeetingType
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -80,6 +81,9 @@ data class AdminPersonalMeetingResponse(
     val userId: Long,
     val userFullName: String,
     val therapistName: String,
+    val meetingType: String,
+    val providerType: String,
+    val providerCredentials: String?,
     val meetingDate: LocalDateTime,
     val duration: Int,
     val price: BigDecimal,
@@ -93,6 +97,9 @@ data class AdminPersonalMeetingResponse(
 data class AdminPersonalMeetingRequest(
     val userId: Long,
     val therapistName: String,
+    val meetingType: String = "PERSONAL_THERAPY",
+    val providerType: String = "Therapist",
+    val providerCredentials: String? = null,
     val meetingDate: LocalDateTime,
     val duration: Int,
     val price: BigDecimal,

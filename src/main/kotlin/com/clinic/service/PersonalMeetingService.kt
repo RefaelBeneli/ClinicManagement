@@ -5,6 +5,7 @@ import com.clinic.dto.PersonalMeetingResponse
 import com.clinic.dto.UpdatePersonalMeetingRequest
 import com.clinic.entity.PersonalMeeting
 import com.clinic.entity.PersonalMeetingStatus
+import com.clinic.entity.PersonalMeetingType
 import com.clinic.repository.PersonalMeetingRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -26,6 +27,9 @@ class PersonalMeetingService {
         val meeting = PersonalMeeting(
             user = currentUser,
             therapistName = meetingRequest.therapistName,
+            meetingType = meetingRequest.meetingType,
+            providerType = meetingRequest.providerType,
+            providerCredentials = meetingRequest.providerCredentials,
             meetingDate = meetingRequest.meetingDate,
             duration = meetingRequest.duration ?: 60,
             price = meetingRequest.price,
@@ -65,6 +69,9 @@ class PersonalMeetingService {
 
         val updatedMeeting = meeting.copy(
             therapistName = updateRequest.therapistName ?: meeting.therapistName,
+            meetingType = updateRequest.meetingType ?: meeting.meetingType,
+            providerType = updateRequest.providerType ?: meeting.providerType,
+            providerCredentials = updateRequest.providerCredentials ?: meeting.providerCredentials,
             meetingDate = updateRequest.meetingDate ?: meeting.meetingDate,
             duration = updateRequest.duration ?: meeting.duration,
             price = updateRequest.price ?: meeting.price,
@@ -115,40 +122,62 @@ class PersonalMeetingService {
 
     fun getPersonalMeetingStats(): Map<String, Any> {
         val currentUser = authService.getCurrentUser()
-        val today = LocalDateTime.now().toLocalDate().atStartOfDay()
-        val monthStart = LocalDateTime.now().toLocalDate().withDayOfMonth(1).atStartOfDay()
         
-        // Today's personal meetings
+        val today = LocalDateTime.now().toLocalDate()
+        val startOfToday = today.atStartOfDay()
+        val endOfToday = today.plusDays(1).atStartOfDay()
+        
         val todayMeetings = personalMeetingRepository.findByUserAndMeetingDateBetween(
             currentUser, 
-            today, 
-            today.plusDays(1)
+            startOfToday, 
+            endOfToday
         )
         
-        // This month's personal meetings
+        val startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0)
+        val endOfMonth = startOfMonth.plusMonths(1)
+        
         val monthlyMeetings = personalMeetingRepository.findByUserAndMeetingDateBetween(
             currentUser,
-            monthStart,
-            monthStart.plusMonths(1)
+            startOfMonth,
+            endOfMonth
         )
         
-        val unpaidSessions = monthlyMeetings.filter { !it.isPaid }.size
+        val unpaidMeetings = personalMeetingRepository.findByUserAndIsPaidFalse(currentUser)
+        val totalMeetings = personalMeetingRepository.findByUser(currentUser)
+        val paidMeetings = totalMeetings.filter { it.isPaid }
         val monthlySpent = monthlyMeetings.filter { it.isPaid }.sumOf { it.price }
-        val totalSessions = monthlyMeetings.size
         
+        // Stats by meeting type
+        val statsByType = totalMeetings.groupBy { it.meetingType }
+            .mapValues { (_, meetings) ->
+                mapOf(
+                    "count" to meetings.size,
+                    "paid" to meetings.count { it.isPaid },
+                    "totalSpent" to meetings.filter { it.isPaid }.sumOf { it.price }
+                )
+            }
+
         return mapOf(
             "personalMeetingsToday" to todayMeetings.size,
-            "unpaidPersonalSessions" to unpaidSessions,
+            "unpaidPersonalSessions" to unpaidMeetings.size,
             "monthlyPersonalSpent" to monthlySpent,
-            "totalPersonalSessions" to totalSessions,
-            "paidPersonalSessions" to (totalSessions - unpaidSessions)
+            "totalPersonalSessions" to totalMeetings.size,
+            "paidPersonalSessions" to paidMeetings.size,
+            "statsByType" to statsByType
         )
+    }
+
+    fun getMeetingTypes(): List<PersonalMeetingType> {
+        return PersonalMeetingType.values().toList()
     }
 
     private fun mapToResponse(meeting: PersonalMeeting): PersonalMeetingResponse {
         return PersonalMeetingResponse(
             id = meeting.id,
             therapistName = meeting.therapistName,
+            meetingType = meeting.meetingType,
+            providerType = meeting.providerType,
+            providerCredentials = meeting.providerCredentials,
             meetingDate = meeting.meetingDate,
             duration = meeting.duration,
             price = meeting.price,

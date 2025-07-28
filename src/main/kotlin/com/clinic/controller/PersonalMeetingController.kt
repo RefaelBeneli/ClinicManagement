@@ -1,6 +1,7 @@
 package com.clinic.controller
 
 import com.clinic.dto.*
+import com.clinic.entity.PersonalMeetingType
 import com.clinic.service.PersonalMeetingService
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
@@ -99,6 +100,16 @@ class PersonalMeetingController {
         return try {
             val meetings = personalMeetingService.getPersonalMeetingsByMonth(year, month)
             ResponseEntity.ok(meetings)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @GetMapping("/types")
+    fun getMeetingTypes(): ResponseEntity<List<PersonalMeetingType>> {
+        return try {
+            val types = personalMeetingService.getMeetingTypes()
+            ResponseEntity.ok(types)
         } catch (e: Exception) {
             ResponseEntity.badRequest().build()
         }

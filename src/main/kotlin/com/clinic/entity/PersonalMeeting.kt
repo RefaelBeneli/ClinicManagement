@@ -18,6 +18,16 @@ data class PersonalMeeting(
     @Column(name = "therapist_name", nullable = false)
     val therapistName: String,
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meeting_type", nullable = false)
+    val meetingType: PersonalMeetingType = PersonalMeetingType.PERSONAL_THERAPY,
+    
+    @Column(name = "provider_type", nullable = false)
+    val providerType: String = "Therapist", // "Therapist", "Supervisor", "Teacher", etc.
+    
+    @Column(name = "provider_credentials", nullable = true)
+    val providerCredentials: String? = null,
+    
     @Column(name = "meeting_date", nullable = false)
     val meetingDate: LocalDateTime,
     
@@ -43,6 +53,13 @@ data class PersonalMeeting(
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
 )
+
+enum class PersonalMeetingType {
+    PERSONAL_THERAPY,
+    PROFESSIONAL_DEVELOPMENT,
+    SUPERVISION,
+    TEACHING_SESSION
+}
 
 enum class PersonalMeetingStatus {
     SCHEDULED,
