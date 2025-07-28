@@ -50,15 +50,19 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      # CRITICAL: Use create-drop to FORCE complete schema recreation
-      ddl-auto: create-drop
-    show-sql: true  # Enable logging to see what's happening
+      ddl-auto: validate # Use validate with Flyway
+    show-sql: true # Enable for debugging on Railway
     properties:
       hibernate:
         format_sql: true
         jdbc:
           time_zone: UTC
-  
+
+  # Flyway enabled - to manage database schema
+  flyway:
+    enabled: true # Enable Flyway for production
+    baseline-on-migrate: true # Creates a baseline if tables already exist
+
   # Disable H2 console in production
   h2:
     console:
