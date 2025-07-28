@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PendingUser, UserApprovalStatus, ApprovalHistoryResponse, UserApprovalRequest, UserRejectionRequest } from '../types';
+import { PendingUser } from '../types';
 import { userApproval } from '../services/api';
 import './UserApprovalPanel.css';
 
