@@ -2,32 +2,43 @@ spring:
   application:
     name: clinic-management
   
-  # Database configuration (H2 for local development)
+  # Database configuration
   datasource:
-    url: jdbc:h2:mem:clinic_db
-    driverClassName: org.h2.Driver
-    username: sa
-    password: password
+    url: ${DATABASE_URL:jdbc:h2:mem:clinic_db}
+    driverClassName: ${DATABASE_DRIVER:org.h2.Driver}
+    username: ${DATABASE_USER:sa}
+    password: ${DATABASE_PASSWORD:password}
   
   # JPA configuration
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: ${DATABASE_DIALECT:org.hibernate.dialect.H2Dialect}
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: ${DDL_AUTO:create-drop}  # Use 'validate' or 'none' for production
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: ${SHOW_SQL:true}
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: UTC
   
-  # H2 Console (for development)
+  # Flyway migration configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  
+  # H2 Console (disabled in production)
   h2:
     console:
-      enabled: true
+      enabled: ${H2_CONSOLE_ENABLED:true}
       path: /h2-console
 
 # Server configuration
 server:
-  port: 8085
+  port: ${PORT:8085}  # Use Railway's PORT environment variable, fallback to 8085 for local
 
 # JWT configuration
 jwt:
@@ -36,8 +47,8 @@ jwt:
 
 # CORS configuration
 cors:
-  allowed-origins: http://localhost:3000
-  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://frolicking-granita-900c53.netlify.app,http://localhost:3000}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
   allowed-headers: "*"
 
 # Google OAuth configuration
@@ -45,4 +56,52 @@ google:
   oauth:
     client-id: ${GOOGLE_CLIENT_ID:#{null}}
     client-secret: ${GOOGLE_CLIENT_SECRET:#{null}}
-    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:3000/calendar/callback} 
+    redirect-uri: ${GOOGLE_REDIRECT_URI:https://frolicking-granita-900c53.netlify.app/calendar/callback}
+
+# Production profiles
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+  
+  # Production database configuration (PostgreSQL)
+  datasource:
+    url: ${DATABASE_URL}
+    driverClassName: org.postgresql.Driver
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+      minimum-idle: 5
+  
+  # Production JPA settings
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate  # Use migrations only
+    show-sql: false  # Disable SQL logging in production
+  
+  # Disable H2 console in production
+  h2:
+    console:
+      enabled: false
+
+# Railway profile (inherits from production)
+---
+spring:
+  config:
+    activate:
+      on-profile: railway
+  
+  # Railway-specific configurations
+  jpa:
+    hibernate:
+      ddl-auto: none  # Rely entirely on migrations
+  
+  flyway:
+    enabled: true
+    baseline-on-migrate: true  # Important for existing databases
+    baseline-version: 0
+    validate-on-migrate: false  # More lenient for Railway 
