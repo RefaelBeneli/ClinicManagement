@@ -319,6 +319,29 @@ export const calendarIntegration = {
   },
 };
 
+// Admin – User management (CRUD)
+export const adminUsers = {
+  getAll: async (page = 0, size = 20) => {
+    const response = await apiClient.get(`/admin/users?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  update: async (id: number, request: any) => {
+    const response = await apiClient.put(`/admin/users/${id}`, request);
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/admin/users/${id}`);
+    return response.data;
+  },
+};
+
 // User Approval API (Admin only)
 export const userApproval = {
   getPendingUsers: async (): Promise<PendingUser[]> => {

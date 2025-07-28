@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import UserApprovalPanel from './UserApprovalPanel';
-import { userApproval } from '../services/api';
+import { adminUsers as adminUserApi, userApproval } from '../services/api';
+import UserEditModal from './UserEditModal';
 import './AdminPanel.css';
 
 interface AdminUser {
@@ -11,6 +12,7 @@ interface AdminUser {
   fullName: string;
   role: string;
   enabled: boolean;
+  approvalStatus: string;
   createdAt: string;
 }
 
@@ -26,11 +28,12 @@ const AdminPanel: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'clients' | 'meetings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'users' | 'clients' | 'meetings'>('users');
   
   // User approval states
   const [showUserApprovalPanel, setShowUserApprovalPanel] = useState(false);
   const [pendingUsersCount, setPendingUsersCount] = useState(0);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
 
   // Use the same API URL logic as the main API service
   const apiUrl = useMemo(() => {
@@ -109,12 +112,6 @@ const AdminPanel: React.FC = () => {
 
       <div className="admin-tabs">
         <button 
-          className={activeTab === 'dashboard' ? 'tab-active' : ''}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          📊 Dashboard
-        </button>
-        <button 
           className={activeTab === 'users' ? 'tab-active' : ''}
           onClick={() => setActiveTab('users')}
         >
@@ -135,52 +132,7 @@ const AdminPanel: React.FC = () => {
       </div>
 
       <div className="admin-content">
-        {activeTab === 'dashboard' && (
-          <div className="admin-dashboard">
-            <h3>System Statistics</h3>
-            {stats && (
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-number">{stats.totalUsers}</div>
-                  <div className="stat-label">Total Users</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{stats.totalClients}</div>
-                  <div className="stat-label">Total Clients</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{stats.totalMeetings}</div>
-                  <div className="stat-label">Client Meetings</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{stats.totalPersonalMeetings}</div>
-                  <div className="stat-label">Personal Meetings</div>
-                </div>
-              </div>
-            )}
-            
-            {/* User Approval Notification */}
-            {pendingUsersCount > 0 && (
-              <div className="approval-notification">
-                <h3>User Approval Required</h3>
-                <div className="notification-card pending-approval">
-                  <div className="notification-content">
-                    <div className="notification-icon">⚠️</div>
-                    <div className="notification-text">
-                      <strong>{pendingUsersCount}</strong> user{pendingUsersCount > 1 ? 's' : ''} pending approval
-                    </div>
-                  </div>
-                  <button 
-                    className="approval-btn" 
-                    onClick={() => setShowUserApprovalPanel(true)}
-                  >
-                    Review Users
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Dashboard removed */}
 
         {activeTab === 'users' && (
           <div className="admin-users">
@@ -194,7 +146,7 @@ const AdminPanel: React.FC = () => {
                     <th>Email</th>
                     <th>Full Name</th>
                     <th>Role</th>
-                    <th>Status</th>
+                    <th>Status</th><th>Actions</th>
                     <th>Created</th>
                   </tr>
                 </thead>
@@ -215,7 +167,14 @@ const AdminPanel: React.FC = () => {
                           {user.enabled ? 'Active' : 'Disabled'}
                         </span>
                       </td>
-                      <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                      <td>
+                        <button onClick={() => {
+                          setEditingUserId(user.id);
+                        }}>Edit</button>
+                        {user.approvalStatus === 'PENDING' && (
+                          <button onClick={() => userApproval.approveUser(user.id, { userId: user.id }).then(fetchUsers)}>Approve</button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -247,6 +206,9 @@ const AdminPanel: React.FC = () => {
             fetchPendingUsersCount(); // Refresh count after approval actions
           }}
         />
+      )}
+      {editingUserId && (
+        <UserEditModal userId={editingUserId} onClose={() => setEditingUserId(null)} onSaved={fetchUsers} />
       )}
     </div>
   );
