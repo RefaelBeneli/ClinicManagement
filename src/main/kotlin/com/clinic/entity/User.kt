@@ -10,6 +10,12 @@ enum class Role {
     USER, ADMIN
 }
 
+enum class UserApprovalStatus {
+    PENDING,
+    APPROVED,
+    REJECTED
+}
+
 @Entity
 @Table(name = "users")
 data class User(
@@ -34,7 +40,21 @@ data class User(
     val role: Role = Role.USER,
     
     @Column(nullable = false)
-    private val enabled: Boolean = true,
+    private val enabled: Boolean = false,
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    val approvalStatus: UserApprovalStatus = UserApprovalStatus.PENDING,
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by")
+    val approvedBy: User? = null,
+    
+    @Column
+    val approvedDate: LocalDateTime? = null,
+    
+    @Column(length = 1000)
+    val rejectionReason: String? = null,
     
     @Column(nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()

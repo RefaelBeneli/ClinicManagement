@@ -4,10 +4,12 @@ import com.clinic.dto.AuthResponse
 import com.clinic.dto.LoginRequest
 import com.clinic.dto.RegisterRequest
 import com.clinic.entity.User
+import com.clinic.entity.UserApprovalStatus
 import com.clinic.repository.UserRepository
 import com.clinic.security.JwtUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.DisabledException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
@@ -30,6 +32,27 @@ class AuthService {
     private lateinit var jwtUtils: JwtUtils
 
     fun authenticateUser(loginRequest: LoginRequest): AuthResponse {
+        // Check if user exists and their approval status before authentication
+        val user = userRepository.findByUsername(loginRequest.username)
+            .orElseThrow { RuntimeException("Invalid username or password") }
+
+        // Check user approval status
+        when (user.approvalStatus) {
+            UserApprovalStatus.PENDING -> {
+                throw DisabledException("Your account is pending admin approval. Please wait for confirmation.")
+            }
+            UserApprovalStatus.REJECTED -> {
+                val reason = user.rejectionReason ?: "No reason provided"
+                throw DisabledException("Your account has been rejected. Reason: $reason")
+            }
+            UserApprovalStatus.APPROVED -> {
+                // User is approved, check if enabled
+                if (!user.isEnabled) {
+                    throw DisabledException("Your account is disabled. Please contact admin.")
+                }
+            }
+        }
+
         val authentication: Authentication = authenticationManager.authenticate(
             UsernamePasswordAuthenticationToken(loginRequest.username, loginRequest.password)
         )
@@ -37,13 +60,13 @@ class AuthService {
         SecurityContextHolder.getContext().authentication = authentication
         val jwt = jwtUtils.generateJwtToken(authentication)
 
-        val user = authentication.principal as User
+        val authenticatedUser = authentication.principal as User
         return AuthResponse(
             token = jwt,
-            username = user.username,
-            email = user.email,
-            fullName = user.fullName,
-            role = user.role.name
+            username = authenticatedUser.username,
+            email = authenticatedUser.email,
+            fullName = authenticatedUser.fullName,
+            role = authenticatedUser.role.name
         )
     }
 
