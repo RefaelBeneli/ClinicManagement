@@ -46,16 +46,16 @@ spring:
     password: ${PGPASSWORD}
     driverClassName: org.postgresql.Driver
   
-  # Production JPA configuration - FORCE schema recreation
+  # Production JPA configuration - FORCE AGGRESSIVE schema recreation
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      # CRITICAL: Force complete schema recreation to fix approval_status column
-      ddl-auto: create
-    show-sql: false
+      # CRITICAL: Use create-drop to FORCE complete schema recreation
+      ddl-auto: create-drop
+    show-sql: true  # Enable logging to see what's happening
     properties:
       hibernate:
-        format_sql: false
+        format_sql: true
         jdbc:
           time_zone: UTC
   
