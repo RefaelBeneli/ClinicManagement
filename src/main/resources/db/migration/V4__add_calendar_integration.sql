@@ -27,9 +27,9 @@ CREATE INDEX idx_calendar_integrations_user_id ON calendar_integrations(user_id)
 -- Add google_event_id to meetings table
 ALTER TABLE meetings ADD COLUMN google_event_id VARCHAR(255);
 
--- Add google_event_id to personal_meetings table  
+-- Add google_event_id to personal_meetings table
 ALTER TABLE personal_meetings ADD COLUMN google_event_id VARCHAR(255);
 
--- Add indexes for google event IDs for faster sync operations
-CREATE INDEX idx_meetings_google_event_id ON meetings(google_event_id);
-CREATE INDEX idx_personal_meetings_google_event_id ON personal_meetings(google_event_id); 
+-- Create indexes for the new columns
+CREATE INDEX idx_meetings_google_event ON meetings(google_event_id);
+CREATE INDEX idx_personal_meetings_google_event ON personal_meetings(google_event_id); 

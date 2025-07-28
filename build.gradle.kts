@@ -33,22 +33,15 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-jackson:0.12.3")
     
     // JSON processing
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     
-    // Google Calendar API
-    implementation("com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0")
-    implementation("com.google.api-client:google-api-client:2.2.0")
-    implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
-    implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+    // Validation
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     
-    // Kotlin
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-    
-    // Testing
+    // Test dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation(kotlin("test"))
 }
 
 tasks.test {

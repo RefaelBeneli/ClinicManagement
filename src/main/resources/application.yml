@@ -1,4 +1,3 @@
-# Default configuration (Local Development with H2)
 spring:
   application:
     name: clinic-management
