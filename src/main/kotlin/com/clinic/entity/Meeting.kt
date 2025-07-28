@@ -37,6 +37,9 @@ data class Meeting(
     @Column(nullable = true, length = 1000)
     val notes: String? = null,
     
+    @Column(name = "google_event_id", nullable = true)
+    val googleEventId: String? = null,
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     val status: MeetingStatus = MeetingStatus.SCHEDULED,

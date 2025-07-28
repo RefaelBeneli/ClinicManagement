@@ -109,4 +109,8 @@ class AuthService {
             }
         }
     }
+    
+    fun getUserById(userId: Long): User? {
+        return userRepository.findById(userId).orElse(null)
+    }
 } 
