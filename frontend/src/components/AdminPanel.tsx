@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import UserApprovalPanel from './UserApprovalPanel';
-import { adminUsers as adminUserApi, userApproval } from '../services/api';
+import { userApproval } from '../services/api';
 import UserEditModal from './UserEditModal';
 import './AdminPanel.css';
 
@@ -25,7 +25,6 @@ interface DashboardStats {
 
 const AdminPanel: React.FC = () => {
   const { token } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'clients' | 'meetings'>('users');
@@ -53,24 +52,6 @@ const AdminPanel: React.FC = () => {
     }
   }, []);
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const response = await fetch(`${apiUrl}/admin/dashboard/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch admin stats:', error);
-    }
-  }, [apiUrl, token]);
-
   const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/admin/users?page=0&size=20`, {
@@ -92,12 +73,12 @@ const AdminPanel: React.FC = () => {
   useEffect(() => {
     const loadAdminData = async () => {
       setLoading(true);
-      await Promise.all([fetchStats(), fetchUsers(), fetchPendingUsersCount()]);
+      await Promise.all([fetchUsers(), fetchPendingUsersCount()]);
       setLoading(false);
     };
 
     loadAdminData();
-  }, [fetchStats, fetchUsers, fetchPendingUsersCount]);
+  }, [fetchUsers, fetchPendingUsersCount]);
 
   if (loading) {
     return <div className="admin-loading">Loading admin panel...</div>;
@@ -115,7 +96,7 @@ const AdminPanel: React.FC = () => {
           className={activeTab === 'users' ? 'tab-active' : ''}
           onClick={() => setActiveTab('users')}
         >
-          👥 Users
+          👥 Users {pendingUsersCount > 0 && (<span className="badge">{pendingUsersCount}</span>)}
         </button>
         <button 
           className={activeTab === 'clients' ? 'tab-active' : ''}
