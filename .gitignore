@@ -92,3 +92,7 @@ hs_err_pid*
 application-secrets.yml
 application-local.ymlnode_modules/
 package-lock.json
+
+# Build and runtime directories
+node_modules/
+.kotlin/
