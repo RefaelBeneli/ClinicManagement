@@ -24,45 +24,44 @@ class DatabaseInitializer(
             
             if (!hasApprovalStatus) {
                 logger.error("❌ CRITICAL: approval_status column MISSING from users table!")
-                logger.info("🚨 Attempting AGGRESSIVE table recreation...")
+                logger.info("🚨 Attempting to add missing column...")
                 
                 try {
-                    // Drop and recreate users table with correct schema
-                    logger.info("1. Dropping existing users table...")
-                    jdbcTemplate.execute("DROP TABLE IF EXISTS users CASCADE")
-                    
-                    logger.info("2. Creating users table with correct schema...")
+                    // Add the missing approval_status column
+                    logger.info("1. Adding approval_status column...")
                     jdbcTemplate.execute("""
-                        CREATE TABLE users (
-                            id BIGSERIAL PRIMARY KEY,
-                            username VARCHAR(255) NOT NULL UNIQUE,
-                            email VARCHAR(255) NOT NULL,
-                            full_name VARCHAR(255) NOT NULL,
-                            password VARCHAR(255) NOT NULL,
-                            role VARCHAR(255) NOT NULL CHECK (role IN ('USER', 'ADMIN')),
-                            enabled BOOLEAN NOT NULL DEFAULT true,
-                            approval_status VARCHAR(255) NOT NULL DEFAULT 'PENDING' CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED')),
-                            approved_by BIGINT,
-                            approved_date TIMESTAMP(6),
-                            rejection_reason VARCHAR(1000),
-                            created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            CONSTRAINT FK_users_approved_by FOREIGN KEY (approved_by) REFERENCES users(id)
-                        )
+                        ALTER TABLE users 
+                        ADD COLUMN approval_status VARCHAR(255) NOT NULL DEFAULT 'PENDING' 
+                        CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED'))
                     """)
                     
-                    logger.info("3. Creating default admin user...")
+                    // Add other missing columns if needed
+                    logger.info("2. Adding other missing approval columns...")
                     jdbcTemplate.execute("""
-                        INSERT INTO users (username, email, full_name, password, role, enabled, approval_status, created_at)
-                        VALUES ('admin', 'admin@clinic.com', 'System Administrator', 
-                                '$2a$10$rA8QrPEHdLtO1gqz6rAzHegj.8t.WOSEhQq5YbVQOOLwC0R4vRfme', 
-                                'ADMIN', true, 'APPROVED', CURRENT_TIMESTAMP)
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS approved_by BIGINT,
+                        ADD COLUMN IF NOT EXISTS approved_date TIMESTAMP(6),
+                        ADD COLUMN IF NOT EXISTS rejection_reason VARCHAR(1000)
                     """)
                     
-                    logger.info("✅ Successfully recreated users table with approval_status column!")
+                    logger.info("3. Adding foreign key constraint...")
+                    jdbcTemplate.execute("""
+                        ALTER TABLE users 
+                        ADD CONSTRAINT FK_users_approved_by 
+                        FOREIGN KEY (approved_by) REFERENCES users(id)
+                    """)
+                    
+                    logger.info("✅ Successfully added missing columns to users table!")
                     
                 } catch (e: Exception) {
-                    logger.error("❌ Failed to recreate users table: ${e.message}")
-                    logger.error("Stack trace: ", e)
+                    logger.error("❌ Failed to add columns: ${e.message}")
+                    logger.info("🔄 Trying table recreation as fallback...")
+                    
+                    try {
+                        recreateUsersTable()
+                    } catch (recreateError: Exception) {
+                        logger.error("❌ Table recreation also failed: ${recreateError.message}")
+                    }
                 }
             } else {
                 logger.info("✅ approval_status column already exists")
@@ -80,6 +79,33 @@ class DatabaseInitializer(
             logger.error("🚨 Database initialization failed: ${e.message}")
             logger.error("Stack trace: ", e)
         }
+    }
+    
+    private fun recreateUsersTable() {
+        logger.info("🔄 Recreating users table with correct schema...")
+        
+        // Drop and recreate users table
+        jdbcTemplate.execute("DROP TABLE IF EXISTS users CASCADE")
+        
+        jdbcTemplate.execute("""
+            CREATE TABLE users (
+                id BIGSERIAL PRIMARY KEY,
+                username VARCHAR(255) NOT NULL UNIQUE,
+                email VARCHAR(255) NOT NULL,
+                full_name VARCHAR(255) NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                role VARCHAR(255) NOT NULL CHECK (role IN ('USER', 'ADMIN')),
+                enabled BOOLEAN NOT NULL DEFAULT true,
+                approval_status VARCHAR(255) NOT NULL DEFAULT 'PENDING' CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED')),
+                approved_by BIGINT,
+                approved_date TIMESTAMP(6),
+                rejection_reason VARCHAR(1000),
+                created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT FK_users_approved_by FOREIGN KEY (approved_by) REFERENCES users(id)
+            )
+        """)
+        
+        logger.info("✅ Users table recreated successfully!")
     }
     
     private fun checkColumnExists(tableName: String, columnName: String): Boolean {
