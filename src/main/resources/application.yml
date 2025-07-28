@@ -1,49 +1,16 @@
+# Default configuration (Local Development with H2)
 spring:
   application:
     name: clinic-management
   
-  # Database configuration
+  # Local H2 Database configuration
   datasource:
-    url: ${DATABASE_URL:jdbc:h2:mem:clinic_db}
-    # Auto-detect driver based on DATABASE_URL
-    driverClassName: ${spring.datasource.driverClassName:}
-    username: ${PGUSER:sa}
-    password: ${PGPASSWORD:password}
-  
-  # JPA configuration
-  jpa:
-    # Auto-detect dialect based on DATABASE_URL
-    database-platform: ${spring.jpa.database-platform:}
-    hibernate:
-      # FORCE create mode when DATABASE_URL exists (Railway detection)
-      ddl-auto: create
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: false
-        jdbc:
-          time_zone: UTC
-  
-  # H2 Console (local development only)
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-  
-  # Flyway disabled - using ddl-auto for schema management
-  flyway:
-    enabled: false
-
----
-# Local development profile (default when no DATABASE_URL)
-spring:
-  config:
-    activate:
-      on-profile: "!railway"
-  
-  datasource:
+    url: jdbc:h2:mem:clinic_db
+    username: sa
+    password: password
     driverClassName: org.h2.Driver
   
+  # Local JPA configuration
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
@@ -52,31 +19,53 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: UTC
+  
+  # H2 Console for local development
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # Flyway disabled - using ddl-auto
+  flyway:
+    enabled: false
 
 ---
-# Railway production profile (auto-activated when DATABASE_URL exists)
+# Production configuration (Railway with PostgreSQL)
 spring:
   config:
     activate:
-      on-profile: railway
+      on-profile: production
   
+  # Railway PostgreSQL Database configuration
   datasource:
-    # Railway provides DATABASE_URL automatically
+    url: ${DATABASE_URL}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
     driverClassName: org.postgresql.Driver
   
+  # Production JPA configuration - FORCE schema recreation
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      # CRITICAL: Force complete schema recreation to fix missing columns
+      # CRITICAL: Force complete schema recreation to fix approval_status column
       ddl-auto: create
     show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
   
+  # Disable H2 console in production
   h2:
     console:
       enabled: false
 
 ---
-# Server and application configuration (applies to all profiles)
+# Common configuration for all profiles
 server:
   port: ${PORT:8085}
 

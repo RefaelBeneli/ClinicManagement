@@ -1,1 +1,1 @@
-web: ./gradlew bootRun --args='--spring.profiles.active=railway' 
+web: ./gradlew bootRun --args='--spring.profiles.active=production' 

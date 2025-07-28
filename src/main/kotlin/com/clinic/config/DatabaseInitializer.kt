@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Component
 
 @Component
-@Profile("railway") // Only run on Railway deployment
+@Profile("production") // Run on Railway production deployment
 class DatabaseInitializer(
     private val jdbcTemplate: JdbcTemplate
 ) : CommandLineRunner {
@@ -16,7 +16,7 @@ class DatabaseInitializer(
 
     override fun run(vararg args: String?) {
         try {
-            logger.info("🔧 Railway Database Initializer - Checking schema...")
+            logger.info("🔧 Railway Production Database Initializer - Checking schema...")
             
             // Check if approval_status column exists
             val hasApprovalStatus = checkColumnExists("users", "approval_status")
