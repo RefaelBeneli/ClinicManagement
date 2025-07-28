@@ -27,7 +27,7 @@ interface TherapistProfileRepository : JpaRepository<TherapistProfile, Long> {
     @Query("SELECT tp FROM TherapistProfile tp WHERE tp.languages LIKE %:language%")
     fun findByLanguageContaining(@Param("language") language: String): List<TherapistProfile>
     
-    // Get all therapists for directory (excluding admin users)
-    @Query("SELECT tp FROM TherapistProfile tp JOIN tp.user u WHERE u.role = 'USER'")
+    // Get all therapists for directory (include all roles)
+    @Query("SELECT tp FROM TherapistProfile tp JOIN tp.user u WHERE u.role IN ('USER', 'ADMIN')")
     fun findAllTherapistProfiles(): List<TherapistProfile>
 } 
