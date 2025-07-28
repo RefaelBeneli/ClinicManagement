@@ -8,15 +8,15 @@ CREATE TABLE calendar_integrations (
     google_calendar_id VARCHAR(255),
     access_token VARCHAR(1000),
     refresh_token VARCHAR(1000),
-    token_expiry TIMESTAMP,
+    token_expiry TIMESTAMP NULL,
     client_session_calendar VARCHAR(255),
     personal_meeting_calendar VARCHAR(255),
     sync_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     sync_client_sessions BOOLEAN NOT NULL DEFAULT TRUE,
     sync_personal_meetings BOOLEAN NOT NULL DEFAULT TRUE,
-    last_sync_date TIMESTAMP,
+    last_sync_date TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

@@ -22,8 +22,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     
     // Database
-    implementation("org.postgresql:postgresql")
-    implementation("com.h2database:h2") // For local development
+    implementation("mysql:mysql-connector-java:8.0.33")
     
     // Production dependencies
     implementation("org.springframework.boot:spring-boot-starter-actuator") // Health checks

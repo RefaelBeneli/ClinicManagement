@@ -3,7 +3,7 @@
 
 -- Create users table with approval system
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE users (
     enabled BOOLEAN NOT NULL DEFAULT FALSE,
     approval_status VARCHAR(255) NOT NULL DEFAULT 'PENDING' CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED')),
     approved_by BIGINT,
-    approved_date TIMESTAMP,
+    approved_date TIMESTAMP NULL,
     rejection_reason VARCHAR(1000),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
@@ -21,7 +21,7 @@ CREATE TABLE users (
 
 -- Create clients table
 CREATE TABLE clients (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255),
@@ -36,7 +36,7 @@ CREATE TABLE clients (
 
 -- Create meetings table (client sessions)
 CREATE TABLE meetings (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     client_id BIGINT NOT NULL,
     meeting_date TIMESTAMP NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE meetings (
     notes VARCHAR(1000),
     status VARCHAR(255) NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW')),
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_date TIMESTAMP,
+    payment_date TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -54,7 +54,7 @@ CREATE TABLE meetings (
 
 -- Create personal_meetings table (therapist's own sessions)
 CREATE TABLE personal_meetings (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     therapist_name VARCHAR(255) NOT NULL,
     meeting_date TIMESTAMP NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE personal_meetings (
     notes VARCHAR(1000),
     status VARCHAR(255) NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW')),
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_date TIMESTAMP,
+    payment_date TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

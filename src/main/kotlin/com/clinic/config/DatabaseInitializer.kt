@@ -39,9 +39,9 @@ class DatabaseInitializer(
                     logger.info("2. Adding other missing approval columns...")
                     jdbcTemplate.execute("""
                         ALTER TABLE users 
-                        ADD COLUMN IF NOT EXISTS approved_by BIGINT,
-                        ADD COLUMN IF NOT EXISTS approved_date TIMESTAMP(6),
-                        ADD COLUMN IF NOT EXISTS rejection_reason VARCHAR(1000)
+                        ADD COLUMN approved_by BIGINT,
+                        ADD COLUMN approved_date TIMESTAMP NULL,
+                        ADD COLUMN rejection_reason VARCHAR(1000)
                     """)
                     
                     logger.info("3. Adding foreign key constraint...")
@@ -89,7 +89,7 @@ class DatabaseInitializer(
         
         jdbcTemplate.execute("""
             CREATE TABLE users (
-                id BIGSERIAL PRIMARY KEY,
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL UNIQUE,
                 email VARCHAR(255) NOT NULL,
                 full_name VARCHAR(255) NOT NULL,
@@ -98,9 +98,9 @@ class DatabaseInitializer(
                 enabled BOOLEAN NOT NULL DEFAULT true,
                 approval_status VARCHAR(255) NOT NULL DEFAULT 'PENDING' CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED')),
                 approved_by BIGINT,
-                approved_date TIMESTAMP(6),
+                approved_date TIMESTAMP NULL,
                 rejection_reason VARCHAR(1000),
-                created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT FK_users_approved_by FOREIGN KEY (approved_by) REFERENCES users(id)
             )
         """)

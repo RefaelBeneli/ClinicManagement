@@ -11,5 +11,5 @@ ALTER TABLE personal_meetings ADD CONSTRAINT check_meeting_type
   CHECK (meeting_type IN ('PERSONAL_THERAPY', 'PROFESSIONAL_DEVELOPMENT', 'SUPERVISION', 'TEACHING_SESSION'));
 
 -- Update NOT NULL constraints after setting defaults
-ALTER TABLE personal_meetings ALTER COLUMN meeting_type SET NOT NULL;
-ALTER TABLE personal_meetings ALTER COLUMN provider_type SET NOT NULL; 
+ALTER TABLE personal_meetings MODIFY COLUMN meeting_type VARCHAR(50) NOT NULL DEFAULT 'PERSONAL_THERAPY';
+ALTER TABLE personal_meetings MODIFY COLUMN provider_type VARCHAR(50) NOT NULL DEFAULT 'Therapist'; 

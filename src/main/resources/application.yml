@@ -3,18 +3,17 @@ spring:
   application:
     name: clinic-management
   
-  # Default H2 Database configuration for local development
+  # Default MySQL Database configuration for local development
   datasource:
-    url: jdbc:h2:mem:clinic_db
-    username: sa
+    url: jdbc:mysql://localhost:3306/clinic_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
     password: password
-    driverClassName: org.h2.Driver
+    driverClassName: com.mysql.cj.jdbc.Driver
   
-  # Local JPA configuration
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: create-drop  # Reset H2 on restart
+      ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
@@ -22,15 +21,9 @@ spring:
         jdbc:
           time_zone: UTC
   
-  # Flyway is disabled by default for H2
+  # Flyway is disabled by default for local development
   flyway:
     enabled: false
-  
-  # H2 Console for local development
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
 
 ---
 # Production configuration (ACTIVATED IF SPRING_PROFILES_ACTIVE=production)
@@ -39,24 +32,17 @@ spring:
     activate:
       on-profile: production
   
-  # Railway PostgreSQL configuration
+  # Railway MySQL configuration
   datasource:
     url: ${SPRING_DATASOURCE_URL} # Provided by Railway env var
-    username: ${PGUSER}
-    password: ${PGPASSWORD}
-    driverClassName: org.postgresql.Driver
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    driverClassName: com.mysql.cj.jdbc.Driver
 
-  # Production JPA configuration - FORCE AGGRESSIVE schema recreation
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: validate # Let Flyway manage the schema
-    show-sql: true # Enable for debugging on Railway
-    properties:
-      hibernate:
-        format_sql: true
-        jdbc:
-          time_zone: UTC
 
   # Flyway is ENABLED for production
   flyway:
