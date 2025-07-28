@@ -4,16 +4,16 @@
 
 **Current Status**: Phase 1 Mission 1 Complete
 **Last Updated**: December 2024
-**Total Missions**: 12
-**Completed**: 2/12
-**In Progress**: 0/12
-**Planned**: 10/12
+**Total Missions**: 14
+**Completed**: 2/14
+**In Progress**: 0/14
+**Planned**: 12/14
 
 ### Implementation Progress
 - ✅ **Phase 0 (Verification)**: 1/1 mission completed
 - 🔄 **Phase 1 (High Priority)**: 1/4 missions completed
-- ⏳ **Phase 2 (Medium Priority)**: 0/4 missions completed  
-- ⏳ **Phase 3 (Future)**: 0/3 missions completed
+- ⏳ **Phase 2 (Medium Priority)**: 0/5 missions completed  
+- ⏳ **Phase 3 (Future)**: 0/4 missions completed
 
 ---
 
@@ -506,7 +506,89 @@ GET    /api/calendar/conflicts                  // Check for conflicts
 
 ## 🎯 PHASE 2: MEDIUM PRIORITY MISSIONS
 
-### Mission 5: Enhanced Financial Reporting System
+### Mission 5: User Approval System
+**Priority**: High | **Effort**: 3-4 days | **Status**: ⏳ Planned
+
+#### Description
+Implement user registration approval workflow where new users are disabled by default until an admin approves their account, enhancing security and access control.
+
+#### Technical Requirements
+
+**Backend Changes:**
+- [ ] Update `User.kt` entity to set default `enabled = false`
+- [ ] Create `UserApprovalController.kt` for admin operations
+- [ ] Update `AuthService.kt` to handle disabled user login attempts
+- [ ] Create `UserApprovalService.kt` with approval/rejection logic
+- [ ] Add email notification system for approval status changes
+- [ ] Update `DataInitializer.kt` to create admin user as enabled
+
+**Database Changes:**
+```sql
+-- Update default user enabled status (already exists, just change default)
+-- Current: enabled BOOLEAN NOT NULL DEFAULT true
+-- New: enabled BOOLEAN NOT NULL DEFAULT false
+
+-- Add approval tracking fields
+ALTER TABLE users ADD COLUMN approval_status VARCHAR(50) DEFAULT 'PENDING';
+ALTER TABLE users ADD COLUMN approved_by BIGINT NULL;
+ALTER TABLE users ADD COLUMN approved_date TIMESTAMP NULL;
+ALTER TABLE users ADD COLUMN rejection_reason TEXT NULL;
+ALTER TABLE users ADD FOREIGN KEY (approved_by) REFERENCES users(id);
+```
+
+**New Enums:**
+```kotlin
+enum class UserApprovalStatus {
+    PENDING,
+    APPROVED, 
+    REJECTED
+}
+```
+
+**API Endpoints:**
+```kotlin
+// Admin User Approval Management
+GET    /api/admin/users/pending                 // Get pending approval users
+POST   /api/admin/users/{userId}/approve        // Approve user registration
+POST   /api/admin/users/{userId}/reject         // Reject user registration
+GET    /api/admin/users/approval-history        // Get approval history
+
+// Updated Auth endpoints
+POST   /api/auth/signin                         // Enhanced to check enabled status
+```
+
+**Frontend Changes:**
+- [ ] Create `UserApprovalPanel.tsx` admin component
+- [ ] Add pending users notification to admin dashboard
+- [ ] Create user approval/rejection form with reason field
+- [ ] Update login form to show appropriate message for disabled users
+- [ ] Add approval status indicator in admin user management
+- [ ] Create email templates for approval/rejection notifications
+
+**Email Integration:**
+- [ ] Setup email service (SMTP configuration)
+- [ ] Create approval notification email template
+- [ ] Create rejection notification email template
+- [ ] Create welcome email for approved users
+
+**Security Considerations:**
+- [ ] Ensure only ADMIN role can approve/reject users
+- [ ] Log all approval/rejection actions for audit trail
+- [ ] Prevent disabled users from accessing any protected endpoints
+- [ ] Add rate limiting to prevent spam registrations
+
+**Acceptance Criteria:**
+- [ ] New user registrations are disabled by default
+- [ ] Admin receives notification of pending registrations
+- [ ] Admin can approve/reject with optional reason
+- [ ] Users receive email notification of approval/rejection status
+- [ ] Disabled users cannot login with appropriate error message
+- [ ] Audit trail tracks all approval actions
+- [ ] Initial admin user is automatically enabled
+
+---
+
+### Mission 6: Enhanced Financial Reporting System
 **Priority**: Medium | **Effort**: 5-6 days | **Status**: ⏳ Planned
 
 #### Description
@@ -578,7 +660,7 @@ DELETE /api/financial/expenses/{id}             // Delete expense
 
 ---
 
-### Mission 6: Advanced Scheduling & Recurring Appointments
+### Mission 7: Advanced Scheduling & Recurring Appointments
 **Priority**: Medium | **Effort**: 6-7 days | **Status**: ⏳ Planned
 
 #### Description
@@ -640,7 +722,7 @@ PUT    /api/meetings/recurring/{id}/suspend     // Temporarily suspend pattern
 
 ---
 
-### Mission 7: Session Notes & Treatment Plans
+### Mission 8: Session Notes & Treatment Plans
 **Priority**: Medium | **Effort**: 4-5 days | **Status**: ⏳ Planned
 
 #### Description
@@ -706,7 +788,7 @@ PUT    /api/treatment-plans/{id}                // Update treatment plan
 
 ---
 
-### Mission 8: Availability Management & Conflict Detection
+### Mission 9: Availability Management & Conflict Detection
 **Priority**: Medium | **Effort**: 5-6 days | **Status**: ⏳ Planned
 
 #### Description
@@ -767,7 +849,113 @@ GET    /api/availability/slots                 // Get available time slots
 
 ## 🎯 PHASE 3: FUTURE ENHANCEMENTS
 
-### Mission 9: Client Portal & Communication
+### Mission 10: Database Backup & Recovery System
+**Priority**: Critical | **Effort**: 3-4 days | **Status**: ⏳ Planned
+
+#### Description
+Implement comprehensive database backup and recovery system to ensure data protection, business continuity, and compliance with data protection requirements.
+
+#### Technical Requirements
+
+**Backend Changes:**
+- [ ] Create `BackupService.kt` for automated backup operations
+- [ ] Create `BackupController.kt` for admin backup management  
+- [ ] Create `BackupScheduler.kt` using Spring's `@Scheduled` annotation
+- [ ] Add backup configuration properties to `application.yml`
+- [ ] Implement backup encryption for sensitive data
+
+**Database Backup Strategy:**
+```yaml
+# application.yml backup configuration
+backup:
+  enabled: true
+  schedule: 
+    daily: "0 2 * * *"    # Daily at 2 AM
+    weekly: "0 1 * * 0"   # Weekly on Sunday at 1 AM
+    monthly: "0 0 1 * *"  # Monthly on 1st day at midnight
+  retention:
+    daily: 7    # Keep 7 daily backups
+    weekly: 4   # Keep 4 weekly backups  
+    monthly: 12 # Keep 12 monthly backups
+  storage:
+    local: "/var/backups/clinic/"
+    cloud: "s3://clinic-backups/"
+  encryption:
+    enabled: true
+    algorithm: "AES-256"
+```
+
+**Backup Types:**
+- [ ] **Full Backup**: Complete database dump with all tables
+- [ ] **Incremental Backup**: Only changes since last backup
+- [ ] **Schema Backup**: Database structure without data
+- [ ] **Critical Data Backup**: Users, meetings, financial data only
+
+**API Endpoints:**
+```kotlin
+// Admin Backup Management
+GET    /api/admin/backups                       // List all backup files
+POST   /api/admin/backups/create                // Trigger manual backup
+GET    /api/admin/backups/{filename}/download   // Download backup file
+POST   /api/admin/backups/{filename}/restore    // Restore from backup
+DELETE /api/admin/backups/{filename}            // Delete backup file
+GET    /api/admin/backups/status                // Get backup system status
+PUT    /api/admin/backups/config                // Update backup configuration
+```
+
+**Frontend Changes:**
+- [ ] Create `BackupManagement.tsx` admin component
+- [ ] Add backup status widget to admin dashboard
+- [ ] Create backup configuration panel
+- [ ] Add backup/restore confirmation dialogs
+- [ ] Create backup history view with download links
+- [ ] Add backup system health monitoring display
+
+**Storage Options:**
+- [ ] **Local Storage**: File system backup storage
+- [ ] **Cloud Storage**: AWS S3, Google Cloud, or Azure integration
+- [ ] **Database Backup**: PostgreSQL pg_dump or H2 backup utilities
+- [ ] **Encrypted Storage**: AES-256 encryption for backup files
+
+**Recovery Features:**
+- [ ] **Point-in-time Recovery**: Restore to specific date/time
+- [ ] **Selective Restore**: Restore specific tables or data
+- [ ] **Backup Verification**: Integrity checks for backup files
+- [ ] **Recovery Testing**: Automated backup restoration testing
+
+**Monitoring & Alerts:**
+- [ ] Backup success/failure notifications
+- [ ] Storage space monitoring
+- [ ] Backup corruption detection
+- [ ] Email alerts for backup failures
+- [ ] Backup performance metrics
+
+**Security Considerations:**
+- [ ] Encrypt all backup files
+- [ ] Secure backup storage access
+- [ ] Audit trail for backup operations
+- [ ] Role-based access to backup functions
+- [ ] Backup file integrity validation
+
+**Compliance Features:**
+- [ ] Data retention policy enforcement
+- [ ] GDPR-compliant data export/deletion
+- [ ] Audit logging for compliance reporting
+- [ ] Backup verification documentation
+
+**Acceptance Criteria:**
+- [ ] Automated daily, weekly, and monthly backups
+- [ ] Admin can trigger manual backups
+- [ ] Successful backup/restore operations with verification
+- [ ] Encrypted backup storage for data protection
+- [ ] Email notifications for backup status
+- [ ] Backup history with easy restore functionality
+- [ ] System monitoring and health checks
+- [ ] Compliance with data protection requirements
+
+---
+
+### Mission 11: Client Portal & Communication
 **Priority**: Low | **Effort**: 8-10 days | **Status**: ⏳ Planned
 
 #### Description
@@ -788,7 +976,7 @@ Create limited client access portal for appointment viewing and basic communicat
 
 ---
 
-### Mission 10: Advanced Analytics & Custom Reports
+### Mission 12: Advanced Analytics & Custom Reports
 **Priority**: Low | **Effort**: 6-7 days | **Status**: ⏳ Planned
 
 #### Description
@@ -809,7 +997,7 @@ Comprehensive analytics dashboard with custom report generation capabilities.
 
 ---
 
-### Mission 11: System Administration & Integration
+### Mission 13: System Administration & Integration
 **Priority**: Low | **Effort**: 7-8 days | **Status**: ⏳ Planned
 
 #### Description
@@ -892,18 +1080,20 @@ Advanced admin features and external system integrations.
 - [ ] Mission 3: Multi-Therapist Profile System  
 - [ ] Mission 4: Google Calendar Integration
 
-### Phase 2 Progress (0/4 Complete)
-- [ ] Mission 5: Enhanced Financial Reporting
-- [ ] Mission 6: Advanced Scheduling & Recurring Appointments
-- [ ] Mission 7: Session Notes & Treatment Plans
-- [ ] Mission 8: Availability Management & Conflict Detection
+### Phase 2 Progress (0/5 Complete)
+- [ ] Mission 5: User Approval System
+- [ ] Mission 6: Enhanced Financial Reporting
+- [ ] Mission 7: Advanced Scheduling & Recurring Appointments
+- [ ] Mission 8: Session Notes & Treatment Plans
+- [ ] Mission 9: Availability Management & Conflict Detection
 
-### Phase 3 Progress (0/3 Complete)
-- [ ] Mission 9: Client Portal & Communication
-- [ ] Mission 10: Advanced Analytics & Custom Reports
-- [ ] Mission 11: System Administration & Integration
+### Phase 3 Progress (0/4 Complete)
+- [ ] Mission 10: Database Backup & Recovery System
+- [ ] Mission 11: Client Portal & Communication
+- [ ] Mission 12: Advanced Analytics & Custom Reports
+- [ ] Mission 13: System Administration & Integration
 
-**Total Progress: 2/12 missions completed (16.7%)**
+**Total Progress: 2/14 missions completed (14.3%)**
 
 ---
 
