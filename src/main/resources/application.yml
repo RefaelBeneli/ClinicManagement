@@ -14,8 +14,6 @@ spring:
     database-platform: ${DATABASE_DIALECT:org.hibernate.dialect.H2Dialect}
     hibernate:
       ddl-auto: ${DDL_AUTO:create-drop}  # Use 'validate' or 'none' for production
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: ${SHOW_SQL:true}
     properties:
       hibernate:
