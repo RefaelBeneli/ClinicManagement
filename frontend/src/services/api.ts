@@ -14,7 +14,12 @@ import {
   UpdatePersonalMeetingRequest,
   MessageResponse,
   RevenueResponse,
-  DashboardStats
+  DashboardStats,
+  PendingUser,
+  UserApprovalRequest,
+  UserRejectionRequest,
+  UserApprovalResponse,
+  ApprovalHistoryResponse
 } from '../types';
 
 // Automatically detect production environment and use Railway backend
@@ -242,6 +247,39 @@ export const personalMeetings = {
 
   getStats: async (): Promise<any> => {
     const response = await apiClient.get('/personal-meetings/stats');
+    return response.data;
+  },
+};
+
+// User Approval API (Admin only)
+export const userApproval = {
+  getPendingUsers: async (): Promise<PendingUser[]> => {
+    const response = await apiClient.get('/admin/users/pending');
+    return response.data;
+  },
+
+  getPendingCount: async (): Promise<{ count: number }> => {
+    const response = await apiClient.get('/admin/users/pending/count');
+    return response.data;
+  },
+
+  approveUser: async (userId: number, request: UserApprovalRequest): Promise<UserApprovalResponse> => {
+    const response = await apiClient.post(`/admin/users/${userId}/approve`, request);
+    return response.data;
+  },
+
+  rejectUser: async (userId: number, request: UserRejectionRequest): Promise<UserApprovalResponse> => {
+    const response = await apiClient.post(`/admin/users/${userId}/reject`, request);
+    return response.data;
+  },
+
+  getApprovalHistory: async (): Promise<ApprovalHistoryResponse[]> => {
+    const response = await apiClient.get('/admin/users/approval-history');
+    return response.data;
+  },
+
+  getUserStatus: async (userId: number): Promise<UserApprovalResponse> => {
+    const response = await apiClient.get(`/admin/users/${userId}/status`);
     return response.data;
   },
 };

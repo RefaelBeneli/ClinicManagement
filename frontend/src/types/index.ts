@@ -6,6 +6,55 @@ export interface User {
   role: string;
 }
 
+export enum UserApprovalStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export interface PendingUser {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  createdAt: string;
+  approvalStatus: UserApprovalStatus;
+}
+
+export interface UserApprovalRequest {
+  userId: number;
+  reason?: string;
+}
+
+export interface UserRejectionRequest {
+  userId: number;
+  reason: string;
+}
+
+export interface UserApprovalResponse {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  approvalStatus: UserApprovalStatus;
+  approvedBy?: string;
+  approvedDate?: string;
+  rejectionReason?: string;
+  createdAt: string;
+}
+
+export interface ApprovalHistoryResponse {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  approvalStatus: UserApprovalStatus;
+  approvedBy?: string;
+  approvedDate?: string;
+  rejectionReason?: string;
+  createdAt: string;
+}
+
 export interface AuthResponse {
   token: string;
   type: string;

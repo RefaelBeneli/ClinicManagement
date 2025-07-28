@@ -247,3 +247,68 @@
     padding: 8px;
   }
 } 
+/* User Approval Notification Styles */
+.approval-notification {
+  margin-top: 30px;
+}
+
+.approval-notification h3 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.notification-card {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 1px solid #ffc107;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.notification-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 193, 7, 0.3);
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.notification-icon {
+  font-size: 1.5rem;
+}
+
+.notification-text {
+  color: #856404;
+  font-size: 1rem;
+}
+
+.notification-text strong {
+  color: #533301;
+  font-weight: 700;
+}
+
+.approval-btn {
+  background: linear-gradient(135deg, #ffc107, #ffb300);
+  color: #533301;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.approval-btn:hover {
+  background: linear-gradient(135deg, #ffb300, #ffa000);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(255, 179, 0, 0.3);
+}

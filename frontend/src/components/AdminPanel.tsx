@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import UserApprovalPanel from './UserApprovalPanel';
+import { userApproval } from '../services/api';
 import './AdminPanel.css';
 
 interface AdminUser {
@@ -25,6 +27,10 @@ const AdminPanel: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'clients' | 'meetings'>('dashboard');
+  
+  // User approval states
+  const [showUserApprovalPanel, setShowUserApprovalPanel] = useState(false);
+  const [pendingUsersCount, setPendingUsersCount] = useState(0);
 
   // Use the same API URL logic as the main API service
   const apiUrl = useMemo(() => {
@@ -32,6 +38,16 @@ const AdminPanel: React.FC = () => {
       (window.location.hostname === 'frolicking-granita-900c53.netlify.app' 
         ? 'https://web-production-9aa8.up.railway.app/api'
         : 'http://localhost:8085/api');
+  }, []);
+
+  const fetchPendingUsersCount = useCallback(async () => {
+    try {
+      const count = await userApproval.getPendingCount();
+      setPendingUsersCount(count.count);
+    } catch (error) {
+      console.error('Failed to fetch pending users count:', error);
+      setPendingUsersCount(0);
+    }
   }, []);
 
   const fetchStats = useCallback(async () => {
@@ -73,12 +89,12 @@ const AdminPanel: React.FC = () => {
   useEffect(() => {
     const loadAdminData = async () => {
       setLoading(true);
-      await Promise.all([fetchStats(), fetchUsers()]);
+      await Promise.all([fetchStats(), fetchUsers(), fetchPendingUsersCount()]);
       setLoading(false);
     };
 
     loadAdminData();
-  }, [fetchStats, fetchUsers]);
+  }, [fetchStats, fetchUsers, fetchPendingUsersCount]);
 
   if (loading) {
     return <div className="admin-loading">Loading admin panel...</div>;
@@ -142,6 +158,27 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
             )}
+            
+            {/* User Approval Notification */}
+            {pendingUsersCount > 0 && (
+              <div className="approval-notification">
+                <h3>User Approval Required</h3>
+                <div className="notification-card pending-approval">
+                  <div className="notification-content">
+                    <div className="notification-icon">⚠️</div>
+                    <div className="notification-text">
+                      <strong>{pendingUsersCount}</strong> user{pendingUsersCount > 1 ? 's' : ''} pending approval
+                    </div>
+                  </div>
+                  <button 
+                    className="approval-btn" 
+                    onClick={() => setShowUserApprovalPanel(true)}
+                  >
+                    Review Users
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -201,6 +238,16 @@ const AdminPanel: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* User Approval Panel Modal */}
+      {showUserApprovalPanel && (
+        <UserApprovalPanel 
+          onClose={() => {
+            setShowUserApprovalPanel(false);
+            fetchPendingUsersCount(); // Refresh count after approval actions
+          }}
+        />
+      )}
     </div>
   );
 };
