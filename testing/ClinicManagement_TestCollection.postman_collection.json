@@ -1,0 +1,147 @@
+{
+  "info": {
+    "_postman_id": "d2d0bca1-f3e2-4e2e-9e8b-123456789abc",
+    "name": "Clinic-Management – Local Test Seed",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection seeds local H2 DB with sample users, profiles, meetings & runs analytics. Use {{base_url}} variable set to http://localhost:8085/api (or your deployed URL)."
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8085/api" },
+    { "key": "admin_token", "value": "" },
+    { "key": "therapist_token", "value": "" },
+    { "key": "therapist2_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth – Login admin (default admin/admin123)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/auth/signin", "host": ["{{base_url}}"], "path": ["auth","signin"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "pm.collectionVariables.set('admin_token', json.token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth – Register Therapist 1 (needs approval)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/auth/signup", "host": ["{{base_url}}"], "path": ["auth","signup"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"therapist1\",\n  \"password\": \"pass123\",\n  \"email\": \"therapist1@example.com\",\n  \"fullName\": \"Therapist One\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Admin – Approve Therapist 1",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{admin_token}}" } ],
+        "url": { "raw": "{{base_url}}/admin/users/2/approve", "host": ["{{base_url}}"], "path": ["admin","users","2","approve"] }
+      }
+    },
+    {
+      "name": "Auth – Login Therapist 1",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/auth/signin", "host": ["{{base_url}}"], "path": ["auth","signin"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"therapist1\",\n  \"password\": \"pass123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('therapist_token', pm.response.json().token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Therapist 1 – Create Therapist Profile",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{therapist_token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/therapist-profiles", "host": ["{{base_url}}"], "path": ["therapist-profiles"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"specialization\": \"CBT\",\n  \"defaultRate\": 350,\n  \"languages\": \"English,Spanish\",\n  \"yearsExperience\": 5\n}"
+        }
+      }
+    },
+    {
+      "name": "Therapist 1 – Add Client",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{therapist_token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/clients", "host": ["{{base_url}}"], "path": ["clients"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Alice Client\",\n  \"email\": \"alice@test.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Therapist 1 – Create Client Meeting",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{therapist_token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/meetings", "host": ["{{base_url}}"], "path": ["meetings"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientId\": 1,\n  \"meetingDate\": \"2030-01-01T10:00:00\",\n  \"price\": 350\n}"
+        }
+      }
+    },
+    {
+      "name": "Therapist 1 – Personal Meeting (Supervision)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{therapist_token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/personal-meetings", "host": ["{{base_url}}"], "path": ["personal-meetings"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"therapistName\": \"Supervisor Bob\",\n  \"meetingDate\": \"2030-01-02T14:00:00\",\n  \"price\": 400,\n  \"meetingType\": \"SUPERVISION\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Analytics – Therapist Dashboard Stats",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{therapist_token}}" } ],
+        "url": { "raw": "{{base_url}}/meetings/user-dashboard-stats", "host": ["{{base_url}}"], "path": ["meetings","user-dashboard-stats"] }
+      }
+    },
+    {
+      "name": "Admin – Global Stats (example endpoint)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{admin_token}}" } ],
+        "url": { "raw": "{{base_url}}/admin/users?page=0&size=20", "host": ["{{base_url}}"], "path": ["admin","users"], "query": [ { "key": "page", "value": "0" }, { "key": "size", "value": "20" } ] }
+      }
+    }
+  ]
+} 

@@ -3,7 +3,7 @@ spring:
   application:
     name: clinic-management
   
-  # Local H2 Database configuration
+  # Default H2 Database configuration for local development
   datasource:
     url: jdbc:h2:mem:clinic_db
     username: sa
@@ -22,35 +22,35 @@ spring:
         jdbc:
           time_zone: UTC
   
+  # Flyway is disabled by default for H2
+  flyway:
+    enabled: false
+  
   # H2 Console for local development
   h2:
     console:
       enabled: true
       path: /h2-console
-  
-  # Flyway disabled - using ddl-auto
-  flyway:
-    enabled: false
 
 ---
-# Production configuration (Railway with PostgreSQL)
+# Production configuration (ACTIVATED IF SPRING_PROFILES_ACTIVE=production)
 spring:
   config:
     activate:
       on-profile: production
   
-  # Railway PostgreSQL Database configuration
+  # Railway PostgreSQL configuration
   datasource:
-    url: ${DATABASE_URL}
+    url: ${SPRING_DATASOURCE_URL} # Provided by Railway env var
     username: ${PGUSER}
     password: ${PGPASSWORD}
     driverClassName: org.postgresql.Driver
-  
+
   # Production JPA configuration - FORCE AGGRESSIVE schema recreation
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate # Use validate with Flyway
+      ddl-auto: validate # Let Flyway manage the schema
     show-sql: true # Enable for debugging on Railway
     properties:
       hibernate:
@@ -58,15 +58,10 @@ spring:
         jdbc:
           time_zone: UTC
 
-  # Flyway enabled - to manage database schema
+  # Flyway is ENABLED for production
   flyway:
-    enabled: true # Enable Flyway for production
-    baseline-on-migrate: true # Creates a baseline if tables already exist
-
-  # Disable H2 console in production
-  h2:
-    console:
-      enabled: false
+    enabled: true
+    baseline-on-migrate: true
 
 ---
 # Common configuration for all profiles
