@@ -4,9 +4,7 @@
     "builder": "nixpacks"
   },
   "deploy": {
-    "startCommand": "./gradlew bootRun",
     "healthcheckPath": "/actuator/health",
-    "healthcheckTimeout": 300,
-    "restartPolicyType": "on_failure"
+    "healthcheckTimeout": 300
   }
 } 
