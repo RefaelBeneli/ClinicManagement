@@ -27,7 +27,7 @@ data class Meeting(
     
     @Column(nullable = false, precision = 10, scale = 2)
     val price: BigDecimal,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     val status: MeetingStatus = MeetingStatus.SCHEDULED,
