@@ -37,6 +37,7 @@ data class PersonalMeeting(
     @Column(nullable = false, precision = 10, scale = 2)
     val price: BigDecimal,
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "is_paid", nullable = false)
     val isPaid: Boolean = false,
     

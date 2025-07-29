@@ -28,6 +28,10 @@ data class Meeting(
     @Column(nullable = false, precision = 10, scale = 2)
     val price: BigDecimal,
     
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    val status: MeetingStatus = MeetingStatus.SCHEDULED,
+    
     @Column(name = "is_paid", nullable = false)
     val isPaid: Boolean = false,
     
@@ -39,10 +43,6 @@ data class Meeting(
     
     @Column(name = "google_event_id", nullable = true)
     val googleEventId: String? = null,
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    val status: MeetingStatus = MeetingStatus.SCHEDULED,
     
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
