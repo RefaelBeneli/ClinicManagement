@@ -23,6 +23,7 @@ dependencies {
     
     // Database
     implementation("mysql:mysql-connector-java:8.0.33")
+    implementation("org.flywaydb:flyway-mysql")
     
     // Production dependencies
     implementation("org.springframework.boot:spring-boot-starter-actuator") // Health checks
