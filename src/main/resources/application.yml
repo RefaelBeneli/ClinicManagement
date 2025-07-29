@@ -25,30 +25,6 @@ spring:
     enabled: false
 
 ---
-# Production configuration (ACTIVATED IF SPRING_PROFILES_ACTIVE=production)
-spring:
-  config:
-    activate:
-      on-profile: production
-  
-  # Railway MySQL configuration
-  datasource:
-    url: ${SPRING_DATASOURCE_URL} # Provided by Railway env var
-    username: ${MYSQL_USER}
-    password: ${MYSQL_PASSWORD}
-    driverClassName: com.mysql.cj.jdbc.Driver
-
-  jpa:
-    database-platform: org.hibernate.dialect.MySQLDialect
-    hibernate:
-      ddl-auto: validate # Let Flyway manage the schema
-
-  # Flyway is ENABLED for production
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-
----
 # Common configuration for all profiles
 server:
   port: ${PORT:8085}
