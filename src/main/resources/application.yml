@@ -22,7 +22,7 @@ spring:
   
   # Flyway is disabled by default for local development
   flyway:
-    enabled: true
+    enabled: false
 
 ---
 # Common configuration for all profiles
