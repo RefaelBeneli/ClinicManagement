@@ -13,7 +13,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: update # Temporarily set to update to force schema changes
+      ddl-auto: none # Disable Hibernate's schema management entirely
     show-sql: false  # Disable SQL logging in production
     properties:
       hibernate:
