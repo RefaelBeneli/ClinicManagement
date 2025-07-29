@@ -2,16 +2,16 @@ spring:
   application:
     name: clinic-management
   
-  # Production Database (Railway PostgreSQL)
+  # Production Database (Railway MySQL)
   datasource:
-    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:clinic_db}
-    username: ${PGUSER:clinic_user}
-    password: ${PGPASSWORD:password}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:my_clinic}?useUnicode=yes&characterEncoding=UTF-8&useSSL=false&serverTimezone=America/Los_Angeles
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   
   # JPA configuration for production
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: update  # Safe for production - only updates schema
     show-sql: false  # Disable SQL logging in production
