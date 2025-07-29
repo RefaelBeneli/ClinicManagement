@@ -18,6 +18,8 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        type:
+          preferred_enum_jdbc_type: VARCHAR
 
   # Flyway configuration for production
   flyway:
