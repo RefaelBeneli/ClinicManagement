@@ -4,9 +4,9 @@ spring:
   
   # Production Database (Railway MySQL)
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:my_clinic}?useUnicode=yes&characterEncoding=UTF-8&useSSL=false&serverTimezone=America/Los_Angeles
-    username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:root}
+    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}?useUnicode=yes&characterEncoding=UTF-8&useSSL=false&serverTimezone=America/Los_Angeles
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   # JPA configuration for production
