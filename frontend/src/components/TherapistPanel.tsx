@@ -6,7 +6,7 @@ import PersonalMeetingPanel from './PersonalMeetingPanel';
 import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
 import { clients, meetings, personalMeetings, expenses } from '../services/api';
-import { Client, Meeting, PersonalMeeting, Expense } from '../types';
+import { Client, Meeting, PersonalMeeting, Expense, MeetingStatus, PersonalMeetingStatus } from '../types';
 import ViewClientModal from './ui/ViewClientModal';
 import ViewMeetingModal from './ui/ViewMeetingModal';
 import ViewPersonalMeetingModal from './ui/ViewPersonalMeetingModal';
@@ -231,6 +231,21 @@ const TherapistPanel: React.FC = () => {
     }
   }, [loading, fetchDashboardStats, fetchAnalytics]);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.status-badge')) {
+        closeAllDropdowns();
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -286,6 +301,57 @@ const TherapistPanel: React.FC = () => {
       console.error('❌ Failed to update expense payment status:', error);
       alert('Failed to update payment status. Please try again.');
     }
+  };
+
+  // Status update handlers
+  const handleMeetingStatusUpdate = async (meetingId: number, newStatus: MeetingStatus) => {
+    try {
+      console.log('🔄 Updating meeting status:', { meetingId, newStatus });
+      await meetings.update(meetingId, { status: newStatus });
+      console.log('✅ Meeting status updated successfully');
+      await fetchMeetings();
+    } catch (error) {
+      console.error('❌ Failed to update meeting status:', error);
+      alert('Failed to update status. Please try again.');
+    }
+  };
+
+  const handlePersonalMeetingStatusUpdate = async (meetingId: number, newStatus: PersonalMeetingStatus) => {
+    try {
+      console.log('🔄 Updating personal meeting status:', { meetingId, newStatus });
+      await personalMeetings.update(meetingId, { status: newStatus });
+      console.log('✅ Personal meeting status updated successfully');
+      await fetchPersonalMeetings();
+    } catch (error) {
+      console.error('❌ Failed to update personal meeting status:', error);
+      alert('Failed to update status. Please try again.');
+    }
+  };
+
+  // Status dropdown state
+  const [statusDropdowns, setStatusDropdowns] = useState<{
+    meetings: { [key: number]: boolean };
+    personalMeetings: { [key: number]: boolean };
+  }>({
+    meetings: {},
+    personalMeetings: {}
+  });
+
+  const toggleStatusDropdown = (type: 'meetings' | 'personalMeetings', id: number) => {
+    setStatusDropdowns(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [id]: !prev[type][id]
+      }
+    }));
+  };
+
+  const closeAllDropdowns = () => {
+    setStatusDropdowns({
+      meetings: {},
+      personalMeetings: {}
+    });
   };
 
   const handleClientStatusToggle = async (clientId: number, currentActiveStatus: boolean) => {
@@ -580,10 +646,85 @@ const TherapistPanel: React.FC = () => {
                       <td>{new Date(meeting.meetingDate).toLocaleString()}</td>
                       <td>{meeting.duration} min</td>
                       <td>{formatCurrency(meeting.price)}</td>
-                      <td>
-                        <span className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}>
-                          {meeting.status || 'Unknown'}
-                        </span>
+                                            <td style={{ position: 'relative' }}>
+                        <button
+                          className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}
+                          onClick={() => toggleStatusDropdown('meetings', meeting.id)}
+                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                        >
+                          {meeting.status ? meeting.status.replace('_', ' ') : 'Scheduled'}
+                        </button>
+                        {statusDropdowns.meetings[meeting.id] && (
+                          <div 
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: '0',
+                              zIndex: 1000,
+                              backgroundColor: 'white',
+                              border: '1px solid #ddd',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                              minWidth: '120px'
+                            }}
+                          >
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.SCHEDULED);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              Scheduled
+                            </div>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.COMPLETED);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              Completed
+                            </div>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.CANCELLED);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              Cancelled
+                            </div>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.NO_SHOW);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              No Show
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <button
@@ -656,10 +797,85 @@ const TherapistPanel: React.FC = () => {
                       <td>{new Date(meeting.meetingDate).toLocaleString()}</td>
                       <td>{meeting.duration} min</td>
                       <td>{formatCurrency(meeting.price)}</td>
-                      <td>
-                        <span className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}>
-                          {meeting.status || 'Unknown'}
-                        </span>
+                      <td style={{ position: 'relative' }}>
+                        <button
+                          className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}
+                          onClick={() => toggleStatusDropdown('personalMeetings', meeting.id)}
+                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                        >
+                          {meeting.status ? meeting.status.replace('_', ' ') : 'Scheduled'}
+                        </button>
+                        {statusDropdowns.personalMeetings[meeting.id] && (
+                          <div 
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: '0',
+                              zIndex: 1000,
+                              backgroundColor: 'white',
+                              border: '1px solid #ddd',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                              minWidth: '120px'
+                            }}
+                          >
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.SCHEDULED);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              Scheduled
+                            </div>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.COMPLETED);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              Completed
+                            </div>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.CANCELLED);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              Cancelled
+                            </div>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem'
+                              }}
+                              onClick={() => {
+                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.NO_SHOW);
+                                closeAllDropdowns();
+                              }}
+                            >
+                              No Show
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <button
