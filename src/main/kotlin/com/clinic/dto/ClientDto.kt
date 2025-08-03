@@ -1,5 +1,6 @@
 package com.clinic.dto
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import java.time.LocalDateTime
 
@@ -8,7 +9,6 @@ data class ClientRequest(
     val fullName: String,
     val email: String? = null,
     val phone: String? = null,
-    val dateOfBirth: String? = null,
     val notes: String? = null
 )
 
@@ -17,9 +17,9 @@ data class ClientResponse(
     val fullName: String,
     val email: String?,
     val phone: String?,
-    val dateOfBirth: String?,
     val notes: String?,
     val createdAt: LocalDateTime,
+    @JsonProperty("isActive")
     val isActive: Boolean
 )
 
@@ -27,7 +27,6 @@ data class UpdateClientRequest(
     val fullName: String?,
     val email: String?,
     val phone: String?,
-    val dateOfBirth: String?,
     val notes: String?,
     val isActive: Boolean?
 ) 

@@ -22,7 +22,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     
     // Database
-    implementation("mysql:mysql-connector-java:8.0.33")
+    implementation("mysql:mysql-connector-java:8.0.33") {
+        exclude(group = "commons-logging", module = "commons-logging")
+    }
     implementation("org.flywaydb:flyway-mysql")
     
     // Production dependencies

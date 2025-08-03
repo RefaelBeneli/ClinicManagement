@@ -26,7 +26,6 @@ CREATE TABLE clients (
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     phone VARCHAR(255),
-    date_of_birth VARCHAR(255),
     notes VARCHAR(1000),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -46,6 +45,8 @@ CREATE TABLE meetings (
     status ENUM('SCHEDULED','COMPLETED','CANCELLED','NO_SHOW') NOT NULL DEFAULT 'SCHEDULED',
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
     payment_date TIMESTAMP NULL,
+    google_event_id VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -57,6 +58,9 @@ CREATE TABLE personal_meetings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     therapist_name VARCHAR(255) NOT NULL,
+    meeting_type VARCHAR(100) NOT NULL DEFAULT 'PERSONAL_THERAPY',
+    provider_type VARCHAR(100) NOT NULL DEFAULT 'Therapist',
+    provider_credentials VARCHAR(255),
     meeting_date TIMESTAMP NOT NULL,
     duration INTEGER NOT NULL DEFAULT 60,
     price DECIMAL(10,2) NOT NULL,
@@ -64,7 +68,51 @@ CREATE TABLE personal_meetings (
     status ENUM('SCHEDULED','COMPLETED','CANCELLED','NO_SHOW') NOT NULL DEFAULT 'SCHEDULED',
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
     payment_date TIMESTAMP NULL,
+    google_event_id VARCHAR(255),
+    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+    recurrence_frequency VARCHAR(50),
+    next_due_date DATE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create expenses table
+CREATE TABLE expenses (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description VARCHAR(1000),
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'ILS',
+    category VARCHAR(100) NOT NULL,
+    notes VARCHAR(1000),
+    expense_date DATE NOT NULL,
+    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+    recurrence_frequency VARCHAR(50),
+    next_due_date DATE,
+    is_paid BOOLEAN NOT NULL DEFAULT FALSE,
+    payment_method VARCHAR(100),
+    receipt_url VARCHAR(500),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create calendar_integration table
+CREATE TABLE calendar_integration (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    google_calendar_id VARCHAR(255),
+    access_token TEXT,
+    refresh_token TEXT,
+    token_expiry TIMESTAMP NULL,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -78,4 +126,8 @@ CREATE INDEX idx_meetings_user_id ON meetings(user_id);
 CREATE INDEX idx_meetings_client_id ON meetings(client_id);
 CREATE INDEX idx_meetings_date ON meetings(meeting_date);
 CREATE INDEX idx_personal_meetings_user_id ON personal_meetings(user_id);
-CREATE INDEX idx_personal_meetings_date ON personal_meetings(meeting_date); 
+CREATE INDEX idx_personal_meetings_date ON personal_meetings(meeting_date);
+CREATE INDEX idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX idx_expenses_category ON expenses(category);
+CREATE INDEX idx_expenses_date ON expenses(expense_date);
+CREATE INDEX idx_calendar_integration_user_id ON calendar_integration(user_id); 

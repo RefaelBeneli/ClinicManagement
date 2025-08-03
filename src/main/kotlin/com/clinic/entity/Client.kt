@@ -19,9 +19,6 @@ data class Client(
     @Column(nullable = true)
     val phone: String? = null,
     
-    @Column(name = "date_of_birth", nullable = true)
-    val dateOfBirth: String? = null,
-    
     @Column(nullable = true, length = 1000)
     val notes: String? = null,
     

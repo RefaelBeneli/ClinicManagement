@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 @Service
 class PersonalMeetingService {
@@ -20,6 +21,9 @@ class PersonalMeetingService {
 
     @Autowired
     private lateinit var authService: AuthService
+
+    @Autowired
+    private lateinit var expenseService: ExpenseService
 
     fun createPersonalMeeting(meetingRequest: PersonalMeetingRequest): PersonalMeetingResponse {
         val currentUser = authService.getCurrentUser()
@@ -33,11 +37,45 @@ class PersonalMeetingService {
             meetingDate = meetingRequest.meetingDate,
             duration = meetingRequest.duration ?: 60,
             price = meetingRequest.price,
-            notes = meetingRequest.notes
+            notes = meetingRequest.notes,
+            isRecurring = meetingRequest.isRecurring,
+            recurrenceFrequency = meetingRequest.recurrenceFrequency,
+            nextDueDate = meetingRequest.nextDueDate
         )
 
         val savedMeeting = personalMeetingRepository.save(meeting)
+
+        // If this is a session with a Guide, automatically create a recurring expense
+        if (meetingRequest.providerType.equals("Guide", ignoreCase = true)) {
+            createGuideExpense(savedMeeting)
+        }
+
         return mapToResponse(savedMeeting)
+    }
+
+    private fun createGuideExpense(personalMeeting: PersonalMeeting) {
+        val expenseRequest = com.clinic.dto.ExpenseRequest(
+            name = "Guide Session - ${personalMeeting.therapistName}",
+            description = "Personal session with guide: ${personalMeeting.meetingType}",
+            amount = personalMeeting.price,
+            currency = "ILS",
+            category = "Professional Development",
+            notes = "Auto-created from personal meeting with guide",
+            expenseDate = personalMeeting.meetingDate.toLocalDate(),
+            isRecurring = personalMeeting.isRecurring,
+            recurrenceFrequency = personalMeeting.recurrenceFrequency,
+            nextDueDate = personalMeeting.nextDueDate,
+            isPaid = personalMeeting.isPaid,
+            paymentMethod = null,
+            receiptUrl = null
+        )
+
+        try {
+            expenseService.createExpense(expenseRequest)
+        } catch (e: Exception) {
+            // Log the error but don't fail the personal meeting creation
+            println("Failed to create guide expense: ${e.message}")
+        }
     }
 
     fun getAllPersonalMeetings(): List<PersonalMeetingResponse> {
@@ -77,7 +115,10 @@ class PersonalMeetingService {
             price = updateRequest.price ?: meeting.price,
             isPaid = updateRequest.isPaid ?: meeting.isPaid,
             notes = updateRequest.notes ?: meeting.notes,
-            status = updateRequest.status ?: meeting.status
+            status = updateRequest.status ?: meeting.status,
+            isRecurring = updateRequest.isRecurring ?: meeting.isRecurring,
+            recurrenceFrequency = updateRequest.recurrenceFrequency ?: meeting.recurrenceFrequency,
+            nextDueDate = updateRequest.nextDueDate ?: meeting.nextDueDate
         )
 
         val savedMeeting = personalMeetingRepository.save(updatedMeeting)
@@ -111,7 +152,9 @@ class PersonalMeetingService {
             throw RuntimeException("Personal meeting not found")
         }
 
-        personalMeetingRepository.delete(meeting)
+        // Soft delete instead of hard delete
+        val deactivatedMeeting = meeting.copy(isActive = false)
+        personalMeetingRepository.save(deactivatedMeeting)
     }
 
     fun getPersonalMeetingsByMonth(year: Int, month: Int): List<PersonalMeetingResponse> {
@@ -157,18 +200,33 @@ class PersonalMeetingService {
                 )
             }
 
+        // Stats by provider type
+        val statsByProvider = totalMeetings.groupBy { it.providerType }
+            .mapValues { (_, meetings) ->
+                mapOf(
+                    "count" to meetings.size,
+                    "paid" to meetings.count { it.isPaid },
+                    "totalSpent" to meetings.filter { it.isPaid }.sumOf { it.price }
+                )
+            }
+
         return mapOf(
             "personalMeetingsToday" to todayMeetings.size,
             "unpaidPersonalSessions" to unpaidMeetings.size,
             "monthlyPersonalSpent" to monthlySpent,
             "totalPersonalSessions" to totalMeetings.size,
             "paidPersonalSessions" to paidMeetings.size,
-            "statsByType" to statsByType
+            "statsByType" to statsByType,
+            "statsByProvider" to statsByProvider
         )
     }
 
     fun getMeetingTypes(): List<PersonalMeetingType> {
         return PersonalMeetingType.values().toList()
+    }
+
+    fun getProviderTypes(): List<String> {
+        return listOf("Therapist", "Guide", "Supervisor", "Teacher")
     }
 
     private fun mapToResponse(meeting: PersonalMeeting): PersonalMeetingResponse {
@@ -185,6 +243,9 @@ class PersonalMeetingService {
             paymentDate = meeting.paymentDate,
             notes = meeting.notes,
             status = meeting.status,
+            isRecurring = meeting.isRecurring,
+            recurrenceFrequency = meeting.recurrenceFrequency,
+            nextDueDate = meeting.nextDueDate,
             createdAt = meeting.createdAt
         )
     }

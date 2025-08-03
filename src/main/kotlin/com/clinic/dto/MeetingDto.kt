@@ -1,6 +1,7 @@
 package com.clinic.dto
 
 import com.clinic.entity.MeetingStatus
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
 import java.math.BigDecimal
@@ -28,6 +29,7 @@ data class MeetingResponse(
     val meetingDate: LocalDateTime,
     val duration: Int,
     val price: BigDecimal,
+    @JsonProperty("isPaid")
     val isPaid: Boolean,
     val paymentDate: LocalDateTime?,
     val notes: String?,
@@ -40,6 +42,7 @@ data class UpdateMeetingRequest(
     val meetingDate: LocalDateTime?,
     val duration: Int?,
     val price: BigDecimal?,
+    @JsonProperty("isPaid")
     val isPaid: Boolean?,
     val notes: String?,
     val status: MeetingStatus?
@@ -47,6 +50,7 @@ data class UpdateMeetingRequest(
 
 data class PaymentUpdateRequest(
     @field:NotNull(message = "Payment status is required")
+    @JsonProperty("isPaid")
     val isPaid: Boolean,
     val paymentDate: LocalDateTime? = if (isPaid == true) LocalDateTime.now() else null
 )

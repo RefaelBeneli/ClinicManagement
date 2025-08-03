@@ -2,10 +2,12 @@ package com.clinic.dto
 
 import com.clinic.entity.PersonalMeetingStatus
 import com.clinic.entity.PersonalMeetingType
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 data class PersonalMeetingRequest(
@@ -29,7 +31,14 @@ data class PersonalMeetingRequest(
     @field:Positive(message = "Price must be positive")
     val price: BigDecimal,
     
-    val notes: String? = null
+    val notes: String? = null,
+    
+    @JsonProperty("isRecurring")
+    val isRecurring: Boolean = false,
+    
+    val recurrenceFrequency: String? = null, // "weekly", "monthly", "quarterly"
+    
+    val nextDueDate: LocalDate? = null
 )
 
 data class PersonalMeetingResponse(
@@ -41,10 +50,15 @@ data class PersonalMeetingResponse(
     val meetingDate: LocalDateTime,
     val duration: Int,
     val price: BigDecimal,
+    @JsonProperty("isPaid")
     val isPaid: Boolean,
     val paymentDate: LocalDateTime?,
     val notes: String?,
     val status: PersonalMeetingStatus,
+    @JsonProperty("isRecurring")
+    val isRecurring: Boolean,
+    val recurrenceFrequency: String?,
+    val nextDueDate: LocalDate?,
     val createdAt: LocalDateTime
 )
 
@@ -56,13 +70,19 @@ data class UpdatePersonalMeetingRequest(
     val meetingDate: LocalDateTime?,
     val duration: Int?,
     val price: BigDecimal?,
+    @JsonProperty("isPaid")
     val isPaid: Boolean?,
     val notes: String?,
-    val status: PersonalMeetingStatus?
+    val status: PersonalMeetingStatus?,
+    @JsonProperty("isRecurring")
+    val isRecurring: Boolean?,
+    val recurrenceFrequency: String?,
+    val nextDueDate: LocalDate?
 )
 
 data class PersonalMeetingPaymentUpdateRequest(
     @field:NotNull(message = "Payment status is required")
+    @JsonProperty("isPaid")
     val isPaid: Boolean,
     val paymentDate: LocalDateTime? = if (isPaid == true) LocalDateTime.now() else null
 ) 

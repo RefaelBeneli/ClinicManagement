@@ -59,7 +59,7 @@ class PersonalMeetingController {
         }
     }
 
-    @PatchMapping("/{id}/payment")
+    @PutMapping("/{id}/payment")
     fun updatePaymentStatus(
         @PathVariable id: Long,
         @Valid @RequestBody paymentUpdate: PersonalMeetingPaymentUpdateRequest
@@ -76,9 +76,19 @@ class PersonalMeetingController {
     fun deletePersonalMeeting(@PathVariable id: Long): ResponseEntity<MessageResponse> {
         return try {
             personalMeetingService.deletePersonalMeeting(id)
-            ResponseEntity.ok(MessageResponse("Personal meeting deleted successfully"))
+            ResponseEntity.ok(MessageResponse("Personal meeting disabled successfully"))
         } catch (e: Exception) {
-            ResponseEntity.badRequest().body(MessageResponse("Error deleting personal meeting: ${e.message}"))
+            ResponseEntity.badRequest().body(MessageResponse("Error disabling personal meeting: ${e.message}"))
+        }
+    }
+
+    @PatchMapping("/{id}/disable")
+    fun disablePersonalMeeting(@PathVariable id: Long): ResponseEntity<MessageResponse> {
+        return try {
+            personalMeetingService.deletePersonalMeeting(id) // This now does soft delete
+            ResponseEntity.ok(MessageResponse("Personal meeting disabled successfully"))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error disabling personal meeting: ${e.message}"))
         }
     }
 
@@ -110,6 +120,16 @@ class PersonalMeetingController {
         return try {
             val types = personalMeetingService.getMeetingTypes()
             ResponseEntity.ok(types)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @GetMapping("/provider-types")
+    fun getProviderTypes(): ResponseEntity<List<String>> {
+        return try {
+            val providerTypes = personalMeetingService.getProviderTypes()
+            ResponseEntity.ok(providerTypes)
         } catch (e: Exception) {
             ResponseEntity.badRequest().build()
         }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface ClientRepository : JpaRepository<Client, Long> {
+    fun findByUser(user: User): List<Client>
     fun findByUserAndIsActiveTrue(user: User): List<Client>
     fun findByUserAndFullNameContainingIgnoreCaseAndIsActiveTrue(user: User, name: String): List<Client>
     fun findByIdAndUser(id: Long, user: User): Client?

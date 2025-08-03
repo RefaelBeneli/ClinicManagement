@@ -35,11 +35,22 @@ class GoogleCalendarService(
     @Value("\${google.oauth.redirect-uri:http://localhost:3000/calendar/callback}")
     private val redirectUri: String = "http://localhost:3000/calendar/callback"
     
+    @Value("\${google.oauth.enabled:false}")
+    private val googleCalendarEnabled: Boolean = false
+    
     private val jsonFactory = GsonFactory.getDefaultInstance()
     private val httpTransport: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val scopes = listOf(CalendarScopes.CALENDAR)
     
+    private fun isGoogleCalendarEnabled(): Boolean {
+        return googleCalendarEnabled && !clientId.isNullOrBlank() && !clientSecret.isNullOrBlank()
+    }
+    
     fun generateAuthorizationUrl(userId: Long): OAuthUrlResponse {
+        if (!isGoogleCalendarEnabled()) {
+            throw RuntimeException("Google Calendar integration is disabled")
+        }
+        
         if (clientId.isNullOrBlank() || clientSecret.isNullOrBlank()) {
             throw RuntimeException("Google OAuth credentials not configured")
         }
@@ -64,6 +75,10 @@ class GoogleCalendarService(
     }
     
     fun handleOAuthCallback(code: String, state: String, user: User): CalendarIntegration {
+        if (!isGoogleCalendarEnabled()) {
+            throw RuntimeException("Google Calendar integration is disabled")
+        }
+        
         if (clientId.isNullOrBlank() || clientSecret.isNullOrBlank()) {
             throw RuntimeException("Google OAuth credentials not configured")
         }
@@ -127,6 +142,10 @@ class GoogleCalendarService(
     }
     
     fun createCalendarEvent(meeting: Meeting, integration: CalendarIntegration): String? {
+        if (!isGoogleCalendarEnabled()) {
+            return null
+        }
+        
         try {
             val calendarService = buildCalendarService(integration) ?: return null
             
@@ -166,6 +185,10 @@ class GoogleCalendarService(
     }
     
     fun createCalendarEvent(personalMeeting: PersonalMeeting, integration: CalendarIntegration): String? {
+        if (!isGoogleCalendarEnabled()) {
+            return null
+        }
+        
         try {
             val calendarService = buildCalendarService(integration) ?: return null
             
@@ -263,6 +286,10 @@ class GoogleCalendarService(
     }
     
     fun getUserCalendars(integration: CalendarIntegration): List<CalendarResponse> {
+        if (!isGoogleCalendarEnabled()) {
+            return emptyList()
+        }
+        
         try {
             val calendarService = buildCalendarService(integration) ?: return emptyList()
             
@@ -278,6 +305,104 @@ class GoogleCalendarService(
             }
         } catch (e: Exception) {
             println("Error fetching user calendars: ${e.message}")
+            return emptyList()
+        }
+    }
+
+    fun getCalendarEvents(integration: CalendarIntegration, startDate: String, endDate: String): List<GoogleCalendarEventResponse> {
+        if (!isGoogleCalendarEnabled()) {
+            return emptyList()
+        }
+        
+        try {
+            val calendarService = buildCalendarService(integration) ?: return emptyList()
+            
+            val events = calendarService.events().list("primary")
+                .setTimeMin(com.google.api.client.util.DateTime(startDate))
+                .setTimeMax(com.google.api.client.util.DateTime(endDate))
+                .setOrderBy("startTime")
+                .setSingleEvents(true)
+                .execute()
+            
+            return events.items.map { event ->
+                GoogleCalendarEventResponse(
+                    id = event.id,
+                    summary = event.summary,
+                    description = event.description,
+                    start = event.start,
+                    end = event.end,
+                    location = event.location,
+                    attendees = event.attendees?.map { attendee ->
+                        GoogleCalendarAttendeeResponse(
+                            email = attendee.email,
+                            displayName = attendee.displayName,
+                            responseStatus = attendee.responseStatus
+                        )
+                    },
+                    organizer = event.organizer?.let { organizer ->
+                        GoogleCalendarOrganizerResponse(
+                            email = organizer.email,
+                            displayName = organizer.displayName
+                        )
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            println("Error getting calendar events: ${e.message}")
+            return emptyList()
+        }
+    }
+
+    fun checkConflicts(integration: CalendarIntegration, startDate: String, endDate: String): List<CalendarConflictResponse> {
+        if (!isGoogleCalendarEnabled()) {
+            return emptyList()
+        }
+        
+        try {
+            val calendarService = buildCalendarService(integration) ?: return emptyList()
+            
+            val events = calendarService.events().list("primary")
+                .setTimeMin(com.google.api.client.util.DateTime(startDate))
+                .setTimeMax(com.google.api.client.util.DateTime(endDate))
+                .setOrderBy("startTime")
+                .setSingleEvents(true)
+                .execute()
+            
+            val conflicts = mutableListOf<CalendarConflictResponse>()
+            
+            // Simple conflict detection - events that overlap
+            for (i in events.items.indices) {
+                for (j in i + 1 until events.items.size) {
+                    val event1 = events.items[i]
+                    val event2 = events.items[j]
+                    
+                    val start1 = event1.start.dateTime?.value ?: event1.start.date?.value
+                    val end1 = event1.end.dateTime?.value ?: event1.end.date?.value
+                    val start2 = event2.start.dateTime?.value ?: event2.start.date?.value
+                    val end2 = event2.end.dateTime?.value ?: event2.end.date?.value
+                    
+                    if (start1 != null && end1 != null && start2 != null && end2 != null) {
+                        if (start1 < end2 && start2 < end1) {
+                            // Events overlap
+                            conflicts.add(
+                                CalendarConflictResponse(
+                                    startTime = start1,
+                                    endTime = end1,
+                                    conflictingEvents = listOf(
+                                        event1.summary ?: "Unknown Event",
+                                        event2.summary ?: "Unknown Event"
+                                    ),
+                                    severity = "warning"
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            
+            return conflicts
+        } catch (e: Exception) {
+            println("Error checking conflicts: ${e.message}")
             return emptyList()
         }
     }

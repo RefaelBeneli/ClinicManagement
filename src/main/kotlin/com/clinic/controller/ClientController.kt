@@ -70,11 +70,41 @@ class ClientController {
         }
     }
 
+    @PatchMapping("/{id}/disable")
+    fun disableClient(@PathVariable id: Long): ResponseEntity<MessageResponse> {
+        return try {
+            clientService.deleteClient(id) // This already does soft delete
+            ResponseEntity.ok(MessageResponse("Client disabled successfully"))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Failed to disable client"))
+        }
+    }
+
     @GetMapping("/search")
     fun searchClients(@RequestParam name: String): ResponseEntity<List<ClientResponse>> {
         return try {
             val clients = clientService.searchClients(name)
             ResponseEntity.ok(clients)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @PostMapping("/{id}/activate")
+    fun activateClient(@PathVariable id: Long): ResponseEntity<ClientResponse> {
+        return try {
+            val client = clientService.activateClient(id)
+            ResponseEntity.ok(client)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @PostMapping("/{id}/deactivate")
+    fun deactivateClient(@PathVariable id: Long): ResponseEntity<ClientResponse> {
+        return try {
+            val client = clientService.deactivateClient(id)
+            ResponseEntity.ok(client)
         } catch (e: Exception) {
             ResponseEntity.badRequest().build()
         }

@@ -28,7 +28,6 @@ data class AdminClientResponse(
     val fullName: String,
     val email: String?,
     val phone: String?,
-    val dateOfBirth: String?,
     val notes: String?,
     val isActive: Boolean,
     val userId: Long,
@@ -40,7 +39,6 @@ data class AdminClientRequest(
     val fullName: String,
     val email: String? = null,
     val phone: String? = null,
-    val dateOfBirth: String? = null,
     val notes: String? = null,
     val isActive: Boolean = true,
     val userId: Long

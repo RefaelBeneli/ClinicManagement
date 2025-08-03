@@ -24,7 +24,6 @@ class ClientService {
             fullName = clientRequest.fullName,
             email = clientRequest.email,
             phone = clientRequest.phone,
-            dateOfBirth = clientRequest.dateOfBirth,
             notes = clientRequest.notes,
             user = currentUser
         )
@@ -34,7 +33,7 @@ class ClientService {
 
     fun getAllClients(): List<ClientResponse> {
         val currentUser = authService.getCurrentUser()
-        return clientRepository.findByUserAndIsActiveTrue(currentUser)
+        return clientRepository.findByUser(currentUser)
             .map { mapToResponse(it) }
     }
 
@@ -54,7 +53,6 @@ class ClientService {
             fullName = updateRequest.fullName ?: client.fullName,
             email = updateRequest.email ?: client.email,
             phone = updateRequest.phone ?: client.phone,
-            dateOfBirth = updateRequest.dateOfBirth ?: client.dateOfBirth,
             notes = updateRequest.notes ?: client.notes,
             isActive = updateRequest.isActive ?: client.isActive
         )
@@ -78,13 +76,33 @@ class ClientService {
             .map { mapToResponse(it) }
     }
 
+    fun activateClient(id: Long): ClientResponse {
+        val currentUser = authService.getCurrentUser()
+        val client = clientRepository.findByIdAndUser(id, currentUser)
+            ?: throw RuntimeException("Client not found")
+
+        val activatedClient = client.copy(isActive = true)
+        val savedClient = clientRepository.save(activatedClient)
+        return mapToResponse(savedClient)
+    }
+
+    fun deactivateClient(id: Long): ClientResponse {
+        val currentUser = authService.getCurrentUser()
+        val client = clientRepository.findByIdAndUser(id, currentUser)
+            ?: throw RuntimeException("Client not found")
+
+        val deactivatedClient = client.copy(isActive = false)
+        val savedClient = clientRepository.save(deactivatedClient)
+        return mapToResponse(savedClient)
+    }
+
     private fun mapToResponse(client: Client): ClientResponse {
+        println("🔍 Mapping client: ${client.id}, isActive: ${client.isActive}")
         return ClientResponse(
             id = client.id,
             fullName = client.fullName,
             email = client.email,
             phone = client.phone,
-            dateOfBirth = client.dateOfBirth,
             notes = client.notes,
             createdAt = client.createdAt,
             isActive = client.isActive

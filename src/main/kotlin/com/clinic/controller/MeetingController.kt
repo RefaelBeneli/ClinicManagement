@@ -58,7 +58,7 @@ class MeetingController {
         }
     }
 
-    @PatchMapping("/{id}/payment")
+    @PutMapping("/{id}/payment")
     fun updatePaymentStatus(
         @PathVariable id: Long,
         @Valid @RequestBody paymentUpdate: PaymentUpdateRequest
@@ -75,9 +75,19 @@ class MeetingController {
     fun deleteMeeting(@PathVariable id: Long): ResponseEntity<*> {
         return try {
             meetingService.deleteMeeting(id)
-            ResponseEntity.ok(MessageResponse("Meeting deleted successfully"))
+            ResponseEntity.ok(MessageResponse("Meeting disabled successfully"))
         } catch (e: Exception) {
-            ResponseEntity.badRequest().body(MessageResponse("Error deleting meeting: ${e.message}"))
+            ResponseEntity.badRequest().body(MessageResponse("Error disabling meeting: ${e.message}"))
+        }
+    }
+
+    @PatchMapping("/{id}/disable")
+    fun disableMeeting(@PathVariable id: Long): ResponseEntity<*> {
+        return try {
+            meetingService.deleteMeeting(id) // This now does soft delete
+            ResponseEntity.ok(MessageResponse("Meeting disabled successfully"))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error disabling meeting: ${e.message}"))
         }
     }
 

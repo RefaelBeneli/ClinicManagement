@@ -10,17 +10,17 @@ spring:
     driverClassName: com.mysql.cj.jdbc.Driver
   
   jpa:
-    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: create-drop # Automatically drop and recreate the schema on startup
-    show-sql: true
+      ddl-auto: none # Changed from create-drop to none when using Flyway
+    open-in-view: false # Explicitly configure to eliminate warning
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
         jdbc:
           time_zone: UTC
   
-  # Flyway is disabled by default for local development
+  # Enable Flyway for schema management
   flyway:
     enabled: true
 
@@ -43,6 +43,7 @@ google:
     client-id: ${GOOGLE_CLIENT_ID:#{null}}
     client-secret: ${GOOGLE_CLIENT_SECRET:#{null}}
     redirect-uri: ${GOOGLE_REDIRECT_URI:https://frolicking-granita-900c53.netlify.app/calendar/callback}
+    enabled: ${GOOGLE_CALENDAR_ENABLED:false}
 
 logging:
   level:

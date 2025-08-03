@@ -132,4 +132,32 @@ class CalendarIntegrationController(
             ResponseEntity.badRequest().body(MessageResponse("Error disabling sync: ${e.message}"))
         }
     }
+
+    @GetMapping("/events")
+    fun getCalendarEvents(
+        @RequestParam startDate: String,
+        @RequestParam endDate: String
+    ): ResponseEntity<*> {
+        return try {
+            val user = authService.getCurrentUser()
+            val events = calendarIntegrationService.getCalendarEvents(user.id, startDate, endDate)
+            ResponseEntity.ok(events)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error getting calendar events: ${e.message}"))
+        }
+    }
+
+    @GetMapping("/conflicts")
+    fun checkConflicts(
+        @RequestParam startDate: String,
+        @RequestParam endDate: String
+    ): ResponseEntity<*> {
+        return try {
+            val user = authService.getCurrentUser()
+            val conflicts = calendarIntegrationService.checkConflicts(user.id, startDate, endDate)
+            ResponseEntity.ok(conflicts)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error checking conflicts: ${e.message}"))
+        }
+    }
 } 

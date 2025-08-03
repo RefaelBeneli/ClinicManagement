@@ -68,24 +68,38 @@ class CalendarIntegrationService(
     }
     
     fun generateAuthUrl(userId: Long): OAuthUrlResponse {
-        return googleCalendarService.generateAuthorizationUrl(userId)
+        return try {
+            googleCalendarService.generateAuthorizationUrl(userId)
+        } catch (e: RuntimeException) {
+            if (e.message?.contains("disabled") == true) {
+                throw RuntimeException("Google Calendar integration is disabled")
+            }
+            throw e
+        }
     }
     
     fun handleOAuthCallback(request: OAuthCallbackRequest): CalendarIntegrationResponse {
-        // Extract userId from state (format: "userId:randomState")
-        val stateParts = request.state.split(":")
-        if (stateParts.size != 2) {
-            throw RuntimeException("Invalid state parameter")
+        return try {
+            // Extract userId from state (format: "userId:randomState")
+            val stateParts = request.state.split(":")
+            if (stateParts.size != 2) {
+                throw RuntimeException("Invalid state parameter")
+            }
+            
+            val userId = stateParts[0].toLongOrNull() 
+                ?: throw RuntimeException("Invalid user ID in state")
+            
+            val user = authService.getUserById(userId) 
+                ?: throw RuntimeException("User not found")
+            
+            val integration = googleCalendarService.handleOAuthCallback(request.code, request.state, user)
+            mapToResponse(integration)
+        } catch (e: RuntimeException) {
+            if (e.message?.contains("disabled") == true) {
+                throw RuntimeException("Google Calendar integration is disabled")
+            }
+            throw e
         }
-        
-        val userId = stateParts[0].toLongOrNull() 
-            ?: throw RuntimeException("Invalid user ID in state")
-        
-        val user = authService.getUserById(userId) 
-            ?: throw RuntimeException("User not found")
-        
-        val integration = googleCalendarService.handleOAuthCallback(request.code, request.state, user)
-        return mapToResponse(integration)
     }
     
     fun getSyncStatus(userId: Long): CalendarSyncStatusResponse {
@@ -142,6 +156,32 @@ class CalendarIntegrationService(
             updatedAt = LocalDateTime.now()
         )
         return calendarIntegrationRepository.save(updatedIntegration)
+    }
+
+    fun getCalendarEvents(userId: Long, startDate: String, endDate: String): List<GoogleCalendarEventResponse> {
+        val user = authService.getUserById(userId) 
+            ?: throw RuntimeException("User not found")
+        
+        val integration = calendarIntegrationRepository.findByUser(user).orElse(null)
+        
+        return if (integration != null && !integration.accessToken.isNullOrBlank()) {
+            googleCalendarService.getCalendarEvents(integration, startDate, endDate)
+        } else {
+            emptyList()
+        }
+    }
+
+    fun checkConflicts(userId: Long, startDate: String, endDate: String): List<CalendarConflictResponse> {
+        val user = authService.getUserById(userId) 
+            ?: throw RuntimeException("User not found")
+        
+        val integration = calendarIntegrationRepository.findByUser(user).orElse(null)
+        
+        return if (integration != null && !integration.accessToken.isNullOrBlank()) {
+            googleCalendarService.checkConflicts(integration, startDate, endDate)
+        } else {
+            emptyList()
+        }
     }
     
     private fun mapToResponse(integration: CalendarIntegration): CalendarIntegrationResponse {

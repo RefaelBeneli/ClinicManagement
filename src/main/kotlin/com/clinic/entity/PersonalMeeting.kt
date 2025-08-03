@@ -2,6 +2,7 @@ package com.clinic.entity
 
 import jakarta.persistence.*
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
@@ -23,7 +24,7 @@ data class PersonalMeeting(
     val meetingType: PersonalMeetingType = PersonalMeetingType.PERSONAL_THERAPY,
     
     @Column(name = "provider_type", nullable = false)
-    val providerType: String = "Therapist", // "Therapist", "Supervisor", "Teacher", etc.
+    val providerType: String = "Therapist", // "Therapist", "Guide", "Supervisor", "Teacher", etc.
     
     @Column(name = "provider_credentials", nullable = true)
     val providerCredentials: String? = null,
@@ -53,8 +54,20 @@ data class PersonalMeeting(
     @Column(nullable = false)
     val status: PersonalMeetingStatus = PersonalMeetingStatus.SCHEDULED,
     
+    @Column(name = "is_recurring", nullable = false)
+    val isRecurring: Boolean = false,
+    
+    @Column(name = "recurrence_frequency", length = 50)
+    val recurrenceFrequency: String? = null, // "weekly", "monthly", "quarterly"
+    
+    @Column(name = "next_due_date")
+    val nextDueDate: LocalDate? = null,
+    
     @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(name = "is_active", nullable = false)
+    val isActive: Boolean = true
 )
 
 enum class PersonalMeetingType {

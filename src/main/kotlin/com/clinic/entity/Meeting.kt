@@ -45,7 +45,10 @@ data class Meeting(
     val googleEventId: String? = null,
     
     @Column(name = "created_at", nullable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(name = "is_active", nullable = false)
+    val isActive: Boolean = true
 )
 
 enum class MeetingStatus {

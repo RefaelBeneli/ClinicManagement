@@ -125,7 +125,9 @@ class MeetingService {
             throw RuntimeException("Meeting not found")
         }
 
-        meetingRepository.delete(meeting)
+        // Soft delete instead of hard delete
+        val deactivatedMeeting = meeting.copy(isActive = false)
+        meetingRepository.save(deactivatedMeeting)
     }
 
     fun getMeetingsByMonth(year: Int, month: Int): List<MeetingResponse> {
@@ -225,7 +227,6 @@ class MeetingService {
                 fullName = meeting.client.fullName,
                 email = meeting.client.email,
                 phone = meeting.client.phone,
-                dateOfBirth = meeting.client.dateOfBirth,
                 notes = meeting.client.notes,
                 createdAt = meeting.client.createdAt,
                 isActive = meeting.client.isActive

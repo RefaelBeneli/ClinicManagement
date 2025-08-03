@@ -65,6 +65,35 @@ data class CalendarListResponse(
     val calendars: List<CalendarResponse>
 )
 
+data class GoogleCalendarEventResponse(
+    val id: String,
+    val summary: String?,
+    val description: String?,
+    val start: com.google.api.services.calendar.model.EventDateTime,
+    val end: com.google.api.services.calendar.model.EventDateTime,
+    val location: String?,
+    val attendees: List<GoogleCalendarAttendeeResponse>?,
+    val organizer: GoogleCalendarOrganizerResponse?
+)
+
+data class GoogleCalendarAttendeeResponse(
+    val email: String,
+    val displayName: String?,
+    val responseStatus: String?
+)
+
+data class GoogleCalendarOrganizerResponse(
+    val email: String,
+    val displayName: String?
+)
+
+data class CalendarConflictResponse(
+    val startTime: Long,
+    val endTime: Long,
+    val conflictingEvents: List<String>,
+    val severity: String
+)
+
 data class CalendarResponse(
     val id: String,
     val summary: String,

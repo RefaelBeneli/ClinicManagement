@@ -79,7 +79,6 @@ class AdminService(
                 fullName = client.fullName,
                 email = client.email,
                 phone = client.phone,
-                dateOfBirth = client.dateOfBirth,
                 notes = client.notes,
                 isActive = client.isActive,
                 userId = client.user.id,
@@ -98,7 +97,6 @@ class AdminService(
             fullName = client.fullName,
             email = client.email,
             phone = client.phone,
-            dateOfBirth = client.dateOfBirth,
             notes = client.notes,
             isActive = client.isActive,
             userId = client.user.id,
@@ -115,7 +113,6 @@ class AdminService(
             fullName = request.fullName,
             email = request.email,
             phone = request.phone,
-            dateOfBirth = request.dateOfBirth,
             notes = request.notes,
             isActive = request.isActive,
             user = user
@@ -136,7 +133,6 @@ class AdminService(
             fullName = request.fullName,
             email = request.email,
             phone = request.phone,
-            dateOfBirth = request.dateOfBirth,
             notes = request.notes,
             isActive = request.isActive,
             user = user
