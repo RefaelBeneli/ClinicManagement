@@ -104,6 +104,7 @@ export interface Meeting {
   notes?: string;
   status: MeetingStatus;
   createdAt: string;
+  active?: boolean;
 }
 
 export interface MeetingRequest {
@@ -141,6 +142,7 @@ export interface PersonalMeeting {
   recurrenceFrequency?: string;
   nextDueDate?: string;
   createdAt: string;
+  active?: boolean;
 }
 
 export interface PersonalMeetingRequest {
@@ -344,6 +346,7 @@ export interface Expense {
   receiptUrl?: string;
   createdAt: string;
   updatedAt: string;
+  active?: boolean;
 }
 
 export interface ExpenseRequest {

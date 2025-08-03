@@ -34,7 +34,9 @@ data class MeetingResponse(
     val paymentDate: LocalDateTime?,
     val notes: String?,
     val status: MeetingStatus,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    @JsonProperty("isActive")
+    val isActive: Boolean
 )
 
 data class UpdateMeetingRequest(

@@ -59,7 +59,9 @@ data class PersonalMeetingResponse(
     val isRecurring: Boolean,
     val recurrenceFrequency: String?,
     val nextDueDate: LocalDate?,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    @JsonProperty("isActive")
+    val isActive: Boolean
 )
 
 data class UpdatePersonalMeetingRequest(

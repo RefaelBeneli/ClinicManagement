@@ -246,7 +246,8 @@ class PersonalMeetingService {
             isRecurring = meeting.isRecurring,
             recurrenceFrequency = meeting.recurrenceFrequency,
             nextDueDate = meeting.nextDueDate,
-            createdAt = meeting.createdAt
+            createdAt = meeting.createdAt,
+            isActive = meeting.isActive
         )
     }
 } 

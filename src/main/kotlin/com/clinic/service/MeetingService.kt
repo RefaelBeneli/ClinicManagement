@@ -238,7 +238,8 @@ class MeetingService {
             paymentDate = meeting.paymentDate,
             notes = meeting.notes,
             status = meeting.status,
-            createdAt = meeting.createdAt
+            createdAt = meeting.createdAt,
+            isActive = meeting.isActive
         )
     }
 } 

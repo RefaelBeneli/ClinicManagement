@@ -197,7 +197,8 @@ class ExpenseService {
             paymentMethod = expense.paymentMethod,
             receiptUrl = expense.receiptUrl,
             createdAt = expense.createdAt,
-            updatedAt = expense.updatedAt
+            updatedAt = expense.updatedAt,
+            isActive = expense.isActive
         )
     }
 } 

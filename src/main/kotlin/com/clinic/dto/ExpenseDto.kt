@@ -59,7 +59,9 @@ data class ExpenseResponse(
     val paymentMethod: String?,
     val receiptUrl: String?,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+    @JsonProperty("isActive")
+    val isActive: Boolean
 )
 
 data class UpdateExpenseRequest(

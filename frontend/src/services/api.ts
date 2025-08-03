@@ -23,6 +23,34 @@ import {
 } from '../types';
 
 // Data transformation functions to handle backend/frontend property name mismatches
+const transformClientResponse = (data: any): any => {
+  console.log('🔄 Transforming client response:', data);
+  
+  if (data && typeof data === 'object') {
+    // Handle single client object
+    if (data.id && data.fullName) {
+      const transformed = {
+        ...data,
+        active: data.isActive !== undefined ? data.isActive : data.active,
+        // Remove the "isActive" property to avoid confusion
+        isActive: undefined
+      };
+      console.log('🔄 Transformed client:', { 
+        original: { isActive: data.isActive, active: data.active },
+        transformed: { active: transformed.active }
+      });
+      return transformed;
+    }
+    // Handle array of clients
+    if (Array.isArray(data)) {
+      const transformed = data.map(transformClientResponse);
+      console.log('🔄 Transformed clients array:', transformed.map(c => ({ id: c.id, active: c.active })));
+      return transformed;
+    }
+  }
+  return data;
+};
+
 const transformMeetingResponse = (data: any): any => {
   console.log('🔄 Transforming meeting response:', data);
   
@@ -32,19 +60,21 @@ const transformMeetingResponse = (data: any): any => {
       const transformed = {
         ...data,
         isPaid: data.paid !== undefined ? data.paid : data.isPaid,
-        // Remove the "paid" property to avoid confusion
-        paid: undefined
+        active: data.isActive !== undefined ? data.isActive : data.active,
+        // Remove the "paid" and "isActive" properties to avoid confusion
+        paid: undefined,
+        isActive: undefined
       };
       console.log('🔄 Transformed meeting:', { 
-        original: { paid: data.paid, isPaid: data.isPaid },
-        transformed: { isPaid: transformed.isPaid }
+        original: { paid: data.paid, isPaid: data.isPaid, isActive: data.isActive, active: data.active },
+        transformed: { isPaid: transformed.isPaid, active: transformed.active }
       });
       return transformed;
     }
     // Handle array of meetings
     if (Array.isArray(data)) {
       const transformed = data.map(transformMeetingResponse);
-      console.log('🔄 Transformed meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid })));
+      console.log('🔄 Transformed meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid, active: m.active })));
       return transformed;
     }
   }
@@ -60,19 +90,51 @@ const transformPersonalMeetingResponse = (data: any): any => {
       const transformed = {
         ...data,
         isPaid: data.paid !== undefined ? data.paid : data.isPaid,
-        // Remove the "paid" property to avoid confusion
-        paid: undefined
+        active: data.isActive !== undefined ? data.isActive : data.active,
+        // Remove the "paid" and "isActive" properties to avoid confusion
+        paid: undefined,
+        isActive: undefined
       };
       console.log('🔄 Transformed personal meeting:', { 
-        original: { paid: data.paid, isPaid: data.isPaid },
-        transformed: { isPaid: transformed.isPaid }
+        original: { paid: data.paid, isPaid: data.isPaid, isActive: data.isActive, active: data.active },
+        transformed: { isPaid: transformed.isPaid, active: transformed.active }
       });
       return transformed;
     }
     // Handle array of personal meetings
     if (Array.isArray(data)) {
       const transformed = data.map(transformPersonalMeetingResponse);
-      console.log('🔄 Transformed personal meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid })));
+      console.log('🔄 Transformed personal meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid, active: m.active })));
+      return transformed;
+    }
+  }
+  return data;
+};
+
+const transformExpenseResponse = (data: any): any => {
+  console.log('🔄 Transforming expense response:', data);
+  
+  if (data && typeof data === 'object') {
+    // Handle single expense object
+    if (data.id && data.name) {
+      const transformed = {
+        ...data,
+        paid: data.isPaid !== undefined ? data.isPaid : data.paid,
+        active: data.isActive !== undefined ? data.isActive : data.active,
+        // Remove the "isPaid" and "isActive" properties to avoid confusion
+        isPaid: undefined,
+        isActive: undefined
+      };
+      console.log('🔄 Transformed expense:', { 
+        original: { isPaid: data.isPaid, paid: data.paid, isActive: data.isActive, active: data.active },
+        transformed: { paid: transformed.paid, active: transformed.active }
+      });
+      return transformed;
+    }
+    // Handle array of expenses
+    if (Array.isArray(data)) {
+      const transformed = data.map(transformExpenseResponse);
+      console.log('🔄 Transformed expenses array:', transformed.map(e => ({ id: e.id, paid: e.paid, active: e.active })));
       return transformed;
     }
   }
@@ -183,12 +245,12 @@ export const auth = {
 export const clients = {
   getAll: async (): Promise<Client[]> => {
     const response = await apiClient.get('/clients');
-    return response.data;
+    return transformClientResponse(response.data);
   },
 
   getById: async (id: number): Promise<Client> => {
     const response = await apiClient.get(`/clients/${id}`);
-    return response.data;
+    return transformClientResponse(response.data);
   },
 
   create: async (clientData: ClientRequest): Promise<Client> => {
@@ -495,12 +557,12 @@ export const userApproval = {
 export const expenses = {
   getAll: async () => {
     const response = await apiClient.get('/expenses');
-    return response.data;
+    return transformExpenseResponse(response.data);
   },
 
   getById: async (id: number) => {
     const response = await apiClient.get(`/expenses/${id}`);
-    return response.data;
+    return transformExpenseResponse(response.data);
   },
 
   create: async (expenseData: any) => {

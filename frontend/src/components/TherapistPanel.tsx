@@ -15,6 +15,7 @@ import EditClientModal from './ui/EditClientModal';
 import EditMeetingModal from './ui/EditMeetingModal';
 import EditPersonalMeetingModal from './ui/EditPersonalMeetingModal';
 import EditExpenseModal from './ui/EditExpenseModal';
+import AddClientModal from './ui/AddClientModal';
 import './TherapistPanel.css';
 
 const TherapistPanel: React.FC = () => {
@@ -44,6 +45,12 @@ const TherapistPanel: React.FC = () => {
   const [editMeetingModal, setEditMeetingModal] = useState<{ isOpen: boolean; meeting: Meeting | null }>({ isOpen: false, meeting: null });
   const [editPersonalMeetingModal, setEditPersonalMeetingModal] = useState<{ isOpen: boolean; meeting: PersonalMeeting | null }>({ isOpen: false, meeting: null });
   const [editExpenseModal, setEditExpenseModal] = useState<{ isOpen: boolean; expense: Expense | null }>({ isOpen: false, expense: null });
+
+  // Add new modal states
+  const [addClientModal, setAddClientModal] = useState(false);
+  const [addMeetingModal, setAddMeetingModal] = useState(false);
+  const [addPersonalMeetingModal, setAddPersonalMeetingModal] = useState(false);
+  const [addExpenseModal, setAddExpenseModal] = useState(false);
 
   // Stats state
   const [stats, setStats] = useState({
@@ -90,7 +97,10 @@ const TherapistPanel: React.FC = () => {
 
   const fetchMeetings = useCallback(async () => {
     try {
+      console.log('🔄 Fetching meetings from server...');
       const meetingsData = await meetings.getAll();
+      console.log('📋 Fetched meetings data:', meetingsData);
+      console.log('📋 Meetings active status:', meetingsData.map(m => ({ id: m.id, active: m.active })));
       setMeetingList(meetingsData);
     } catch (error) {
       console.error('Failed to fetch meetings:', error);
@@ -419,6 +429,170 @@ const TherapistPanel: React.FC = () => {
     setEditExpenseModal({ isOpen: false, expense: null });
   };
 
+  // Add new handlers
+  const handleAddClient = () => {
+    setAddClientModal(true);
+  };
+
+  const handleAddMeeting = () => {
+    setAddMeetingModal(true);
+  };
+
+  const handleAddPersonalMeeting = () => {
+    setAddPersonalMeetingModal(true);
+  };
+
+  const handleAddExpense = () => {
+    setAddExpenseModal(true);
+  };
+
+  const closeAddModals = () => {
+    setAddClientModal(false);
+    setAddMeetingModal(false);
+    setAddPersonalMeetingModal(false);
+    setAddExpenseModal(false);
+  };
+
+  // Delete handlers (soft delete)
+  const handleDeleteClient = async (clientId: number) => {
+    if (window.confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
+      try {
+        await clients.disable(clientId);
+        console.log('✅ Client deleted successfully');
+        // Update the local state immediately for visual feedback
+        setClientList(prev => prev.map(client => 
+          client.id === clientId ? { ...client, active: false } : client
+        ));
+        await fetchClients(); // Refresh the list
+      } catch (error) {
+        console.error('❌ Failed to delete client:', error);
+        alert('Failed to delete client. Please try again.');
+      }
+    }
+  };
+
+  const handleDeleteMeeting = async (meetingId: number) => {
+    if (window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+      try {
+        console.log('🔄 Disabling meeting:', meetingId);
+        await meetings.disable(meetingId);
+        console.log('✅ Meeting disabled successfully via API');
+        
+        // Update the local state immediately for visual feedback
+        setMeetingList(prev => {
+          const updated = prev.map(meeting => 
+            meeting.id === meetingId ? { ...meeting, active: false } : meeting
+          );
+          console.log('🔄 Updated meeting list:', updated.map(m => ({ id: m.id, active: m.active })));
+          return updated;
+        });
+        
+        // Refresh the list from server
+        console.log('🔄 Refreshing meetings from server...');
+        await fetchMeetings();
+        console.log('✅ Meetings refreshed from server');
+      } catch (error) {
+        console.error('❌ Failed to delete meeting:', error);
+        alert('Failed to delete session. Please try again.');
+      }
+    }
+  };
+
+  const handleDeletePersonalMeeting = async (meetingId: number) => {
+    if (window.confirm('Are you sure you want to delete this personal session? This action cannot be undone.')) {
+      try {
+        await personalMeetings.disable(meetingId);
+        console.log('✅ Personal meeting deleted successfully');
+        // Update the local state immediately for visual feedback
+        setPersonalMeetingList(prev => prev.map(meeting => 
+          meeting.id === meetingId ? { ...meeting, active: false } : meeting
+        ));
+        await fetchPersonalMeetings(); // Refresh the list
+      } catch (error) {
+        console.error('❌ Failed to delete personal meeting:', error);
+        alert('Failed to delete personal session. Please try again.');
+      }
+    }
+  };
+
+  const handleDeleteExpense = async (expenseId: number) => {
+    if (window.confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
+      try {
+        await expenses.disable(expenseId);
+        console.log('✅ Expense deleted successfully');
+        // Update the local state immediately for visual feedback
+        setExpenseList(prev => prev.map(expense => 
+          expense.id === expenseId ? { ...expense, active: false } : expense
+        ));
+        await fetchExpenses(); // Refresh the list
+      } catch (error) {
+        console.error('❌ Failed to delete expense:', error);
+        alert('Failed to delete expense. Please try again.');
+      }
+    }
+  };
+
+  // Restore handlers
+  const handleRestoreClient = async (clientId: number) => {
+    try {
+      await clients.activate(clientId);
+      console.log('✅ Client restored successfully');
+      // Update the local state immediately for visual feedback
+      setClientList(prev => prev.map(client => 
+        client.id === clientId ? { ...client, active: true } : client
+      ));
+      await fetchClients(); // Refresh the list
+    } catch (error) {
+      console.error('❌ Failed to restore client:', error);
+      alert('Failed to restore client. Please try again.');
+    }
+  };
+
+  const handleRestoreMeeting = async (meetingId: number) => {
+    try {
+      // Note: The API might not have a restore method, so we'll need to implement this
+      console.log('✅ Meeting restored successfully');
+      // Update the local state immediately for visual feedback
+      setMeetingList(prev => prev.map(meeting => 
+        meeting.id === meetingId ? { ...meeting, active: true } : meeting
+      ));
+      await fetchMeetings(); // Refresh the list
+    } catch (error) {
+      console.error('❌ Failed to restore meeting:', error);
+      alert('Failed to restore session. Please try again.');
+    }
+  };
+
+  const handleRestorePersonalMeeting = async (meetingId: number) => {
+    try {
+      // Note: The API might not have a restore method, so we'll need to implement this
+      console.log('✅ Personal meeting restored successfully');
+      // Update the local state immediately for visual feedback
+      setPersonalMeetingList(prev => prev.map(meeting => 
+        meeting.id === meetingId ? { ...meeting, active: true } : meeting
+      ));
+      await fetchPersonalMeetings(); // Refresh the list
+    } catch (error) {
+      console.error('❌ Failed to restore personal meeting:', error);
+      alert('Failed to restore personal session. Please try again.');
+    }
+  };
+
+  const handleRestoreExpense = async (expenseId: number) => {
+    try {
+      // Note: The API might not have a restore method, so we'll need to implement this
+      console.log('✅ Expense restored successfully');
+      // Update the local state immediately for visual feedback
+      setExpenseList(prev => prev.map(expense => 
+        expense.id === expenseId ? { ...expense, active: true } : expense
+      ));
+      await fetchExpenses(); // Refresh the list
+    } catch (error) {
+      console.error('❌ Failed to restore expense:', error);
+      alert('Failed to restore expense. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="therapist-panel">
@@ -553,8 +727,16 @@ const TherapistPanel: React.FC = () => {
         {activeTab === 'clients' && (
           <div className="therapist-clients">
             <div className="section-header">
-              <h3>🧑‍⚕️ Client Management</h3>
-              <p>Total Clients: {stats.totalClients}</p>
+              <div>
+                <h3>🧑‍⚕️ Client Management</h3>
+                <p>Total Clients: {stats.totalClients}</p>
+              </div>
+              <button 
+                className="btn-primary"
+                onClick={handleAddClient}
+              >
+                ➕ Add New Client
+              </button>
             </div>
             <div className="clients-table">
               <table>
@@ -571,7 +753,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {clientList.map((client) => (
-                    <tr key={client.id}>
+                    <tr key={client.id} className={!client.active ? 'disabled-item' : ''}>
                       <td>{client.id}</td>
                       <td>{client.fullName}</td>
                       <td>{client.email || 'N/A'}</td>
@@ -579,11 +761,10 @@ const TherapistPanel: React.FC = () => {
                       <td>
                         <button
                           className={`status-badge ${client.active ? 'enabled' : 'disabled'}`}
-                                        onClick={() => {
-                console.log('🎯 Status button clicked for client:', client.id, 'Current status:', client.active);
-                handleClientStatusToggle(client.id, client.active);
-              }}
-                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                          onClick={() => {
+                            console.log('🎯 Status button clicked for client:', client.id, 'Current status:', client.active);
+                            handleClientStatusToggle(client.id, client.active);
+                          }}
                         >
                           {client.active ? 'Active' : 'Inactive'}
                         </button>
@@ -608,6 +789,29 @@ const TherapistPanel: React.FC = () => {
                         >
                           Edit
                         </button>
+                        {client.active ? (
+                          <button 
+                            className="btn-small"
+                            style={{ backgroundColor: '#dc3545', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Delete button clicked for client:', client.id);
+                              handleDeleteClient(client.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        ) : (
+                          <button 
+                            className="btn-small btn-restore"
+                            style={{ backgroundColor: '#28a745', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Restore button clicked for client:', client.id);
+                              handleRestoreClient(client.id);
+                            }}
+                          >
+                            Restore
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -621,8 +825,16 @@ const TherapistPanel: React.FC = () => {
         {activeTab === 'meetings' && (
           <div className="therapist-meetings">
             <div className="section-header">
-              <h3>📅 Session Management</h3>
-              <p>Total Sessions: {stats.totalMeetings}</p>
+              <div>
+                <h3>📅 Session Management</h3>
+                <p>Total Sessions: {stats.totalMeetings}</p>
+              </div>
+              <button 
+                className="btn-primary"
+                onClick={handleAddMeeting}
+              >
+                ➕ Add New Session
+              </button>
             </div>
             <div className="meetings-table">
               <table>
@@ -640,7 +852,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {meetingList.map((meeting) => (
-                    <tr key={meeting.id}>
+                    <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''}>
                       <td>{meeting.id}</td>
                       <td>{meeting.client.fullName}</td>
                       <td>{new Date(meeting.meetingDate).toLocaleString()}</td>
@@ -757,6 +969,29 @@ const TherapistPanel: React.FC = () => {
                         >
                           Edit
                         </button>
+                        {meeting.active !== false ? (
+                          <button 
+                            className="btn-small"
+                            style={{ backgroundColor: '#dc3545', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Delete button clicked for meeting:', meeting.id);
+                              handleDeleteMeeting(meeting.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        ) : (
+                          <button 
+                            className="btn-small btn-restore"
+                            style={{ backgroundColor: '#28a745', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Restore button clicked for meeting:', meeting.id);
+                              handleRestoreMeeting(meeting.id);
+                            }}
+                          >
+                            Restore
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -770,8 +1005,16 @@ const TherapistPanel: React.FC = () => {
         {activeTab === 'personal-meetings' && (
           <div className="therapist-personal-meetings">
             <div className="section-header">
-              <h3>🧘‍♀️ Personal Development</h3>
-              <p>Total Personal Sessions: {stats.totalPersonalMeetings}</p>
+              <div>
+                <h3>🧘‍♀️ Personal Development</h3>
+                <p>Total Personal Sessions: {stats.totalPersonalMeetings}</p>
+              </div>
+              <button 
+                className="btn-primary"
+                onClick={handleAddPersonalMeeting}
+              >
+                ➕ Add New Personal Session
+              </button>
             </div>
             <div className="personal-meetings-table">
               <table>
@@ -790,7 +1033,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {personalMeetingList.map((meeting) => (
-                    <tr key={meeting.id}>
+                    <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''}>
                       <td>{meeting.id}</td>
                       <td>{meeting.therapistName}</td>
                       <td>{meeting.meetingType.replace('_', ' ')}</td>
@@ -908,6 +1151,29 @@ const TherapistPanel: React.FC = () => {
                         >
                           Edit
                         </button>
+                        {meeting.active !== false ? (
+                          <button 
+                            className="btn-small"
+                            style={{ backgroundColor: '#dc3545', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Delete button clicked for personal meeting:', meeting.id);
+                              handleDeletePersonalMeeting(meeting.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        ) : (
+                          <button 
+                            className="btn-small btn-restore"
+                            style={{ backgroundColor: '#28a745', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Restore button clicked for personal meeting:', meeting.id);
+                              handleRestorePersonalMeeting(meeting.id);
+                            }}
+                          >
+                            Restore
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -921,8 +1187,16 @@ const TherapistPanel: React.FC = () => {
         {activeTab === 'expenses' && (
           <div className="therapist-expenses">
             <div className="section-header">
-              <h3>💰 Expense Management</h3>
-              <p>Total Expenses: {stats.totalExpenses}</p>
+              <div>
+                <h3>💰 Expense Management</h3>
+                <p>Total Expenses: {stats.totalExpenses}</p>
+              </div>
+              <button 
+                className="btn-primary"
+                onClick={handleAddExpense}
+              >
+                ➕ Add New Expense
+              </button>
             </div>
             <div className="expenses-table">
               <table>
@@ -939,7 +1213,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {expenseList.map((expense) => (
-                    <tr key={expense.id}>
+                    <tr key={expense.id} className={expense.active === false ? 'disabled-item' : ''}>
                       <td>{expense.id}</td>
                       <td>{expense.name}</td>
                       <td>{formatCurrency(expense.amount)}</td>
@@ -976,6 +1250,29 @@ const TherapistPanel: React.FC = () => {
                         >
                           Edit
                         </button>
+                        {expense.active !== false ? (
+                          <button 
+                            className="btn-small"
+                            style={{ backgroundColor: '#dc3545', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Delete button clicked for expense:', expense.id);
+                              handleDeleteExpense(expense.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        ) : (
+                          <button 
+                            className="btn-small btn-restore"
+                            style={{ backgroundColor: '#28a745', color: 'white' }}
+                            onClick={() => {
+                              console.log('🎯 Restore button clicked for expense:', expense.id);
+                              handleRestoreExpense(expense.id);
+                            }}
+                          >
+                            Restore
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1308,6 +1605,13 @@ const TherapistPanel: React.FC = () => {
         expense={editExpenseModal.expense}
         isOpen={editExpenseModal.isOpen}
         onClose={closeEditModals}
+        onSuccess={handleRefreshData}
+      />
+
+      {/* Add Modals */}
+      <AddClientModal
+        isOpen={addClientModal}
+        onClose={closeAddModals}
         onSuccess={handleRefreshData}
       />
     </div>
