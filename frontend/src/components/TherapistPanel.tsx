@@ -852,7 +852,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {meetingList.map((meeting) => (
-                    <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''}>
+                    <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{meeting.id}</td>
                       <td>{meeting.client.fullName}</td>
                       <td>{new Date(meeting.meetingDate).toLocaleString()}</td>
@@ -1033,7 +1033,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {personalMeetingList.map((meeting) => (
-                    <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''}>
+                    <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{meeting.id}</td>
                       <td>{meeting.therapistName}</td>
                       <td>{meeting.meetingType.replace('_', ' ')}</td>
@@ -1213,7 +1213,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {expenseList.map((expense) => (
-                    <tr key={expense.id} className={expense.active === false ? 'disabled-item' : ''}>
+                    <tr key={expense.id} className={expense.active === false ? 'disabled-item' : ''} style={expense.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{expense.id}</td>
                       <td>{expense.name}</td>
                       <td>{formatCurrency(expense.amount)}</td>
