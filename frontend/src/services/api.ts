@@ -22,6 +22,63 @@ import {
   ApprovalHistoryResponse
 } from '../types';
 
+// Data transformation functions to handle backend/frontend property name mismatches
+const transformMeetingResponse = (data: any): any => {
+  console.log('🔄 Transforming meeting response:', data);
+  
+  if (data && typeof data === 'object') {
+    // Handle single meeting object
+    if (data.id && data.client) {
+      const transformed = {
+        ...data,
+        isPaid: data.paid !== undefined ? data.paid : data.isPaid,
+        // Remove the "paid" property to avoid confusion
+        paid: undefined
+      };
+      console.log('🔄 Transformed meeting:', { 
+        original: { paid: data.paid, isPaid: data.isPaid },
+        transformed: { isPaid: transformed.isPaid }
+      });
+      return transformed;
+    }
+    // Handle array of meetings
+    if (Array.isArray(data)) {
+      const transformed = data.map(transformMeetingResponse);
+      console.log('🔄 Transformed meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid })));
+      return transformed;
+    }
+  }
+  return data;
+};
+
+const transformPersonalMeetingResponse = (data: any): any => {
+  console.log('🔄 Transforming personal meeting response:', data);
+  
+  if (data && typeof data === 'object') {
+    // Handle single personal meeting object
+    if (data.id && data.therapistName) {
+      const transformed = {
+        ...data,
+        isPaid: data.paid !== undefined ? data.paid : data.isPaid,
+        // Remove the "paid" property to avoid confusion
+        paid: undefined
+      };
+      console.log('🔄 Transformed personal meeting:', { 
+        original: { paid: data.paid, isPaid: data.isPaid },
+        transformed: { isPaid: transformed.isPaid }
+      });
+      return transformed;
+    }
+    // Handle array of personal meetings
+    if (Array.isArray(data)) {
+      const transformed = data.map(transformPersonalMeetingResponse);
+      console.log('🔄 Transformed personal meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid })));
+      return transformed;
+    }
+  }
+  return data;
+};
+
 // Automatically detect production environment and use Railway backend
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (window.location.hostname === 'frolicking-granita-900c53.netlify.app' 
@@ -46,6 +103,11 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
+    console.log('📤 Request Method:', config.method);
+    console.log('📤 Request URL:', config.url);
+    console.log('📤 Request Data:', config.data);
+    console.log('📤 Request Headers:', config.headers);
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -144,6 +206,21 @@ export const clients = {
     return response.data;
   },
 
+  disable: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.patch(`/clients/${id}/disable`);
+    return response.data;
+  },
+
+  activate: async (id: number): Promise<Client> => {
+    const response = await apiClient.post(`/clients/${id}/activate`);
+    return response.data;
+  },
+
+  deactivate: async (id: number): Promise<Client> => {
+    const response = await apiClient.post(`/clients/${id}/deactivate`);
+    return response.data;
+  },
+
   search: async (name: string): Promise<Client[]> => {
     const response = await apiClient.get(`/clients/search?name=${encodeURIComponent(name)}`);
     return response.data;
@@ -154,30 +231,36 @@ export const clients = {
 export const meetings = {
   getAll: async (): Promise<Meeting[]> => {
     const response = await apiClient.get('/meetings');
-    return response.data;
+    return transformMeetingResponse(response.data);
   },
 
   getById: async (id: number): Promise<Meeting> => {
     const response = await apiClient.get(`/meetings/${id}`);
-    return response.data;
+    return transformMeetingResponse(response.data);
   },
 
   create: async (meetingData: MeetingRequest): Promise<Meeting> => {
     const response = await apiClient.post('/meetings', meetingData);
-    return response.data;
+    return transformMeetingResponse(response.data);
   },
 
   update: async (id: number, meetingData: UpdateMeetingRequest): Promise<Meeting> => {
     const response = await apiClient.put(`/meetings/${id}`, meetingData);
-    return response.data;
+    return transformMeetingResponse(response.data);
   },
 
   updatePayment: async (id: number, isPaid: boolean): Promise<Meeting> => {
-    const response = await apiClient.patch(`/meetings/${id}/payment`, { 
+    console.log('🔧 updatePayment called with:', { id, isPaid });
+    console.log('🔧 Making PUT request to:', `/meetings/${id}/payment`);
+    console.log('🔧 Request payload:', { isPaid, paymentDate: isPaid ? new Date().toISOString() : null });
+    
+    const response = await apiClient.put(`/meetings/${id}/payment`, { 
       isPaid, 
       paymentDate: isPaid ? new Date().toISOString() : null 
     });
-    return response.data;
+    
+    console.log('🔧 Response received:', response);
+    return transformMeetingResponse(response.data);
   },
 
   delete: async (id: number): Promise<MessageResponse> => {
@@ -185,9 +268,14 @@ export const meetings = {
     return response.data;
   },
 
+  disable: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.patch(`/meetings/${id}/disable`);
+    return response.data;
+  },
+
   getByMonth: async (year: number, month: number): Promise<Meeting[]> => {
     const response = await apiClient.get(`/meetings/month?year=${year}&month=${month}`);
-    return response.data;
+    return transformMeetingResponse(response.data);
   },
 
   // Revenue tracking methods
@@ -209,30 +297,36 @@ export const meetings = {
 export const personalMeetings = {
   getAll: async (): Promise<PersonalMeeting[]> => {
     const response = await apiClient.get('/personal-meetings');
-    return response.data;
+    return transformPersonalMeetingResponse(response.data);
   },
 
   getById: async (id: number): Promise<PersonalMeeting> => {
     const response = await apiClient.get(`/personal-meetings/${id}`);
-    return response.data;
+    return transformPersonalMeetingResponse(response.data);
   },
 
   create: async (meetingData: PersonalMeetingRequest): Promise<PersonalMeeting> => {
     const response = await apiClient.post('/personal-meetings', meetingData);
-    return response.data;
+    return transformPersonalMeetingResponse(response.data);
   },
 
   update: async (id: number, meetingData: UpdatePersonalMeetingRequest): Promise<PersonalMeeting> => {
     const response = await apiClient.put(`/personal-meetings/${id}`, meetingData);
-    return response.data;
+    return transformPersonalMeetingResponse(response.data);
   },
 
   updatePayment: async (id: number, isPaid: boolean): Promise<PersonalMeeting> => {
-    const response = await apiClient.patch(`/personal-meetings/${id}/payment`, { 
+    console.log('🔧 personalMeetings.updatePayment called with:', { id, isPaid });
+    console.log('🔧 Making PUT request to:', `/personal-meetings/${id}/payment`);
+    console.log('🔧 Request payload:', { isPaid, paymentDate: isPaid ? new Date().toISOString() : null });
+    
+    const response = await apiClient.put(`/personal-meetings/${id}/payment`, { 
       isPaid, 
       paymentDate: isPaid ? new Date().toISOString() : null 
     });
-    return response.data;
+    
+    console.log('🔧 Response received:', response);
+    return transformPersonalMeetingResponse(response.data);
   },
 
   delete: async (id: number): Promise<MessageResponse> => {
@@ -240,9 +334,14 @@ export const personalMeetings = {
     return response.data;
   },
 
+  disable: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.patch(`/personal-meetings/${id}/disable`);
+    return response.data;
+  },
+
   getByMonth: async (year: number, month: number): Promise<PersonalMeeting[]> => {
     const response = await apiClient.get(`/personal-meetings/month?year=${year}&month=${month}`);
-    return response.data;
+    return transformPersonalMeetingResponse(response.data);
   },
 
   getStats: async (): Promise<any> => {
@@ -252,6 +351,11 @@ export const personalMeetings = {
 
   getTypes: async (): Promise<string[]> => {
     const response = await apiClient.get('/personal-meetings/types');
+    return response.data;
+  },
+
+  getProviderTypes: async (): Promise<string[]> => {
+    const response = await apiClient.get('/personal-meetings/provider-types');
     return response.data;
   },
 };
@@ -317,6 +421,18 @@ export const calendarIntegration = {
     const response = await apiClient.post('/calendar/sync/disable');
     return response.data;
   },
+
+  // Get Google Calendar events for a date range
+  getEvents: async (startDate: string, endDate: string) => {
+    const response = await apiClient.get(`/calendar/events?startDate=${startDate}&endDate=${endDate}`);
+    return response.data;
+  },
+
+  // Check for conflicts when scheduling a meeting
+  checkConflicts: async (startDate: string, endDate: string) => {
+    const response = await apiClient.get(`/calendar/conflicts?startDate=${startDate}&endDate=${endDate}`);
+    return response.data;
+  },
 };
 
 // Admin – User management (CRUD)
@@ -371,6 +487,74 @@ export const userApproval = {
 
   getUserStatus: async (userId: number): Promise<UserApprovalResponse> => {
     const response = await apiClient.get(`/admin/users/${userId}/status`);
+    return response.data;
+  },
+};
+
+// Expenses API
+export const expenses = {
+  getAll: async () => {
+    const response = await apiClient.get('/expenses');
+    return response.data;
+  },
+
+  getById: async (id: number) => {
+    const response = await apiClient.get(`/expenses/${id}`);
+    return response.data;
+  },
+
+  create: async (expenseData: any) => {
+    const response = await apiClient.post('/expenses', expenseData);
+    return response.data;
+  },
+
+  update: async (id: number, expenseData: any) => {
+    const response = await apiClient.put(`/expenses/${id}`, expenseData);
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/expenses/${id}`);
+    return response.data;
+  },
+
+  disable: async (id: number) => {
+    const response = await apiClient.patch(`/expenses/${id}/disable`);
+    return response.data;
+  },
+
+  getByCategory: async (category: string) => {
+    const response = await apiClient.get(`/expenses/category/${category}`);
+    return response.data;
+  },
+
+  getByDateRange: async (startDate: string, endDate: string) => {
+    const response = await apiClient.get(`/expenses/date-range?startDate=${startDate}&endDate=${endDate}`);
+    return response.data;
+  },
+
+  getRecurring: async () => {
+    const response = await apiClient.get('/expenses/recurring');
+    return response.data;
+  },
+
+  getUpcoming: async () => {
+    const response = await apiClient.get('/expenses/upcoming');
+    return response.data;
+  },
+
+  getSummary: async () => {
+    const response = await apiClient.get('/expenses/summary');
+    return response.data;
+  },
+
+  markAsPaid: async (id: number) => {
+    const response = await apiClient.post(`/expenses/${id}/mark-paid`);
+    return response.data;
+  },
+
+  markAsUnpaid: async (id: number) => {
+    const response = await apiClient.post(`/expenses/${id}/mark-unpaid`);
     return response.data;
   },
 };

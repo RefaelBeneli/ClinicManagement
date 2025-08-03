@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { clients, meetings } from '../services/api';
-import { Client, ClientRequest, Meeting, MeetingStatus, RevenueResponse, DashboardStats } from '../types';
+import { clients, meetings, expenses } from '../services/api';
+import { Client, ClientRequest, Meeting, MeetingStatus, RevenueResponse, DashboardStats, ExpenseSummary } from '../types';
+
+// New Components
+import DashboardLayout from './Dashboard/DashboardLayout';
+import QuickActions from './Dashboard/QuickActions';
+import StatsOverview from './Dashboard/StatsOverview';
+import Modal from './ui/Modal';
 import AdminPanel from './AdminPanel';
 import Calendar from './Calendar';
+
 import MeetingPanel from './MeetingPanel';
 import PersonalMeetingPanel from './PersonalMeetingPanel';
+import ExpensePanel from './ExpensePanel';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -27,12 +35,18 @@ const Dashboard: React.FC = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [revenueLoading, setRevenueLoading] = useState(false);
   
+  // Expense tracking state
+  const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary | null>(null);
+  const [expenseLoading, setExpenseLoading] = useState(false);
+  
   // Modal states
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showScheduleMeetingModal, setShowScheduleMeetingModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+
   const [showMeetingPanel, setShowMeetingPanel] = useState(false);
   const [showPersonalMeetingPanel, setShowPersonalMeetingPanel] = useState(false);
+  const [showExpensePanel, setShowExpensePanel] = useState(false);
   const [showClientDetailsModal, setShowClientDetailsModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   
@@ -41,7 +55,6 @@ const Dashboard: React.FC = () => {
     fullName: '',
     email: '',
     phone: '',
-    dateOfBirth: '',
     notes: ''
   });
   const [newMeetingData, setNewMeetingData] = useState({
@@ -52,6 +65,7 @@ const Dashboard: React.FC = () => {
     price: 150,
     notes: ''
   });
+
 
   // Fetch dashboard stats
   const fetchDashboardStats = useCallback(async () => {
@@ -88,6 +102,20 @@ const Dashboard: React.FC = () => {
     }
   }, [selectedPeriod, customStartDate, customEndDate]);
 
+  // Fetch expense summary
+  const fetchExpenseSummary = useCallback(async () => {
+    setExpenseLoading(true);
+    try {
+      const summary = await expenses.getSummary();
+      setExpenseSummary(summary);
+    } catch (error: any) {
+      console.error('❌ Error fetching expense summary:', error);
+      setError(`Failed to load expense data: ${error.message}`);
+    } finally {
+      setExpenseLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -104,10 +132,11 @@ const Dashboard: React.FC = () => {
         setClientList(clientData);
         setMeetingList(meetingData);
         
-        // Fetch dashboard and revenue stats
+        // Fetch dashboard, revenue, and expense stats
         await Promise.all([
           fetchDashboardStats(),
-          fetchRevenueStats()
+          fetchRevenueStats(),
+          fetchExpenseSummary()
         ]);
         
       } catch (error: any) {
@@ -132,9 +161,10 @@ const Dashboard: React.FC = () => {
   const refreshData = useCallback(async () => {
     await Promise.all([
       fetchDashboardStats(),
-      fetchRevenueStats()
+      fetchRevenueStats(),
+      fetchExpenseSummary()
     ]);
-  }, [fetchDashboardStats, fetchRevenueStats]);
+  }, [fetchDashboardStats, fetchRevenueStats, fetchExpenseSummary]);
 
   const handleLogout = () => {
     logout();
@@ -158,6 +188,18 @@ const Dashboard: React.FC = () => {
     setShowPersonalMeetingPanel(false);
   };
 
+  const handleManageExpenses = () => {
+    console.log('💰 Opening expense management panel...');
+    console.log('Current showExpensePanel state:', showExpensePanel);
+    setShowExpensePanel(true);
+    console.log('Set showExpensePanel to true');
+  };
+
+  const handleCloseExpensePanel = () => {
+    console.log('💰 Closing expense management panel...');
+    setShowExpensePanel(false);
+  };
+
   const handleViewCalendar = () => {
     console.log('📅 Opening calendar view...');
     setShowCalendar(true);
@@ -168,6 +210,8 @@ const Dashboard: React.FC = () => {
     setShowCalendar(false);
   };
 
+
+
   const handleManageMeetings = () => {
     console.log('📊 Opening meeting management panel...');
     setShowMeetingPanel(true);
@@ -177,6 +221,8 @@ const Dashboard: React.FC = () => {
     console.log('📊 Closing meeting management panel...');
     setShowMeetingPanel(false);
   };
+
+
 
   const handleViewClient = (client: Client) => {
     console.log('👤 Opening client details for:', client.fullName);
@@ -207,7 +253,6 @@ const Dashboard: React.FC = () => {
         fullName: '',
         email: '',
         phone: '',
-        dateOfBirth: '',
         notes: ''
       });
     } catch (error) {
@@ -222,7 +267,6 @@ const Dashboard: React.FC = () => {
       fullName: '',
       email: '',
       phone: '',
-      dateOfBirth: '',
       notes: ''
     });
   };
@@ -409,6 +453,7 @@ const Dashboard: React.FC = () => {
               <button className="action-button" onClick={handleManageMeetings}>Manage Meetings</button>
               <button className="action-button" onClick={handleAddPersonalSession}>My Personal Sessions</button>
               <button className="action-button" onClick={handleViewCalendar}>View Calendar</button>
+              <button className="action-button" onClick={handleManageExpenses} style={{backgroundColor: 'red'}}>💰 Manage Expenses</button>
             </div>
           </div>
 
@@ -448,23 +493,23 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
-            {revenueLoading ? (
-              <div className="loading">Loading revenue data...</div>
+            {revenueLoading || expenseLoading ? (
+              <div className="loading">Loading financial data...</div>
             ) : revenueStats ? (
               <div className="revenue-stats">
                 <div className="revenue-grid">
                   <div className="revenue-item total">
-                    <div className="revenue-amount">${revenueStats.totalRevenue.toFixed(2)}</div>
+                    <div className="revenue-amount">₪{revenueStats.totalRevenue.toFixed(2)}</div>
                     <div className="revenue-label">Total Potential</div>
                     <div className="revenue-count">{revenueStats.totalMeetings} meetings</div>
                   </div>
                   <div className="revenue-item paid">
-                    <div className="revenue-amount">${revenueStats.paidRevenue.toFixed(2)}</div>
+                    <div className="revenue-amount">₪{revenueStats.paidRevenue.toFixed(2)}</div>
                     <div className="revenue-label">Paid Revenue</div>
                     <div className="revenue-count">{revenueStats.paidMeetings} paid</div>
                   </div>
                   <div className="revenue-item unpaid">
-                    <div className="revenue-amount">${revenueStats.unpaidRevenue.toFixed(2)}</div>
+                    <div className="revenue-amount">₪{revenueStats.unpaidRevenue.toFixed(2)}</div>
                     <div className="revenue-label">Pending Payment</div>
                     <div className="revenue-count">{revenueStats.unpaidMeetings} unpaid</div>
                   </div>
@@ -479,6 +524,63 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                
+                {/* Expense Analytics */}
+                {expenseSummary && (
+                  <div className="expense-analytics">
+                    <h3>💰 Expense Overview</h3>
+                    <div className="expense-grid">
+                      <div className="expense-item">
+                        <div className="expense-amount">₪{expenseSummary.totalExpenses.toFixed(2)}</div>
+                        <div className="expense-label">Total Expenses</div>
+                      </div>
+                      <div className="expense-item">
+                        <div className="expense-amount paid">₪{expenseSummary.paidExpenses.toFixed(2)}</div>
+                        <div className="expense-label">Paid Expenses</div>
+                      </div>
+                      <div className="expense-item">
+                        <div className="expense-amount unpaid">₪{expenseSummary.unpaidExpenses.toFixed(2)}</div>
+                        <div className="expense-label">Unpaid Expenses</div>
+                      </div>
+                      <div className="expense-item">
+                        <div className="expense-amount">₪{expenseSummary.recurringExpenses.toFixed(2)}</div>
+                        <div className="expense-label">Recurring Expenses</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Net Profit Calculation */}
+                {expenseSummary && (
+                  <div className="net-profit-section">
+                    <h3>💵 Net Profit Analysis</h3>
+                    <div className="profit-grid">
+                      <div className="profit-item">
+                        <div className="profit-amount">₪{revenueStats.paidRevenue.toFixed(2)}</div>
+                        <div className="profit-label">Total Income</div>
+                      </div>
+                      <div className="profit-item">
+                        <div className="profit-amount expense">₪{expenseSummary.totalExpenses.toFixed(2)}</div>
+                        <div className="profit-label">Total Expenses</div>
+                      </div>
+                      <div className="profit-item net">
+                        <div className="profit-amount">
+                          ₪{(revenueStats.paidRevenue - expenseSummary.totalExpenses).toFixed(2)}
+                        </div>
+                        <div className="profit-label">Net Profit</div>
+                      </div>
+                    </div>
+                    <div className="profit-margin">
+                      <span>Profit Margin: </span>
+                      <span className="margin-value">
+                        {revenueStats.paidRevenue > 0 
+                          ? Math.round(((revenueStats.paidRevenue - expenseSummary.totalExpenses) / revenueStats.paidRevenue) * 100)
+                          : 0
+                        }%
+                      </span>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="revenue-summary">
                   <div className="summary-item">
@@ -499,7 +601,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="no-data">No revenue data available</div>
+              <div className="no-data">No financial data available</div>
             )}
           </div>
 
@@ -620,16 +722,7 @@ const Dashboard: React.FC = () => {
                     onChange={handleClientInputChange}
                   />
                 </div>
-                <div className="form-group">
-                  <label htmlFor="dateOfBirth">Date of Birth</label>
-                  <input
-                    type="date"
-                    id="dateOfBirth"
-                    name="dateOfBirth"
-                    value={newClientData.dateOfBirth}
-                    onChange={handleClientInputChange}
-                  />
-                </div>
+
                 <div className="form-group">
                   <label htmlFor="notes">Notes</label>
                   <textarea
@@ -757,16 +850,18 @@ const Dashboard: React.FC = () => {
                       placeholder="Any additional notes about this meeting..."
                     />
                   </div>
-                  <div className="modal-actions">
-                    <button type="submit" className="btn-primary">
-                      Schedule Meeting
-                    </button>
-                    <button type="button" className="btn-cancel" onClick={handleCancelScheduleMeeting}>
-                      Cancel
-                    </button>
-                  </div>
+
+
                 </form>
               )}
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn-primary" onClick={handleSaveMeeting}>
+                Schedule Meeting
+              </button>
+              <button type="button" className="btn-cancel" onClick={handleCancelScheduleMeeting}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -788,6 +883,14 @@ const Dashboard: React.FC = () => {
         />
       )}
 
+      {/* Expense Management Panel */}
+      {showExpensePanel && (
+        <ExpensePanel 
+          onClose={handleCloseExpensePanel}
+          onRefresh={refreshData}
+        />
+      )}
+
       {/* Calendar Modal */}
       {showCalendar && (
         <Calendar 
@@ -795,6 +898,8 @@ const Dashboard: React.FC = () => {
           onClose={handleCloseCalendar} 
         />
       )}
+
+
 
       {/* Client Details Modal */}
       {showClientDetailsModal && selectedClient && (
@@ -824,13 +929,10 @@ const Dashboard: React.FC = () => {
                   <label><strong>Phone:</strong></label>
                   <p>{selectedClient.phone || 'Not provided'}</p>
                 </div>
-                <div className="detail-item">
-                  <label><strong>Date of Birth:</strong></label>
-                  <p>{selectedClient.dateOfBirth || 'Not provided'}</p>
-                </div>
+
                 <div className="detail-item">
                   <label><strong>Status:</strong></label>
-                  <p>{selectedClient.isActive ? 'Active' : 'Inactive'}</p>
+                  <p>{selectedClient.active ? 'Active' : 'Inactive'}</p>
                 </div>
                 {selectedClient.notes && (
                   <div className="detail-item">
@@ -855,6 +957,8 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+
     </div>
   );
 };

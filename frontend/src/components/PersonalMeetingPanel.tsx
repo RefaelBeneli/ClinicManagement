@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
+import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingType, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
 import { personalMeetings as personalMeetingsApi } from '../services/api';
 import './PersonalMeetingPanel.css';
 
@@ -32,10 +32,16 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const [editingMeeting, setEditingMeeting] = useState<PersonalMeeting | null>(null);
   const [formData, setFormData] = useState<PersonalMeetingRequest>({
     therapistName: '',
+    meetingType: PersonalMeetingType.PERSONAL_THERAPY,
+    providerType: 'Therapist',
+    providerCredentials: '',
     meetingDate: '',
     duration: 60,
     price: 0,
-    notes: ''
+    notes: '',
+    isRecurring: false,
+    recurrenceFrequency: '',
+    nextDueDate: ''
   });
 
   // Stats state
@@ -369,7 +375,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
               
               <div className="form-row">
                 <div className="form-group">
-                  <label>Therapist Name *</label>
+                  <label>Therapist/Guide Name *</label>
                   <input
                     type="text"
                     required
@@ -377,6 +383,36 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                     onChange={(e) => setFormData(prev => ({ ...prev, therapistName: e.target.value }))}
                     placeholder="Dr. Jane Smith"
                   />
+                </div>
+                
+                <div className="form-group">
+                  <label>Provider Type *</label>
+                  <select
+                    required
+                    value={formData.providerType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, providerType: e.target.value }))}
+                  >
+                    <option value="Therapist">Therapist</option>
+                    <option value="Guide">Guide</option>
+                    <option value="Supervisor">Supervisor</option>
+                    <option value="Teacher">Teacher</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Session Type *</label>
+                  <select
+                    required
+                    value={formData.meetingType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, meetingType: e.target.value as PersonalMeetingType }))}
+                  >
+                    <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
+                    <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
+                    <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
+                    <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                  </select>
                 </div>
                 
                 <div className="form-group">
@@ -415,6 +451,45 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                   />
                 </div>
               </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.isRecurring}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                    />
+                    Recurring Session
+                  </label>
+                </div>
+                
+                {formData.isRecurring && (
+                  <div className="form-group">
+                    <label>Recurrence Frequency</label>
+                    <select
+                      value={formData.recurrenceFrequency}
+                      onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value }))}
+                    >
+                      <option value="">Select frequency</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {formData.isRecurring && formData.recurrenceFrequency && (
+                <div className="form-group">
+                  <label>Next Due Date</label>
+                  <input
+                    type="date"
+                    value={formData.nextDueDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nextDueDate: e.target.value }))}
+                  />
+                </div>
+              )}
 
               <div className="form-group">
                 <label>Notes</label>
@@ -503,6 +578,14 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
 
                   <div className="meeting-details">
                     <div className="detail-item">
+                      <span className="label">Provider:</span>
+                      <span>{meeting.providerType}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="label">Type:</span>
+                      <span>{meeting.meetingType.replace('_', ' ')}</span>
+                    </div>
+                    <div className="detail-item">
                       <span className="label">Duration:</span>
                       <span>{meeting.duration} minutes</span>
                     </div>
@@ -533,6 +616,12 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                         {meeting.isPaid ? '✅ Paid' : '❌ Unpaid'}
                       </button>
                     </div>
+                    {meeting.isRecurring && (
+                      <div className="detail-item">
+                        <span className="label">Recurring:</span>
+                        <span>🔄 {meeting.recurrenceFrequency}</span>
+                      </div>
+                    )}
                   </div>
 
                   {meeting.notes && (

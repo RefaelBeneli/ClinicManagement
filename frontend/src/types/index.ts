@@ -81,17 +81,15 @@ export interface Client {
   fullName: string;
   email?: string;
   phone?: string;
-  dateOfBirth?: string;
   notes?: string;
   createdAt: string;
-  isActive: boolean;
+  active: boolean;
 }
 
 export interface ClientRequest {
   fullName: string;
   email?: string;
   phone?: string;
-  dateOfBirth?: string;
   notes?: string;
 }
 
@@ -139,6 +137,9 @@ export interface PersonalMeeting {
   paymentDate?: string;
   notes?: string;
   status: PersonalMeetingStatus;
+  isRecurring: boolean;
+  recurrenceFrequency?: string;
+  nextDueDate?: string;
   createdAt: string;
 }
 
@@ -151,6 +152,9 @@ export interface PersonalMeetingRequest {
   duration?: number;
   price: number;
   notes?: string;
+  isRecurring?: boolean;
+  recurrenceFrequency?: string;
+  nextDueDate?: string;
 }
 
 export interface UpdatePersonalMeetingRequest {
@@ -164,6 +168,9 @@ export interface UpdatePersonalMeetingRequest {
   isPaid?: boolean;
   notes?: string;
   status?: PersonalMeetingStatus;
+  isRecurring?: boolean;
+  recurrenceFrequency?: string;
+  nextDueDate?: string;
 }
 
 export enum MeetingStatus {
@@ -215,4 +222,167 @@ export interface DashboardStats {
   meetingsToday: number;
   unpaidSessions: number;
   monthlyRevenue: number;
+}
+
+// Google Calendar Integration Types
+export interface CalendarIntegration {
+  id: number;
+  userId: number;
+  googleCalendarId?: string;
+  clientSessionCalendar?: string;
+  personalMeetingCalendar?: string;
+  syncEnabled: boolean;
+  syncClientSessions: boolean;
+  syncPersonalMeetings: boolean;
+  lastSyncDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CalendarIntegrationRequest {
+  clientSessionCalendar?: string;
+  personalMeetingCalendar?: string;
+  syncEnabled?: boolean;
+  syncClientSessions?: boolean;
+  syncPersonalMeetings?: boolean;
+}
+
+export interface UpdateCalendarIntegrationRequest {
+  clientSessionCalendar?: string;
+  personalMeetingCalendar?: string;
+  syncEnabled?: boolean;
+  syncClientSessions?: boolean;
+  syncPersonalMeetings?: boolean;
+}
+
+export interface OAuthCallbackRequest {
+  code: string;
+  state: string;
+}
+
+export interface GoogleCalendar {
+  id: string;
+  summary: string;
+  description?: string;
+  primary?: boolean;
+}
+
+export interface CalendarSyncStatus {
+  connected: boolean;
+  lastSyncDate?: string;
+  syncEnabled: boolean;
+  clientSessionsSynced: boolean;
+  personalMeetingsSynced: boolean;
+  errorMessage?: string;
+}
+
+export interface AuthUrlResponse {
+  authUrl: string;
+  state: string;
+}
+
+// Unified Calendar Types
+export interface GoogleCalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  start: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone: string;
+  };
+  location?: string;
+  attendees?: Array<{
+    email: string;
+    displayName?: string;
+    responseStatus?: string;
+  }>;
+  organizer?: {
+    email: string;
+    displayName?: string;
+  };
+}
+
+export interface UnifiedCalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  type: 'clinic' | 'google';
+  status?: string;
+  clientName?: string;
+  description?: string;
+  location?: string;
+  isConflict?: boolean;
+}
+
+export interface CalendarConflict {
+  startTime: Date;
+  endTime: Date;
+  conflictingEvents: UnifiedCalendarEvent[];
+  severity: 'warning' | 'error';
+}
+
+// Expense Types
+export interface Expense {
+  id: number;
+  name: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  category: string;
+  notes?: string;
+  expenseDate: string;
+  recurring: boolean;
+  recurrenceFrequency?: string;
+  nextDueDate?: string;
+  paid: boolean;
+  paymentMethod?: string;
+  receiptUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpenseRequest {
+  name: string;
+  description?: string;
+  amount: number;
+  currency?: string;
+  category: string;
+  notes?: string;
+  expenseDate: string;
+  recurring?: boolean;
+  recurrenceFrequency?: string;
+  nextDueDate?: string;
+  paid?: boolean;
+  paymentMethod?: string;
+  receiptUrl?: string;
+}
+
+export interface UpdateExpenseRequest {
+  name?: string;
+  description?: string;
+  amount?: number;
+  currency?: string;
+  category?: string;
+  notes?: string;
+  expenseDate?: string;
+  recurring?: boolean;
+  recurrenceFrequency?: string;
+  nextDueDate?: string;
+  paid?: boolean;
+  paymentMethod?: string;
+  receiptUrl?: string;
+}
+
+export interface ExpenseSummary {
+  totalExpenses: number;
+  paidExpenses: number;
+  unpaidExpenses: number;
+  recurringExpenses: number;
+  monthlyAverage: number;
+  categoryBreakdown: Record<string, number>;
 } 
