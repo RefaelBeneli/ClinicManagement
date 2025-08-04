@@ -1,6 +1,7 @@
 package com.clinic.config
 
 import com.clinic.security.AuthTokenFilter
+import com.clinic.security.ResourceOwnershipFilter
 import com.clinic.service.UserDetailsServiceImpl
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
@@ -30,6 +31,9 @@ class WebSecurityConfig {
 
     @Autowired
     private lateinit var authTokenFilter: AuthTokenFilter
+
+    @Autowired
+    private lateinit var resourceOwnershipFilter: ResourceOwnershipFilter
 
     @Bean
     fun authenticationProvider(): DaoAuthenticationProvider {
@@ -66,6 +70,7 @@ class WebSecurityConfig {
 
         http.authenticationProvider(authenticationProvider())
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
+        http.addFilterAfter(resourceOwnershipFilter, AuthTokenFilter::class.java)
 
         return http.build()
     }

@@ -1,0 +1,33 @@
+spring:
+  datasource:
+    url: jdbc:mysql://sunbit-mysql:30306/my_clinic_test?useUnicode=yes&characterEncoding=UTF-8&useSSL=false&serverTimezone=America/Los_Angeles
+    username: root
+    password: root
+    driverClassName: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+  
+  # Disable Flyway for tests to avoid conflicts
+  flyway:
+    enabled: false
+
+server:
+  port: 0  # Use random port for tests
+
+jwt:
+  secret: testSecretKey123456789012345678901234567890
+  expiration: 86400000
+
+logging:
+  level:
+    com.clinic: INFO
+    org.springframework.security: WARN
+    org.hibernate: WARN 

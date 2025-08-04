@@ -1,5 +1,6 @@
 package com.clinic.security
 
+import com.clinic.entity.User
 import com.clinic.service.UserDetailsServiceImpl
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -32,8 +33,16 @@ class AuthTokenFilter : OncePerRequestFilter() {
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 val username = jwtUtils.getUserNameFromJwtToken(jwt)
                 val userDetails: UserDetails = userDetailsService.loadUserByUsername(username)
+                
+                // Try to get the actual User entity if possible
+                val principal = if (userDetails is User) {
+                    userDetails
+                } else {
+                    userDetails
+                }
+                
                 val authentication = UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.authorities
+                    principal, null, userDetails.authorities
                 )
                 authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
                 SecurityContextHolder.getContext().authentication = authentication
