@@ -33,6 +33,8 @@ data class PersonalMeetingRequest(
     
     val notes: String? = null,
     
+    val summary: String? = null,
+    
     @JsonProperty("isRecurring")
     val isRecurring: Boolean = false,
     
@@ -54,6 +56,7 @@ data class PersonalMeetingResponse(
     val isPaid: Boolean,
     val paymentDate: LocalDateTime?,
     val notes: String?,
+    val summary: String?,
     val status: PersonalMeetingStatus,
     @JsonProperty("isRecurring")
     val isRecurring: Boolean,
@@ -75,6 +78,7 @@ data class UpdatePersonalMeetingRequest(
     @JsonProperty("isPaid")
     val isPaid: Boolean?,
     val notes: String?,
+    val summary: String?,
     val status: PersonalMeetingStatus?,
     @JsonProperty("isRecurring")
     val isRecurring: Boolean?,

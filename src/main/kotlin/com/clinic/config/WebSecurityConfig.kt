@@ -6,6 +6,7 @@ import com.clinic.service.UserDetailsServiceImpl
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
@@ -54,19 +55,49 @@ class WebSecurityConfig {
     }
 
     @Bean
-    fun filterChain(http: HttpSecurity): SecurityFilterChain {
+    @Profile("!prod") // Development and test profiles
+    fun developmentFilterChain(http: HttpSecurity): SecurityFilterChain {
         http.cors { it.configurationSource(corsConfigurationSource()) }
-            .csrf { it.disable() }
+            .csrf { it.disable() } // Disable CSRF for development (stateless JWT)
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { authz ->
                 authz
                     .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/h2-console/**").permitAll()
+                    .requestMatchers("/h2-console/**").permitAll() // Allow H2 console in development
                     .requestMatchers("/actuator/**").permitAll() // Allow health checks
                     .requestMatchers("OPTIONS", "/**").permitAll() // Allow all OPTIONS requests for CORS
                     .anyRequest().authenticated()
             }
-            .headers { it.frameOptions().disable() } // For H2 console
+            .headers { headers ->
+                headers
+                    .frameOptions().sameOrigin() // Allow frames for H2 console in development
+            }
+
+        http.authenticationProvider(authenticationProvider())
+        http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
+        http.addFilterAfter(resourceOwnershipFilter, AuthTokenFilter::class.java)
+
+        return http.build()
+    }
+
+    @Bean
+    @Profile("prod") // Production profile only
+    fun productionFilterChain(http: HttpSecurity): SecurityFilterChain {
+        http.cors { it.configurationSource(corsConfigurationSource()) }
+            .csrf { it.disable() } // Disable CSRF for stateless JWT authentication
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .authorizeHttpRequests { authz ->
+                authz
+                    .requestMatchers("/api/auth/**").permitAll()
+                    // H2 console disabled in production for security
+                    .requestMatchers("/actuator/**").permitAll() // Allow health checks
+                    .requestMatchers("OPTIONS", "/**").permitAll() // Allow all OPTIONS requests for CORS
+                    .anyRequest().authenticated()
+            }
+            .headers { headers ->
+                headers
+                    .frameOptions().deny() // Prevent clickjacking
+            }
 
         http.authenticationProvider(authenticationProvider())
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
@@ -79,34 +110,38 @@ class WebSecurityConfig {
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
         
-        // VERY PERMISSIVE CORS - Allow all Netlify subdomains and localhost
+        // RESTRICTIVE CORS - Only allow specific domains
         configuration.allowedOriginPatterns = listOf(
-            "http://localhost:*",
-            "http://127.0.0.1:*", 
-            "https://*.netlify.app",
-            "https://*.netlify.com",
-            "https://frolicking-granita-900c53.netlify.app"
+            "https://frolicking-granita-900c53.netlify.app", // Production frontend
+            "http://localhost:3000", // Development frontend
+            "http://localhost:3001"  // Alternative dev port
         )
         
-        // Allow ALL HTTP methods
-        configuration.allowedMethods = listOf("*")
+        // Allow specific HTTP methods only
+        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
         
-        // Allow ALL headers
-        configuration.allowedHeaders = listOf("*")
+        // Allow specific headers only
+        configuration.allowedHeaders = listOf(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With"
+        )
         
-        // Expose ALL headers that might be needed
+        // Expose only necessary headers
         configuration.exposedHeaders = listOf(
-            "*"
+            "Authorization",
+            "Content-Type"
         )
         
-        // CRITICAL: Allow credentials for JWT
+        // Allow credentials for JWT
         configuration.allowCredentials = true
         
-        // Longer cache time for preflight to reduce requests
-        configuration.maxAge = 7200L // 2 hours
+        // Shorter cache time for preflight
+        configuration.maxAge = 3600L // 1 hour
         
         val source = UrlBasedCorsConfigurationSource()
-        // Apply to ALL endpoints
         source.registerCorsConfiguration("/**", configuration)
         return source
     }

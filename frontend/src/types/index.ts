@@ -102,6 +102,7 @@ export interface Meeting {
   isPaid: boolean;
   paymentDate?: string;
   notes?: string;
+  summary?: string;
   status: MeetingStatus;
   createdAt: string;
   active?: boolean;
@@ -113,6 +114,7 @@ export interface MeetingRequest {
   duration?: number;
   price: number;
   notes?: string;
+  summary?: string;
 }
 
 export interface UpdateMeetingRequest {
@@ -122,6 +124,7 @@ export interface UpdateMeetingRequest {
   price?: number;
   isPaid?: boolean;
   notes?: string;
+  summary?: string;
   status?: MeetingStatus;
 }
 
@@ -137,6 +140,7 @@ export interface PersonalMeeting {
   isPaid: boolean;
   paymentDate?: string;
   notes?: string;
+  summary?: string;
   status: PersonalMeetingStatus;
   isRecurring: boolean;
   recurrenceFrequency?: string;
@@ -154,6 +158,7 @@ export interface PersonalMeetingRequest {
   duration?: number;
   price: number;
   notes?: string;
+  summary?: string;
   isRecurring?: boolean;
   recurrenceFrequency?: string;
   nextDueDate?: string;
@@ -169,6 +174,7 @@ export interface UpdatePersonalMeetingRequest {
   price?: number;
   isPaid?: boolean;
   notes?: string;
+  summary?: string;
   status?: PersonalMeetingStatus;
   isRecurring?: boolean;
   recurrenceFrequency?: string;

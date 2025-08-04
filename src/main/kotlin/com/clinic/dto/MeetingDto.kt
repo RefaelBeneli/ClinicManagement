@@ -20,7 +20,9 @@ data class MeetingRequest(
     @field:Positive(message = "Price must be positive")
     val price: BigDecimal,
     
-    val notes: String? = null
+    val notes: String? = null,
+    
+    val summary: String? = null
 )
 
 data class MeetingResponse(
@@ -33,6 +35,7 @@ data class MeetingResponse(
     val isPaid: Boolean,
     val paymentDate: LocalDateTime?,
     val notes: String?,
+    val summary: String?,
     val status: MeetingStatus,
     val createdAt: LocalDateTime,
     @JsonProperty("isActive")
@@ -47,6 +50,7 @@ data class UpdateMeetingRequest(
     @JsonProperty("isPaid")
     val isPaid: Boolean?,
     val notes: String?,
+    val summary: String?,
     val status: MeetingStatus?
 )
 

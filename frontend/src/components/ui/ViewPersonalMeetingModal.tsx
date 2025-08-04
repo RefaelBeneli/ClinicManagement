@@ -171,6 +171,15 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
             </div>
           )}
 
+          {meeting.summary && (
+            <div className="detail-section">
+              <h3>Session Summary</h3>
+              <div className="notes-content">
+                <p>{meeting.summary}</p>
+              </div>
+            </div>
+          )}
+
           <div className="detail-section">
             <h3>System Information</h3>
             <div className="detail-grid">

@@ -18,7 +18,8 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
     meetingDate: '',
     duration: 60,
     price: 0,
-    notes: ''
+    notes: '',
+    summary: ''
   });
 
   useEffect(() => {
@@ -44,7 +45,8 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
       meetingDate: '',
       duration: 60,
       price: 0,
-      notes: ''
+      notes: '',
+      summary: ''
     });
     setError('');
   };
@@ -211,6 +213,22 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
                 className="form-textarea"
                 placeholder="Session goals, topics to discuss, client concerns, etc."
                 rows={4}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="summary">Session Summary</label>
+              <textarea
+                id="summary"
+                value={formData.summary}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  summary: e.target.value 
+                }))}
+                disabled={loading}
+                className="form-textarea"
+                placeholder="Detailed summary of the session (can be added after the meeting)"
+                rows={6}
               />
             </div>
 

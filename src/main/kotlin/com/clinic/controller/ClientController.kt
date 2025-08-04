@@ -6,6 +6,7 @@ import com.clinic.dto.MessageResponse
 import com.clinic.dto.UpdateClientRequest
 import com.clinic.service.ClientService
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/clients")
 class ClientController {
+
+    private val logger = LoggerFactory.getLogger(ClientController::class.java)
 
     @Autowired
     private lateinit var clientService: ClientService
@@ -23,6 +26,7 @@ class ClientController {
             val clients = clientService.getAllClients()
             ResponseEntity.ok(clients)
         } catch (e: Exception) {
+            logger.error("Failed to get all clients", e)
             ResponseEntity.badRequest().build()
         }
     }
@@ -33,6 +37,7 @@ class ClientController {
             val client = clientService.getClientById(id)
             ResponseEntity.ok(client)
         } catch (e: Exception) {
+            logger.error("Failed to get client by id: $id", e)
             ResponseEntity.badRequest().build()
         }
     }
@@ -43,6 +48,7 @@ class ClientController {
             val client = clientService.createClient(clientRequest)
             ResponseEntity.ok(client)
         } catch (e: Exception) {
+            logger.error("Failed to create client: ${clientRequest.fullName}", e)
             ResponseEntity.badRequest().build()
         }
     }
@@ -56,6 +62,7 @@ class ClientController {
             val client = clientService.updateClient(id, updateRequest)
             ResponseEntity.ok(client)
         } catch (e: Exception) {
+            logger.error("Failed to update client: $id", e)
             ResponseEntity.badRequest().build()
         }
     }
@@ -66,6 +73,7 @@ class ClientController {
             clientService.deleteClient(id)
             ResponseEntity.ok(MessageResponse("Client deactivated successfully"))
         } catch (e: Exception) {
+            logger.error("Failed to delete client: $id", e)
             ResponseEntity.badRequest().body(MessageResponse("Failed to deactivate client"))
         }
     }
@@ -76,6 +84,7 @@ class ClientController {
             clientService.deleteClient(id) // This already does soft delete
             ResponseEntity.ok(MessageResponse("Client disabled successfully"))
         } catch (e: Exception) {
+            logger.error("Failed to disable client: $id", e)
             ResponseEntity.badRequest().body(MessageResponse("Failed to disable client"))
         }
     }
@@ -86,6 +95,7 @@ class ClientController {
             val clients = clientService.searchClients(name)
             ResponseEntity.ok(clients)
         } catch (e: Exception) {
+            logger.error("Failed to search clients with name: $name", e)
             ResponseEntity.badRequest().build()
         }
     }
@@ -96,6 +106,7 @@ class ClientController {
             val client = clientService.activateClient(id)
             ResponseEntity.ok(client)
         } catch (e: Exception) {
+            logger.error("Failed to activate client: $id", e)
             ResponseEntity.badRequest().build()
         }
     }
@@ -106,6 +117,7 @@ class ClientController {
             val client = clientService.deactivateClient(id)
             ResponseEntity.ok(client)
         } catch (e: Exception) {
+            logger.error("Failed to deactivate client: $id", e)
             ResponseEntity.badRequest().build()
         }
     }

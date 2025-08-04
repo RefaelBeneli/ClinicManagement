@@ -28,15 +28,15 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   const [sortBy, setSortBy] = useState<'date' | 'client' | 'status' | 'price'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
-  // Form states
+  // Form states for adding new sessions
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingSession, setEditingSession] = useState<Meeting | null>(null);
   const [formData, setFormData] = useState<MeetingRequest>({
     clientId: 0,
     meetingDate: '',
     duration: 60,
     price: 0,
-    notes: ''
+    notes: '',
+    summary: ''
   });
 
   // Stats state
@@ -245,6 +245,17 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
+  const handleSummaryUpdate = async (sessionId: number, summary: string) => {
+    try {
+      await meetingsApi.update(sessionId, { summary });
+      await fetchSessions();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating summary:', error);
+      setError('Failed to update summary');
+    }
+  };
+
   const handleAddSession = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -260,30 +271,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
-  const handleEditSession = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingSession) return;
 
-    try {
-      const updateData: UpdateMeetingRequest = {
-        clientId: formData.clientId,
-        meetingDate: formData.meetingDate,
-        duration: formData.duration,
-        price: formData.price,
-        notes: formData.notes
-      };
-      const updatedSession = await meetingsApi.update(editingSession.id, updateData);
-      setSessions(prev =>
-        prev.map(session => session.id === editingSession.id ? updatedSession : session)
-      );
-      setEditingSession(null);
-      resetForm();
-      await fetchStats();
-    } catch (error: any) {
-      console.error('Error updating session:', error);
-      setError('Failed to update session');
-    }
-  };
 
   const handleDeleteSession = async (sessionId: number) => {
     if (window.confirm('Are you sure you want to delete this session? This action will deactivate the session.')) {
@@ -325,20 +313,9 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
       meetingDate: '',
       duration: 60,
       price: 0,
-      notes: ''
+      notes: '',
+      summary: ''
     });
-  };
-
-  const startEditing = (session: Meeting) => {
-    setEditingSession(session);
-    setFormData({
-      clientId: session.client.id,
-      meetingDate: session.meetingDate.split('T')[0] + 'T' + session.meetingDate.split('T')[1]?.substring(0, 5) || '',
-      duration: session.duration,
-      price: session.price,
-      notes: session.notes || ''
-    });
-    setShowAddForm(true);
   };
 
   const formatDateTime = (dateString: string) => {
@@ -411,7 +388,6 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
               className="add-button"
               onClick={() => {
                 setShowAddForm(true);
-                setEditingSession(null);
                 resetForm();
               }}
             >
@@ -474,8 +450,8 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
         {/* Add/Edit Form */}
         {showAddForm && (
           <div className="session-form-section">
-            <form onSubmit={editingSession ? handleEditSession : handleAddSession} className="session-form">
-              <h3>{editingSession ? 'Edit Session' : 'Add New Session'}</h3>
+            <form onSubmit={handleAddSession} className="session-form">
+              <h3>Add New Session</h3>
               
               <div className="form-row">
                 <div className="form-group">
@@ -541,15 +517,24 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Session Summary</label>
+                <textarea
+                  value={formData.summary}
+                  onChange={(e) => setFormData(prev => ({ ...prev, summary: e.target.value }))}
+                  placeholder="Detailed summary of the session (can be added after the meeting)"
+                  rows={4}
+                />
+              </div>
+
               <div className="form-actions">
                 <button type="submit" className="save-button">
-                  {editingSession ? 'Update Session' : 'Add Session'}
+                  Add Session
                 </button>
                 <button 
                   type="button" 
                   onClick={() => {
                     setShowAddForm(false);
-                    setEditingSession(null);
                     resetForm();
                   }}
                   className="cancel-button"
@@ -582,7 +567,6 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                 className="add-button"
                 onClick={() => {
                   setShowAddForm(true);
-                  setEditingSession(null);
                   resetForm();
                 }}
               >
@@ -617,22 +601,13 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                     </div>
                     <div className="session-actions">
                       {session.active !== false ? (
-                        <>
-                          <button
-                            className="edit-button"
-                            onClick={() => startEditing(session)}
-                            title="Edit session"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="delete-button"
-                            onClick={() => handleDeleteSession(session.id)}
-                            title="Delete session"
-                          >
-                            🗑️
-                          </button>
-                        </>
+                        <button
+                          className="delete-button"
+                          onClick={() => handleDeleteSession(session.id)}
+                          title="Delete session"
+                        >
+                          🗑️
+                        </button>
                       ) : (
                         <button
                           className="restore-button"
@@ -707,6 +682,18 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                       disabled={session.active === false}
                       placeholder="Add notes..."
                       rows={2}
+                    />
+                  </div>
+
+                  <div className="detail-item">
+                    <span className="label">Summary:</span>
+                    <textarea
+                      value={session.summary || ''}
+                      onChange={(e) => handleSummaryUpdate(session.id, e.target.value)}
+                      className="inline-textarea"
+                      disabled={session.active === false}
+                      placeholder="Add session summary..."
+                      rows={3}
                     />
                   </div>
 

@@ -21,6 +21,7 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
     price: 0,
     isPaid: false,
     notes: '',
+    summary: '',
     status: PersonalMeetingStatus.SCHEDULED,
     isRecurring: false,
     recurrenceFrequency: '',
@@ -41,6 +42,7 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
         price: meeting.price,
         isPaid: meeting.isPaid,
         notes: meeting.notes || '',
+        summary: meeting.summary || '',
         status: meeting.status,
         isRecurring: meeting.isRecurring,
         recurrenceFrequency: meeting.recurrenceFrequency || '',
@@ -290,6 +292,18 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
                 value={formData.notes}
                 onChange={handleInputChange}
                 rows={4}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="summary">Session Summary</label>
+              <textarea
+                id="summary"
+                name="summary"
+                value={formData.summary}
+                onChange={handleInputChange}
+                rows={6}
+                placeholder="Detailed summary of the session"
               />
             </div>
           </form>

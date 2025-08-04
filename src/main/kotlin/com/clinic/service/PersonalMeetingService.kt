@@ -38,6 +38,7 @@ class PersonalMeetingService {
             duration = meetingRequest.duration ?: 60,
             price = meetingRequest.price,
             notes = meetingRequest.notes,
+            summary = meetingRequest.summary,
             isRecurring = meetingRequest.isRecurring,
             recurrenceFrequency = meetingRequest.recurrenceFrequency,
             nextDueDate = meetingRequest.nextDueDate
@@ -115,6 +116,7 @@ class PersonalMeetingService {
             price = updateRequest.price ?: meeting.price,
             isPaid = updateRequest.isPaid ?: meeting.isPaid,
             notes = updateRequest.notes ?: meeting.notes,
+            summary = updateRequest.summary ?: meeting.summary,
             status = updateRequest.status ?: meeting.status,
             isRecurring = updateRequest.isRecurring ?: meeting.isRecurring,
             recurrenceFrequency = updateRequest.recurrenceFrequency ?: meeting.recurrenceFrequency,
@@ -270,6 +272,7 @@ class PersonalMeetingService {
             isPaid = meeting.isPaid,
             paymentDate = meeting.paymentDate,
             notes = meeting.notes,
+            summary = meeting.summary,
             status = meeting.status,
             isRecurring = meeting.isRecurring,
             recurrenceFrequency = meeting.recurrenceFrequency,

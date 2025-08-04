@@ -18,6 +18,7 @@ const EditMeetingModal: React.FC<EditMeetingModalProps> = ({ meeting, isOpen, on
     price: 0,
     isPaid: false,
     notes: '',
+    summary: '',
     status: MeetingStatus.SCHEDULED
   });
   const [clientList, setClientList] = useState<Client[]>([]);
@@ -33,6 +34,7 @@ const EditMeetingModal: React.FC<EditMeetingModalProps> = ({ meeting, isOpen, on
         price: meeting.price,
         isPaid: meeting.isPaid,
         notes: meeting.notes || '',
+        summary: meeting.summary || '',
         status: meeting.status
       });
       setError('');
@@ -215,6 +217,18 @@ const EditMeetingModal: React.FC<EditMeetingModalProps> = ({ meeting, isOpen, on
                 value={formData.notes}
                 onChange={handleInputChange}
                 rows={4}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="summary">Session Summary</label>
+              <textarea
+                id="summary"
+                name="summary"
+                value={formData.summary}
+                onChange={handleInputChange}
+                rows={6}
+                placeholder="Detailed summary of the session"
               />
             </div>
           </form>

@@ -47,6 +47,9 @@ data class PersonalMeeting(
     @Column(nullable = true, length = 1000)
     val notes: String? = null,
     
+    @Column(nullable = true, columnDefinition = "TEXT")
+    val summary: String? = null,
+    
     @Column(name = "google_event_id", nullable = true)
     val googleEventId: String? = null,
     

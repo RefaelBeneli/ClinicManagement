@@ -97,7 +97,6 @@ class ClientService {
     }
 
     private fun mapToResponse(client: Client): ClientResponse {
-        println("🔍 Mapping client: ${client.id}, isActive: ${client.isActive}")
         return ClientResponse(
             id = client.id,
             fullName = client.fullName,

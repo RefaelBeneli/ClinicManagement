@@ -5,6 +5,7 @@ import com.clinic.service.UserDetailsServiceImpl
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
@@ -16,6 +17,8 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
 class AuthTokenFilter : OncePerRequestFilter() {
+
+    private val logger = LoggerFactory.getLogger(AuthTokenFilter::class.java)
 
     @Autowired
     private lateinit var jwtUtils: JwtUtils
@@ -48,7 +51,7 @@ class AuthTokenFilter : OncePerRequestFilter() {
                 SecurityContextHolder.getContext().authentication = authentication
             }
         } catch (e: Exception) {
-            logger.error("Cannot set user authentication: ${e.message}")
+            logger.error("Cannot set user authentication: ${e.message}", e)
         }
         
         filterChain.doFilter(request, response)

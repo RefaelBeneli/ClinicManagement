@@ -30,7 +30,9 @@ server:
   port: ${PORT:8085}
 
 jwt:
-  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+  # SECURITY: In production, ALWAYS set JWT_SECRET environment variable
+  # This default is for development only - NEVER use in production!
+  secret: ${JWT_SECRET:devSecretKey123456789012345678901234567890}
   expiration: 86400000
 
 cors:

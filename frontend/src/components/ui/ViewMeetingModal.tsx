@@ -369,6 +369,11 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
           </div>
 
           <div className="detail-section">
+            <h3>Session Summary</h3>
+            {renderEditableField('summary', 'Summary', currentMeeting.summary || '', 'textarea')}
+          </div>
+
+          <div className="detail-section">
             <h3>System Information</h3>
             <div className="detail-grid">
               <div className="detail-item">

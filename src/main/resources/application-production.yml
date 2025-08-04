@@ -30,9 +30,11 @@ spring:
 server:
   port: ${PORT:8085}
 
-# JWT configuration
+# JWT configuration - PRODUCTION SECURITY REQUIREMENT
 jwt:
-  secret: ${JWT_SECRET:${random.value}}
+  # CRITICAL: JWT_SECRET environment variable MUST be set in production
+  # This will fail to start if JWT_SECRET is not provided
+  secret: ${JWT_SECRET}
   expiration: 86400000 # 24 hours
 
 # CORS configuration - Allow Netlify domain

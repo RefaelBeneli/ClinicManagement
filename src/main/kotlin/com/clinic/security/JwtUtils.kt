@@ -3,6 +3,7 @@ package com.clinic.security
 import com.clinic.entity.User
 import io.jsonwebtoken.*
 import io.jsonwebtoken.security.Keys
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Component
@@ -11,6 +12,8 @@ import javax.crypto.SecretKey
 
 @Component
 class JwtUtils {
+
+    private val logger = LoggerFactory.getLogger(JwtUtils::class.java)
 
     @Value("\${jwt.secret}")
     private lateinit var jwtSecret: String
@@ -52,23 +55,27 @@ class JwtUtils {
     }
 
     fun validateJwtToken(authToken: String): Boolean {
-        try {
+        return try {
             Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(authToken)
-            return true
+            true
         } catch (e: SecurityException) {
-            println("Invalid JWT signature: ${e.message}")
+            logger.warn("Invalid JWT signature: ${e.message}")
+            false
         } catch (e: MalformedJwtException) {
-            println("Invalid JWT token: ${e.message}")
+            logger.warn("Invalid JWT token: ${e.message}")
+            false
         } catch (e: ExpiredJwtException) {
-            println("JWT token is expired: ${e.message}")
+            logger.warn("JWT token is expired: ${e.message}")
+            false
         } catch (e: UnsupportedJwtException) {
-            println("JWT token is unsupported: ${e.message}")
+            logger.warn("JWT token is unsupported: ${e.message}")
+            false
         } catch (e: IllegalArgumentException) {
-            println("JWT claims string is empty: ${e.message}")
+            logger.warn("JWT claims string is empty: ${e.message}")
+            false
         }
-        return false
     }
 } 

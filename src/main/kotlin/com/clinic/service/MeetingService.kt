@@ -35,7 +35,8 @@ class MeetingService {
             meetingDate = meetingRequest.meetingDate,
             duration = meetingRequest.duration ?: 60,
             price = meetingRequest.price,
-            notes = meetingRequest.notes
+            notes = meetingRequest.notes,
+            summary = meetingRequest.summary
         )
 
         val savedMeeting = meetingRepository.save(meeting)
@@ -84,6 +85,7 @@ class MeetingService {
             price = updateRequest.price ?: meeting.price,
             isPaid = updateRequest.isPaid ?: meeting.isPaid,
             notes = updateRequest.notes ?: meeting.notes,
+            summary = updateRequest.summary ?: meeting.summary,
             status = updateRequest.status ?: meeting.status,
             paymentDate = if (updateRequest.isPaid == true && meeting.paymentDate == null) {
                 LocalDateTime.now()
@@ -265,6 +267,7 @@ class MeetingService {
             isPaid = meeting.isPaid,
             paymentDate = meeting.paymentDate,
             notes = meeting.notes,
+            summary = meeting.summary,
             status = meeting.status,
             createdAt = meeting.createdAt,
             isActive = meeting.isActive

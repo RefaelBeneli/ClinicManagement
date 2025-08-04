@@ -6,6 +6,7 @@ import com.clinic.dto.MessageResponse
 import com.clinic.dto.RegisterRequest
 import com.clinic.service.AuthService
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/auth")
 class AuthController {
+
+    private val logger = LoggerFactory.getLogger(AuthController::class.java)
 
     @Autowired
     private lateinit var authService: AuthService
@@ -23,6 +26,7 @@ class AuthController {
             val authResponse = authService.authenticateUser(loginRequest)
             ResponseEntity.ok(authResponse)
         } catch (e: Exception) {
+            logger.error("Authentication failed for user: ${loginRequest.username}", e)
             ResponseEntity.badRequest().build()
         }
     }
@@ -33,7 +37,8 @@ class AuthController {
             authService.registerUser(registerRequest)
             ResponseEntity.ok(MessageResponse("User registered successfully!"))
         } catch (e: RuntimeException) {
-            ResponseEntity.badRequest().body(MessageResponse(e.message ?: "Registration failed"))
+            logger.error("Registration failed for user: ${registerRequest.username}", e)
+            ResponseEntity.badRequest().body(MessageResponse("Registration failed"))
         }
     }
 
@@ -49,6 +54,7 @@ class AuthController {
                 "role" to user.role.name
             ))
         } catch (e: Exception) {
+            logger.error("Failed to get current user info", e)
             ResponseEntity.badRequest().body(MessageResponse("Failed to get user info"))
         }
     }

@@ -19,6 +19,7 @@ const AddPersonalMeetingModal: React.FC<AddPersonalMeetingModalProps> = ({ isOpe
     duration: 60,
     price: 0,
     notes: '',
+    summary: '',
     isRecurring: false,
     recurrenceFrequency: '',
     nextDueDate: ''
@@ -68,6 +69,7 @@ const AddPersonalMeetingModal: React.FC<AddPersonalMeetingModalProps> = ({ isOpe
         duration: 60,
         price: 0,
         notes: '',
+        summary: '',
         isRecurring: false,
         recurrenceFrequency: '',
         nextDueDate: ''
@@ -255,6 +257,19 @@ const AddPersonalMeetingModal: React.FC<AddPersonalMeetingModalProps> = ({ isOpe
                 className="form-textarea"
                 rows={4}
                 placeholder="Any additional notes about this personal session..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="summary">Session Summary</label>
+              <textarea
+                id="summary"
+                name="summary"
+                value={formData.summary}
+                onChange={handleInputChange}
+                className="form-textarea"
+                rows={6}
+                placeholder="Detailed summary of the session (can be added after the meeting)"
               />
             </div>
           </form>

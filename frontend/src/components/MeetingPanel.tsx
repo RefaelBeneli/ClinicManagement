@@ -28,6 +28,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
     duration: 60,
     price: 0,
     notes: '',
+    summary: '',
     status: MeetingStatus.SCHEDULED,
     isPaid: false
   });
@@ -233,6 +234,17 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
+  const handleSummaryUpdate = async (meetingId: number, summary: string) => {
+    try {
+      await meetingsApi.update(meetingId, { summary });
+      await fetchMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating summary:', error);
+      setError('Failed to update summary');
+    }
+  };
+
   // Delete handler
   const handleDeleteMeeting = async (meetingId: number) => {
     if (window.confirm('Are you sure you want to delete this session? This action will deactivate the meeting.')) {
@@ -276,7 +288,8 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
         meetingDate: formData.meetingDate,
         duration: formData.duration,
         price: formData.price,
-        notes: formData.notes
+        notes: formData.notes,
+        summary: formData.summary
       };
       
       const newMeeting = await meetingsApi.create(meetingRequest);
@@ -302,6 +315,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
         duration: formData.duration,
         price: formData.price,
         notes: formData.notes,
+        summary: formData.summary,
         status: formData.status,
         isPaid: formData.isPaid
       };
@@ -325,6 +339,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
       duration: 60,
       price: 0,
       notes: '',
+      summary: '',
       status: MeetingStatus.SCHEDULED,
       isPaid: false
     });
@@ -339,6 +354,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
       duration: meeting.duration,
       price: meeting.price,
       notes: meeting.notes || '',
+      summary: meeting.summary || '',
       status: meeting.status,
       isPaid: meeting.isPaid
     });
@@ -580,6 +596,17 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
                             placeholder="Add notes..."
                           />
                         </div>
+                        
+                        <div className="info-row">
+                          <label>Summary:</label>
+                          <textarea
+                            value={meeting.summary || ''}
+                            onChange={(e) => handleSummaryUpdate(meeting.id, e.target.value)}
+                            className="inline-textarea"
+                            rows={3}
+                            placeholder="Add session summary..."
+                          />
+                        </div>
                       </div>
 
                       <div className="meeting-actions">
@@ -739,6 +766,16 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   rows={3}
                   placeholder="Any additional notes about this meeting..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Session Summary</label>
+                <textarea
+                  value={formData.summary}
+                  onChange={(e) => setFormData(prev => ({ ...prev, summary: e.target.value }))}
+                  rows={4}
+                  placeholder="Detailed summary of the session (can be added after the meeting)..."
                 />
               </div>
 

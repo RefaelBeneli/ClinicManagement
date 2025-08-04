@@ -39,6 +39,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     duration: 60,
     price: 0,
     notes: '',
+    summary: '',
     isRecurring: false,
     recurrenceFrequency: '',
     nextDueDate: ''
@@ -256,6 +257,17 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     }
   };
 
+  const handleSummaryUpdate = async (meetingId: number, summary: string) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { summary });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating summary:', error);
+      setError('Failed to update summary');
+    }
+  };
+
   const handleAddMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -338,7 +350,8 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       meetingDate: '',
       duration: 60,
       price: 0,
-      notes: ''
+      notes: '',
+      summary: ''
     });
   };
 
@@ -350,7 +363,8 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       meetingDate: meeting.meetingDate.split('T')[0] + 'T' + meeting.meetingDate.split('T')[1]?.substring(0, 5) || '',
       duration: meeting.duration,
       price: meeting.price,
-      notes: meeting.notes || ''
+      notes: meeting.notes || '',
+      summary: meeting.summary || ''
     });
     setShowAddForm(true);
   };
@@ -817,6 +831,18 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                       disabled={meeting.active === false}
                       placeholder="Add notes..."
                       rows={2}
+                    />
+                  </div>
+
+                  <div className="detail-item">
+                    <span className="label">Summary:</span>
+                    <textarea
+                      value={meeting.summary || ''}
+                      onChange={(e) => handleSummaryUpdate(meeting.id, e.target.value)}
+                      className="inline-textarea"
+                      disabled={meeting.active === false}
+                      placeholder="Add session summary..."
+                      rows={3}
                     />
                   </div>
 
