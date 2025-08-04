@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Meeting, PersonalMeeting } from '../types';
 import { 
   format, 
@@ -27,6 +27,7 @@ interface CalendarProps {
   onClose: () => void;
   onMeetingClick?: (meeting: Meeting) => void;
   onPersonalMeetingClick?: (meeting: PersonalMeeting) => void;
+  onRefresh?: () => void; // Add refresh callback
 }
 
 interface CalendarEvent {
@@ -50,12 +51,61 @@ const Calendar: React.FC<CalendarProps> = ({
   personalMeetings = [], 
   onClose, 
   onMeetingClick,
-  onPersonalMeetingClick 
+  onPersonalMeetingClick,
+  onRefresh
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [showEventDetails, setShowEventDetails] = useState<CalendarEvent | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    show: boolean;
+    content: string;
+    x: number;
+    y: number;
+    event: CalendarEvent | null;
+  }>({
+    show: false,
+    content: '',
+    x: 0,
+    y: 0,
+    event: null
+  });
+  const [editForm, setEditForm] = useState<{
+    time: string;
+    duration: number;
+    price: number;
+    status: string;
+    notes: string;
+    clientName?: string;
+    therapistName?: string;
+  }>({
+    time: '',
+    duration: 60,
+    price: 0,
+    status: '',
+    notes: ''
+  });
+
+  // Add ESC key functionality
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      console.log('ESC key pressed, showEventDetails:', showEventDetails);
+      if (event.key === 'Escape' && showEventDetails) {
+        console.log('Closing modal with ESC key');
+        closeEventDetails();
+      }
+    };
+
+    if (showEventDetails) {
+      console.log('Adding ESC key listener');
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        console.log('Removing ESC key listener');
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [showEventDetails]);
 
   // Calculate date ranges based on view mode
   const getDateRange = (): {
@@ -157,10 +207,49 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   const getUpcomingEvents = () => {
-    const today = startOfDay(new Date());
-    return allEvents
-      .filter(event => event.date >= today)
-      .slice(0, 5);
+    const now = new Date();
+    const currentViewRange = getDateRange();
+    
+    // Get events based on current view mode - ONLY within the current view period
+    let relevantEvents: CalendarEvent[] = [];
+    
+    switch (viewMode) {
+      case 'month':
+        // For month view, show events from current month only
+        relevantEvents = allEvents.filter(event => 
+          event.date >= currentViewRange.displayStart && 
+          event.date <= currentViewRange.displayEnd &&
+          event.date >= now // Only future events
+        );
+        break;
+        
+      case 'week':
+        // For week view, show events from current week only
+        relevantEvents = allEvents.filter(event => 
+          event.date >= currentViewRange.displayStart && 
+          event.date <= currentViewRange.displayEnd &&
+          event.date >= now // Only future events
+        );
+        break;
+        
+      case 'day':
+        // For day view, show events from current day only
+        relevantEvents = allEvents.filter(event => 
+          event.date >= currentViewRange.displayStart && 
+          event.date <= currentViewRange.displayEnd &&
+          event.date >= now // Only future events
+        );
+        break;
+    }
+    
+    // Sort by date/time (closest first)
+    const sortedEvents = relevantEvents.sort((a, b) => {
+      return a.date.getTime() - b.date.getTime();
+    });
+    
+    // Limit to reasonable number based on view mode
+    const maxEvents = viewMode === 'day' ? 8 : viewMode === 'week' ? 12 : 15;
+    return sortedEvents.slice(0, maxEvents);
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
@@ -192,10 +281,156 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const handleEventClick = (event: CalendarEvent) => {
     setShowEventDetails(event);
+    // Initialize the edit form with current event data
+    setEditForm({
+      time: event.time,
+      duration: event.duration,
+      price: event.price,
+      status: event.status,
+      notes: event.notes || '',
+      clientName: event.clientName,
+      therapistName: event.therapistName
+    });
   };
 
   const closeEventDetails = () => {
+    console.log('Closing event details modal');
     setShowEventDetails(null);
+    setEditForm({
+      time: '',
+      duration: 60,
+      price: 0,
+      status: '',
+      notes: ''
+    });
+  };
+
+  const handleEditFormChange = (field: string, value: string | number) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const saveChanges = async () => {
+    if (!showEventDetails) return;
+
+    try {
+      const updatedEvent = {
+        ...showEventDetails,
+        time: editForm.time,
+        duration: editForm.duration,
+        price: editForm.price,
+        status: editForm.status,
+        notes: editForm.notes,
+        clientName: editForm.clientName,
+        therapistName: editForm.therapistName
+      };
+
+      // Update the event based on type
+      if (showEventDetails.type === 'session' && showEventDetails.originalMeeting) {
+        // Update session meeting
+        const meetingData = {
+          meetingDate: format(showEventDetails.date, "yyyy-MM-dd'T'HH:mm:ss"),
+          duration: editForm.duration,
+          price: editForm.price,
+          status: editForm.status,
+          notes: editForm.notes
+        };
+        
+        // Call the backend API to update the meeting
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8085/api'}/meetings/${showEventDetails.originalMeeting.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(meetingData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update meeting');
+        }
+
+        const updatedMeeting = await response.json();
+        console.log('Meeting updated successfully:', updatedMeeting);
+
+      } else if (showEventDetails.type === 'personal' && showEventDetails.originalPersonalMeeting) {
+        // Update personal meeting
+        const personalMeetingData = {
+          meetingDate: format(showEventDetails.date, "yyyy-MM-dd'T'HH:mm:ss"),
+          duration: editForm.duration,
+          price: editForm.price,
+          status: editForm.status,
+          notes: editForm.notes,
+          therapistName: editForm.therapistName
+        };
+        
+        // Call the backend API to update the personal meeting
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8085/api'}/personal-meetings/${showEventDetails.originalPersonalMeeting.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(personalMeetingData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update personal meeting');
+        }
+
+        const updatedPersonalMeeting = await response.json();
+        console.log('Personal meeting updated successfully:', updatedPersonalMeeting);
+      }
+
+      // Update the local state
+      setShowEventDetails(updatedEvent);
+      
+      // Close the modal
+      closeEventDetails();
+      
+      // Refresh the calendar data using the callback
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to update event:', error);
+      // Remove the alert and just log the error
+      console.log('Update failed - please try again');
+    }
+  };
+
+  const showTooltip = (event: React.MouseEvent | React.FocusEvent, calendarEvent: CalendarEvent) => {
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const tooltipContent = generateTooltipContent(calendarEvent);
+    
+    setTooltip({
+      show: true,
+      content: tooltipContent,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10,
+      event: calendarEvent
+    });
+  };
+
+  const hideTooltip = () => {
+    setTooltip({
+      show: false,
+      content: '',
+      x: 0,
+      y: 0,
+      event: null
+    });
+  };
+
+  const generateTooltipContent = (event: CalendarEvent): string => {
+    const eventType = event.type === 'session' ? 'Session' : 'Personal Meeting';
+    const clientOrTherapist = event.type === 'session' 
+      ? `Client: ${event.clientName}` 
+      : `Therapist: ${event.therapistName}`;
+    
+    return `${eventType}\n${clientOrTherapist}\nTime: ${event.time}\nDuration: ${event.duration} min\nStatus: ${event.status.replace('_', ' ')}\nPrice: ${formatCurrency(event.price)}`;
   };
 
   const handleMeetingAction = (event: CalendarEvent) => {
@@ -378,7 +613,7 @@ const Calendar: React.FC<CalendarProps> = ({
             
             {dayEvents.length > 0 && (
               <div className="event-indicators">
-                {dayEvents.slice(0, 6).map((event, index) => (
+                {dayEvents.map((event, index) => (
                   <div
                     key={event.id}
                     className={`event-dot ${event.type} ${event.status.toLowerCase()}`}
@@ -386,16 +621,23 @@ const Calendar: React.FC<CalendarProps> = ({
                       e.stopPropagation();
                       handleEventClick(event);
                     }}
-                    title={`${event.title} - ${event.time} (${event.duration}min)`}
+                    onMouseEnter={(e) => showTooltip(e, event)}
+                    onMouseLeave={hideTooltip}
+                    onFocus={(e) => showTooltip(e, event)}
+                    onBlur={hideTooltip}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleEventClick(event);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${event.type === 'session' ? 'Session' : 'Personal meeting'} with ${event.type === 'session' ? event.clientName : event.therapistName} at ${event.time}`}
                   >
                     {event.type === 'session' ? 'S' : 'P'}
                   </div>
                 ))}
-                {dayEvents.length > 6 && (
-                  <div className="event-dot more" title={`+${dayEvents.length - 6} more`}>
-                    +{dayEvents.length - 6}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -420,11 +662,19 @@ const Calendar: React.FC<CalendarProps> = ({
     const statusColor = getStatusColor(event.status);
 
     return (
-      <div className="event-details-overlay" onClick={closeEventDetails}>
-        <div className="event-details-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="event-details-overlay" onClick={() => {
+        console.log('Overlay clicked, closing modal');
+        closeEventDetails();
+      }}>
+        <div className="event-details-modal" onClick={(e) => {
+          console.log('Modal content clicked, stopping propagation');
+          e.stopPropagation();
+        }}>
           <div className="event-details-header">
             <h3>{event.title}</h3>
-            <button onClick={closeEventDetails} className="close-event-details">×</button>
+            <div className="header-actions">
+              <button onClick={closeEventDetails} className="close-event-details">×</button>
+            </div>
           </div>
           
           <div className="event-details-content">
@@ -435,53 +685,95 @@ const Calendar: React.FC<CalendarProps> = ({
               </div>
               <div className="event-info-item">
                 <span className="info-label">Time:</span>
-                <span className="info-value">{event.time}</span>
+                <input
+                  type="time"
+                  value={editForm.time}
+                  onChange={(e) => handleEditFormChange('time', e.target.value)}
+                  className="edit-input"
+                />
               </div>
               <div className="event-info-item">
                 <span className="info-label">Duration:</span>
-                <span className="info-value">{event.duration} minutes</span>
+                <input
+                  type="number"
+                  min="15"
+                  max="300"
+                  value={editForm.duration}
+                  onChange={(e) => handleEditFormChange('duration', parseInt(e.target.value) || 60)}
+                  className="edit-input"
+                />
               </div>
               <div className="event-info-item">
                 <span className="info-label">Price:</span>
-                <span className="info-value">{formatCurrency(event.price)}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editForm.price}
+                  onChange={(e) => handleEditFormChange('price', parseFloat(e.target.value) || 0)}
+                  className="edit-input"
+                />
               </div>
               <div className="event-info-item">
                 <span className="info-label">Status:</span>
-                <span className="info-value status-badge" style={{ backgroundColor: statusColor }}>
-                  {event.status.replace('_', ' ')}
-                </span>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => handleEditFormChange('status', e.target.value)}
+                  className="edit-select"
+                >
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="NO_SHOW">No Show</option>
+                </select>
               </div>
               {event.clientName && (
                 <div className="event-info-item">
                   <span className="info-label">Client:</span>
-                  <span className="info-value">{event.clientName}</span>
+                  <input
+                    type="text"
+                    value={editForm.clientName || ''}
+                    onChange={(e) => handleEditFormChange('clientName', e.target.value)}
+                    className="edit-input"
+                  />
                 </div>
               )}
               {event.therapistName && (
                 <div className="event-info-item">
                   <span className="info-label">Therapist:</span>
-                  <span className="info-value">{event.therapistName}</span>
+                  <input
+                    type="text"
+                    value={editForm.therapistName || ''}
+                    onChange={(e) => handleEditFormChange('therapistName', e.target.value)}
+                    className="edit-input"
+                  />
                 </div>
               )}
             </div>
             
-            {event.notes && (
-              <div className="event-notes">
-                <span className="info-label">Notes:</span>
-                <p>{event.notes}</p>
-              </div>
-            )}
+            <div className="event-notes">
+              <span className="info-label">Notes:</span>
+              <textarea
+                value={editForm.notes}
+                onChange={(e) => handleEditFormChange('notes', e.target.value)}
+                className="edit-textarea"
+                placeholder="Add notes..."
+              />
+            </div>
           </div>
           
           <div className="event-details-actions">
             <button 
-              onClick={() => handleMeetingAction(event)}
+              onClick={saveChanges}
               className="action-button primary"
             >
-              {event.type === 'session' ? 'View Session' : 'View Personal Meeting'}
+              💾 Save Changes
             </button>
-            <button onClick={closeEventDetails} className="action-button secondary">
-              Close
+            <button 
+              onClick={closeEventDetails}
+              className="action-button secondary"
+            >
+              ❌ Cancel
             </button>
           </div>
         </div>
@@ -493,9 +785,40 @@ const Calendar: React.FC<CalendarProps> = ({
     const upcoming = getUpcomingEvents();
     if (upcoming.length === 0) return null;
 
+    const getViewModeTitle = () => {
+      const currentMonth = format(currentDate, 'MMMM yyyy');
+      const currentWeek = `${format(startOfWeek(currentDate), 'MMM d')} - ${format(endOfWeek(currentDate), 'MMM d')}`;
+      const currentDay = format(currentDate, 'EEEE, MMM d');
+      
+      switch (viewMode) {
+        case 'month':
+          return `Upcoming Events (${currentMonth})`;
+        case 'week':
+          return `Upcoming Events (${currentWeek})`;
+        case 'day':
+          return `Upcoming Events (${currentDay})`;
+        default:
+          return 'Upcoming Events';
+      }
+    };
+
+    const formatEventDate = (date: Date) => {
+      const now = new Date();
+      const today = startOfDay(now);
+      const tomorrow = addDays(today, 1);
+      
+      if (isSameDay(date, today)) {
+        return 'Today';
+      } else if (isSameDay(date, tomorrow)) {
+        return 'Tomorrow';
+      } else {
+        return format(date, 'MMM d');
+      }
+    };
+
     return (
       <div className="upcoming-events">
-        <h4>Upcoming Events</h4>
+        <h4>{getViewModeTitle()}</h4>
         <div className="upcoming-list">
           {upcoming.map(event => (
             <div 
@@ -503,14 +826,93 @@ const Calendar: React.FC<CalendarProps> = ({
               className="upcoming-event-item"
               onClick={() => handleEventClick(event)}
             >
-              <div className="event-time">{event.time}</div>
-              <div className="event-title">{event.title}</div>
+              <div className="event-date-time">
+                <div className="event-date">{formatEventDate(event.date)}</div>
+                <div className="event-time">{event.time}</div>
+              </div>
+              <div className="event-details">
+                <div className="event-title">{event.title}</div>
+                <div className="event-duration">{event.duration} min</div>
+              </div>
               <div className="event-status" style={{ backgroundColor: getStatusColor(event.status) }}>
                 {event.status.replace('_', ' ')}
               </div>
             </div>
           ))}
         </div>
+        {upcoming.length === 0 && (
+          <div className="no-upcoming-events">
+            <p>
+              {viewMode === 'day' 
+                ? 'No upcoming events today' 
+                : viewMode === 'week' 
+                ? 'No upcoming events this week' 
+                : 'No upcoming events this month'
+              }
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDailyListView = () => {
+    const todayEvents = getEventsForDate(currentDate);
+    const sortedEvents = todayEvents.sort((a, b) => {
+      return a.time.localeCompare(b.time);
+    });
+
+    return (
+      <div className="daily-list-view">
+        <div className="daily-list-header">
+          <h3>{format(currentDate, 'EEEE, MMMM d, yyyy')}</h3>
+          <p>{sortedEvents.length} session{sortedEvents.length !== 1 ? 's' : ''} today</p>
+        </div>
+        
+        {sortedEvents.length === 0 ? (
+          <div className="no-events-today">
+            <div className="no-events-icon">📅</div>
+            <h4>No sessions today</h4>
+            <p>You have a free day! Enjoy your time off.</p>
+          </div>
+        ) : (
+          <div className="daily-events-list">
+            {sortedEvents.map((event, index) => (
+              <div 
+                key={event.id} 
+                className={`daily-event-item ${event.type} ${event.status.toLowerCase()}`}
+                onClick={() => handleEventClick(event)}
+              >
+                <div className="event-time-slot">
+                  <div className="event-time">{event.time}</div>
+                  <div className="event-duration">{event.duration} min</div>
+                </div>
+                
+                <div className="event-main-info">
+                  <div className="event-title">
+                    {event.type === 'session' ? 'Session' : 'Personal Meeting'}
+                  </div>
+                  <div className="event-participant">
+                    {event.type === 'session' 
+                      ? `Client: ${event.clientName}` 
+                      : `Therapist: ${event.therapistName}`
+                    }
+                  </div>
+                  <div className="event-price">{formatCurrency(event.price)}</div>
+                </div>
+                
+                <div className="event-status-section">
+                  <div 
+                    className="event-status-badge"
+                    style={{ backgroundColor: getStatusColor(event.status) }}
+                  >
+                    {event.status.replace('_', ' ')}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -520,39 +922,65 @@ const Calendar: React.FC<CalendarProps> = ({
       <div className="calendar-container">
         {renderHeader()}
         {renderQuickStats()}
-        {renderDays()}
-        {renderCells()}
+        {viewMode === 'day' ? renderDailyListView() : (
+          <>
+            {renderDays()}
+            {renderCells()}
+          </>
+        )}
         
         <div className="calendar-footer">
-          {renderUpcomingEvents()}
+          {viewMode !== 'day' && renderUpcomingEvents()}
           
-          <div className="calendar-legend">
-            <h4>Legend:</h4>
-            <div className="legend-items">
-              <div className="legend-item">
-                <span className="legend-dot session scheduled"></span>
-                Session
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot personal scheduled"></span>
-                Personal
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot completed"></span>
-                Completed
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot cancelled"></span>
-                Cancelled
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot no_show"></span>
-                No Show
+          {viewMode !== 'day' && (
+            <div className="calendar-legend">
+              <h4>Legend:</h4>
+              <div className="legend-items">
+                <div className="legend-item">
+                  <span className="legend-dot session scheduled"></span>
+                  Session
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot personal scheduled"></span>
+                  Personal
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot completed"></span>
+                  Completed
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot cancelled"></span>
+                  Cancelled
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot no_show"></span>
+                  No Show
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+      
+      {/* Custom Tooltip */}
+      {tooltip.show && (
+        <div 
+          className="calendar-tooltip"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <div className="tooltip-content">
+            {tooltip.content.split('\n').map((line, index) => (
+              <div key={index} className="tooltip-line">
+                {line}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {renderEventDetails()}
     </div>

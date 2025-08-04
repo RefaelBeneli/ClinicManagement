@@ -1588,6 +1588,7 @@ const TherapistPanel: React.FC = () => {
                 setViewPersonalMeetingModal({ isOpen: true, meeting });
                 setActiveTab('dashboard');
               }}
+              onRefresh={handleRefreshData}
             />
           </div>
         )}
@@ -1642,6 +1643,7 @@ const TherapistPanel: React.FC = () => {
             setViewPersonalMeetingModal({ isOpen: true, meeting });
             setShowCalendar(false);
           }}
+          onRefresh={handleRefreshData}
         />
       )}
 
