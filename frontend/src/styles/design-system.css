@@ -159,6 +159,11 @@
   color: #2d3748 !important;
 }
 
+/* Exclude personal meeting close button from global color override */
+.personal-meeting-close-button {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
 html {
   font-family: var(--font-family-base);
   line-height: var(--line-height-normal);

@@ -3,10 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import MeetingPanel from './MeetingPanel';
 import PersonalMeetingPanel from './PersonalMeetingPanel';
+import SessionPanel from './SessionPanel';
+import ClientPanel from './ClientPanel';
 import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
+import AnalyticsPanel from './AnalyticsPanel';
 import { clients, meetings, personalMeetings, expenses } from '../services/api';
-import { Client, Meeting, PersonalMeeting, Expense, MeetingStatus, PersonalMeetingStatus } from '../types';
+import { Client, Meeting, PersonalMeeting, Expense, MeetingStatus, PersonalMeetingStatus, PersonalMeetingType } from '../types';
 import ViewClientModal from './ui/ViewClientModal';
 import ViewMeetingModal from './ui/ViewMeetingModal';
 import ViewPersonalMeetingModal from './ui/ViewPersonalMeetingModal';
@@ -16,10 +19,12 @@ import EditMeetingModal from './ui/EditMeetingModal';
 import EditPersonalMeetingModal from './ui/EditPersonalMeetingModal';
 import EditExpenseModal from './ui/EditExpenseModal';
 import AddClientModal from './ui/AddClientModal';
+import AddSessionModal from './ui/AddSessionModal';
+import AddPersonalMeetingModal from './ui/AddPersonalMeetingModal';
 import './TherapistPanel.css';
 
 const TherapistPanel: React.FC = () => {
-  const { user, token, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [clientList, setClientList] = useState<Client[]>([]);
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
@@ -27,11 +32,16 @@ const TherapistPanel: React.FC = () => {
   const [expenseList, setExpenseList] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'meetings' | 'personal-meetings' | 'expenses' | 'analytics' | 'calendar'>('dashboard');
+  const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
   
   // Panel states
   const [showMeetingPanel, setShowMeetingPanel] = useState(false);
   const [showPersonalMeetingPanel, setShowPersonalMeetingPanel] = useState(false);
+  const [showSessionPanel, setShowSessionPanel] = useState(false);
+  const [showClientPanel, setShowClientPanel] = useState(false);
   const [showExpensePanel, setShowExpensePanel] = useState(false);
+  const [showAddSessionModal, setShowAddSessionModal] = useState(false);
+  const [showAddPersonalMeetingModal, setShowAddPersonalMeetingModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
 
   // View modal states
@@ -48,8 +58,11 @@ const TherapistPanel: React.FC = () => {
 
   // Add new modal states
   const [addClientModal, setAddClientModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [addMeetingModal, setAddMeetingModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [addPersonalMeetingModal, setAddPersonalMeetingModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [addExpenseModal, setAddExpenseModal] = useState(false);
 
   // Stats state
@@ -76,6 +89,7 @@ const TherapistPanel: React.FC = () => {
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
 
   // Use the same API URL logic as the main API service
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const apiUrl = useMemo(() => {
     return process.env.REACT_APP_API_URL || 
       (window.location.hostname === 'frolicking-granita-900c53.netlify.app' 
@@ -214,7 +228,7 @@ const TherapistPanel: React.FC = () => {
     }
   }, [meetingList, clientList, expenseList, personalMeetingList, analyticsPeriod]);
 
-  const loadTherapistData = async () => {
+  const loadTherapistData = useCallback(async () => {
     setLoading(true);
     try {
       await Promise.all([
@@ -228,11 +242,11 @@ const TherapistPanel: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchClients, fetchMeetings, fetchPersonalMeetings, fetchExpenses]);
 
   useEffect(() => {
     loadTherapistData();
-  }, []);
+  }, [loadTherapistData]);
 
   useEffect(() => {
     if (!loading) {
@@ -381,6 +395,126 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
+  const handleClientNameUpdate = async (clientId: number, fullName: string) => {
+    try {
+      await clients.update(clientId, { fullName });
+      await fetchClients();
+    } catch (error: any) {
+      console.error('Error updating client name:', error);
+      alert('Failed to update client name');
+    }
+  };
+
+  const handleClientEmailUpdate = async (clientId: number, email: string) => {
+    try {
+      await clients.update(clientId, { email });
+      await fetchClients();
+    } catch (error: any) {
+      console.error('Error updating client email:', error);
+      alert('Failed to update client email');
+    }
+  };
+
+  const handleClientPhoneUpdate = async (clientId: number, phone: string) => {
+    try {
+      await clients.update(clientId, { phone });
+      await fetchClients();
+    } catch (error: any) {
+      console.error('Error updating client phone:', error);
+      alert('Failed to update client phone');
+    }
+  };
+
+  const handlePersonalMeetingTherapistUpdate = async (meetingId: number, therapistName: string) => {
+    try {
+      await personalMeetings.update(meetingId, { therapistName });
+      await fetchPersonalMeetings();
+    } catch (error: any) {
+      console.error('Error updating therapist name:', error);
+      alert('Failed to update therapist name');
+    }
+  };
+
+  const handlePersonalMeetingTypeUpdate = async (meetingId: number, meetingType: PersonalMeetingType) => {
+    try {
+      await personalMeetings.update(meetingId, { meetingType });
+      await fetchPersonalMeetings();
+    } catch (error: any) {
+      console.error('Error updating meeting type:', error);
+      alert('Failed to update meeting type');
+    }
+  };
+
+  const handlePersonalMeetingDateUpdate = async (meetingId: number, meetingDate: string) => {
+    try {
+      await personalMeetings.update(meetingId, { meetingDate });
+      await fetchPersonalMeetings();
+    } catch (error: any) {
+      console.error('Error updating meeting date:', error);
+      alert('Failed to update meeting date');
+    }
+  };
+
+  const handlePersonalMeetingDurationUpdate = async (meetingId: number, duration: number) => {
+    try {
+      await personalMeetings.update(meetingId, { duration });
+      await fetchPersonalMeetings();
+    } catch (error: any) {
+      console.error('Error updating duration:', error);
+      alert('Failed to update duration');
+    }
+  };
+
+  const handlePersonalMeetingPriceUpdate = async (meetingId: number, price: number) => {
+    try {
+      await personalMeetings.update(meetingId, { price });
+      await fetchPersonalMeetings();
+    } catch (error: any) {
+      console.error('Error updating price:', error);
+      alert('Failed to update price');
+    }
+  };
+
+  const handleExpenseNameUpdate = async (expenseId: number, name: string) => {
+    try {
+      await expenses.update(expenseId, { name });
+      await fetchExpenses();
+    } catch (error: any) {
+      console.error('Error updating expense name:', error);
+      alert('Failed to update expense name');
+    }
+  };
+
+  const handleExpenseAmountUpdate = async (expenseId: number, amount: number) => {
+    try {
+      await expenses.update(expenseId, { amount });
+      await fetchExpenses();
+    } catch (error: any) {
+      console.error('Error updating expense amount:', error);
+      alert('Failed to update expense amount');
+    }
+  };
+
+  const handleExpenseCategoryUpdate = async (expenseId: number, category: string) => {
+    try {
+      await expenses.update(expenseId, { category });
+      await fetchExpenses();
+    } catch (error: any) {
+      console.error('Error updating expense category:', error);
+      alert('Failed to update expense category');
+    }
+  };
+
+  const handleExpenseDateUpdate = async (expenseId: number, expenseDate: string) => {
+    try {
+      await expenses.update(expenseId, { expenseDate });
+      await fetchExpenses();
+    } catch (error: any) {
+      console.error('Error updating expense date:', error);
+      alert('Failed to update expense date');
+    }
+  };
+
   // View modal handlers
   const handleViewClient = (client: Client) => {
     setViewClientModal({ isOpen: true, client });
@@ -434,23 +568,30 @@ const TherapistPanel: React.FC = () => {
     setAddClientModal(true);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAddMeeting = () => {
-    setAddMeetingModal(true);
+    setShowMeetingPanel(true);
+  };
+
+  const handleAddSession = () => {
+    setShowAddSessionModal(true);
   };
 
   const handleAddPersonalMeeting = () => {
-    setAddPersonalMeetingModal(true);
+    setShowAddPersonalMeetingModal(true);
   };
 
   const handleAddExpense = () => {
-    setAddExpenseModal(true);
+    setShowExpensePanel(true);
   };
 
   const closeAddModals = () => {
     setAddClientModal(false);
-    setAddMeetingModal(false);
-    setAddPersonalMeetingModal(false);
-    setAddExpenseModal(false);
+    setShowMeetingPanel(false);
+    setShowPersonalMeetingPanel(false);
+    setShowExpensePanel(false);
+    setShowAddSessionModal(false);
+    setShowAddPersonalMeetingModal(false);
   };
 
   // Delete handlers (soft delete)
@@ -550,7 +691,7 @@ const TherapistPanel: React.FC = () => {
 
   const handleRestoreMeeting = async (meetingId: number) => {
     try {
-      // Note: The API might not have a restore method, so we'll need to implement this
+      await meetings.activate(meetingId);
       console.log('✅ Meeting restored successfully');
       // Update the local state immediately for visual feedback
       setMeetingList(prev => prev.map(meeting => 
@@ -565,7 +706,7 @@ const TherapistPanel: React.FC = () => {
 
   const handleRestorePersonalMeeting = async (meetingId: number) => {
     try {
-      // Note: The API might not have a restore method, so we'll need to implement this
+      await personalMeetings.activate(meetingId);
       console.log('✅ Personal meeting restored successfully');
       // Update the local state immediately for visual feedback
       setPersonalMeetingList(prev => prev.map(meeting => 
@@ -580,7 +721,7 @@ const TherapistPanel: React.FC = () => {
 
   const handleRestoreExpense = async (expenseId: number) => {
     try {
-      // Note: The API might not have a restore method, so we'll need to implement this
+      await expenses.activate(expenseId);
       console.log('✅ Expense restored successfully');
       // Update the local state immediately for visual feedback
       setExpenseList(prev => prev.map(expense => 
@@ -731,12 +872,20 @@ const TherapistPanel: React.FC = () => {
                 <h3>🧑‍⚕️ Client Management</h3>
                 <p>Total Clients: {stats.totalClients}</p>
               </div>
-              <button 
-                className="btn-primary"
-                onClick={handleAddClient}
-              >
-                ➕ Add New Client
-              </button>
+              <div className="section-actions">
+                <button 
+                  className="btn-primary"
+                  onClick={handleAddClient}
+                >
+                  ➕ Add New Client
+                </button>
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowClientPanel(true)}
+                >
+                  📊 Client Management
+                </button>
+              </div>
             </div>
             <div className="clients-table">
               <table>
@@ -755,9 +904,35 @@ const TherapistPanel: React.FC = () => {
                   {clientList.map((client) => (
                     <tr key={client.id} className={!client.active ? 'disabled-item' : ''}>
                       <td>{client.id}</td>
-                      <td>{client.fullName}</td>
-                      <td>{client.email || 'N/A'}</td>
-                      <td>{client.phone || 'N/A'}</td>
+                      <td>
+                        <input
+                          type="text"
+                          value={client.fullName}
+                          onChange={(e) => handleClientNameUpdate(client.id, e.target.value)}
+                          className="inline-input"
+                          disabled={!client.active}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="email"
+                          value={client.email || ''}
+                          onChange={(e) => handleClientEmailUpdate(client.id, e.target.value)}
+                          className="inline-input"
+                          placeholder="Enter email"
+                          disabled={!client.active}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="tel"
+                          value={client.phone || ''}
+                          onChange={(e) => handleClientPhoneUpdate(client.id, e.target.value)}
+                          className="inline-input"
+                          placeholder="Enter phone"
+                          disabled={!client.active}
+                        />
+                      </td>
                       <td>
                         <button
                           className={`status-badge ${client.active ? 'enabled' : 'disabled'}`}
@@ -821,7 +996,7 @@ const TherapistPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Meetings Tab */}
+        {/* Sessions Tab */}
         {activeTab === 'meetings' && (
           <div className="therapist-meetings">
             <div className="section-header">
@@ -829,12 +1004,20 @@ const TherapistPanel: React.FC = () => {
                 <h3>📅 Session Management</h3>
                 <p>Total Sessions: {stats.totalMeetings}</p>
               </div>
-              <button 
-                className="btn-primary"
-                onClick={handleAddMeeting}
-              >
-                ➕ Add New Session
-              </button>
+              <div className="button-group">
+                <button 
+                  className="btn-primary"
+                  onClick={handleAddSession}
+                >
+                  ➕ Add New Session
+                </button>
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowSessionPanel(true)}
+                >
+                  📊 Sessions Management
+                </button>
+              </div>
             </div>
             <div className="meetings-table">
               <table>
@@ -858,7 +1041,7 @@ const TherapistPanel: React.FC = () => {
                       <td>{new Date(meeting.meetingDate).toLocaleString()}</td>
                       <td>{meeting.duration} min</td>
                       <td>{formatCurrency(meeting.price)}</td>
-                                            <td style={{ position: 'relative' }}>
+                      <td style={{ position: 'relative' }}>
                         <button
                           className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}
                           onClick={() => toggleStatusDropdown('meetings', meeting.id)}
@@ -1009,12 +1192,20 @@ const TherapistPanel: React.FC = () => {
                 <h3>🧘‍♀️ Personal Development</h3>
                 <p>Total Personal Sessions: {stats.totalPersonalMeetings}</p>
               </div>
-              <button 
-                className="btn-primary"
-                onClick={handleAddPersonalMeeting}
-              >
-                ➕ Add New Personal Session
-              </button>
+              <div className="button-group">
+                <button 
+                  className="btn-primary"
+                  onClick={handleAddPersonalMeeting}
+                >
+                  ➕ Add New Personal Session
+                </button>
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowPersonalMeetingPanel(true)}
+                >
+                  📊 Personal Sessions Manager
+                </button>
+              </div>
             </div>
             <div className="personal-meetings-table">
               <table>
@@ -1035,11 +1226,60 @@ const TherapistPanel: React.FC = () => {
                   {personalMeetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{meeting.id}</td>
-                      <td>{meeting.therapistName}</td>
-                      <td>{meeting.meetingType.replace('_', ' ')}</td>
-                      <td>{new Date(meeting.meetingDate).toLocaleString()}</td>
-                      <td>{meeting.duration} min</td>
-                      <td>{formatCurrency(meeting.price)}</td>
+                      <td>
+                        <input
+                          type="text"
+                          value={meeting.therapistName}
+                          onChange={(e) => handlePersonalMeetingTherapistUpdate(meeting.id, e.target.value)}
+                          className="inline-input"
+                          disabled={meeting.active === false}
+                        />
+                      </td>
+                      <td>
+                        <select
+                          value={meeting.meetingType}
+                          onChange={(e) => handlePersonalMeetingTypeUpdate(meeting.id, e.target.value as PersonalMeetingType)}
+                          className="inline-select"
+                          disabled={meeting.active === false}
+                        >
+                          <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
+                          <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
+                          <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
+                          <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="datetime-local"
+                          value={meeting.meetingDate.split('T')[0] + 'T' + meeting.meetingDate.split('T')[1]?.substring(0, 5) || ''}
+                          onChange={(e) => handlePersonalMeetingDateUpdate(meeting.id, e.target.value)}
+                          className="inline-input"
+                          disabled={meeting.active === false}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="15"
+                          max="300"
+                          value={meeting.duration}
+                          onChange={(e) => handlePersonalMeetingDurationUpdate(meeting.id, parseInt(e.target.value) || 60)}
+                          className="inline-input"
+                          disabled={meeting.active === false}
+                        />
+                        <span>min</span>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={meeting.price}
+                          onChange={(e) => handlePersonalMeetingPriceUpdate(meeting.id, parseFloat(e.target.value) || 0)}
+                          className="inline-input"
+                          disabled={meeting.active === false}
+                        />
+                      </td>
                       <td style={{ position: 'relative' }}>
                         <button
                           className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}
@@ -1191,12 +1431,20 @@ const TherapistPanel: React.FC = () => {
                 <h3>💰 Expense Management</h3>
                 <p>Total Expenses: {stats.totalExpenses}</p>
               </div>
-              <button 
-                className="btn-primary"
-                onClick={handleAddExpense}
-              >
-                ➕ Add New Expense
-              </button>
+              <div className="section-actions">
+                <button 
+                  className="btn-primary"
+                  onClick={handleAddExpense}
+                >
+                  ➕ Add New Expense
+                </button>
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowExpensePanel(true)}
+                >
+                  📊 Expense Management
+                </button>
+              </div>
             </div>
             <div className="expenses-table">
               <table>
@@ -1215,10 +1463,44 @@ const TherapistPanel: React.FC = () => {
                   {expenseList.map((expense) => (
                     <tr key={expense.id} className={expense.active === false ? 'disabled-item' : ''} style={expense.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{expense.id}</td>
-                      <td>{expense.name}</td>
-                      <td>{formatCurrency(expense.amount)}</td>
-                      <td>{expense.category}</td>
-                      <td>{new Date(expense.expenseDate).toLocaleDateString()}</td>
+                      <td>
+                        <input
+                          type="text"
+                          value={expense.name}
+                          onChange={(e) => handleExpenseNameUpdate(expense.id, e.target.value)}
+                          className="inline-input"
+                          disabled={expense.active === false}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={expense.amount}
+                          onChange={(e) => handleExpenseAmountUpdate(expense.id, parseFloat(e.target.value) || 0)}
+                          className="inline-input"
+                          disabled={expense.active === false}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={expense.category}
+                          onChange={(e) => handleExpenseCategoryUpdate(expense.id, e.target.value)}
+                          className="inline-input"
+                          disabled={expense.active === false}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="date"
+                          value={expense.expenseDate.split('T')[0]}
+                          onChange={(e) => handleExpenseDateUpdate(expense.id, e.target.value)}
+                          className="inline-input"
+                          disabled={expense.active === false}
+                        />
+                      </td>
                       <td>
                         <button
                                         className={`payment-badge ${expense.paid ? 'paid' : 'unpaid'}`}
@@ -1284,226 +1566,7 @@ const TherapistPanel: React.FC = () => {
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <div className="therapist-analytics">
-            <div className="section-header">
-              <h3>📊 Practice Analytics</h3>
-              <p>Comprehensive insights into your practice performance</p>
-              <div className="analytics-period-selector">
-                <label>Period:</label>
-                <select
-                  value={analyticsPeriod}
-                  onChange={(e) => setAnalyticsPeriod(e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
-                  className="period-select"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </div>
-            </div>
-            
-            {/* Revenue Analytics */}
-            {analytics.revenueStats && (
-              <div className="analytics-section">
-                <h4>💰 Revenue Analytics</h4>
-                <div className="analytics-grid">
-                  <div className="analytics-card">
-                    <div className="analytics-icon">💵</div>
-                    <div className="analytics-content">
-                      <h5>Total Revenue</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.revenueStats.totalRevenue)}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">✅</div>
-                    <div className="analytics-content">
-                      <h5>Paid Revenue</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.revenueStats.paidRevenue)}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">⏳</div>
-                    <div className="analytics-content">
-                      <h5>Pending Revenue</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.revenueStats.unpaidRevenue)}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">📈</div>
-                    <div className="analytics-content">
-                      <h5>Collection Rate</h5>
-                      <div className="analytics-value">
-                        {analytics.revenueStats.totalRevenue > 0 
-                          ? Math.round((analytics.revenueStats.paidRevenue / analytics.revenueStats.totalRevenue) * 100)
-                          : 0}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Session Analytics */}
-            {analytics.meetingStats && (
-              <div className="analytics-section">
-                <h4>📅 Session Analytics</h4>
-                <div className="analytics-grid">
-                  <div className="analytics-card">
-                    <div className="analytics-icon">📊</div>
-                    <div className="analytics-content">
-                      <h5>Total Sessions</h5>
-                      <div className="analytics-value">{analytics.meetingStats.total}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">✅</div>
-                    <div className="analytics-content">
-                      <h5>Completed</h5>
-                      <div className="analytics-value">{analytics.meetingStats.completed}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">📅</div>
-                    <div className="analytics-content">
-                      <h5>Scheduled</h5>
-                      <div className="analytics-value">{analytics.meetingStats.scheduled}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">💰</div>
-                    <div className="analytics-content">
-                      <h5>Average Price</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.meetingStats.averagePrice)}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Client Analytics */}
-            {analytics.clientStats && (
-              <div className="analytics-section">
-                <h4>👥 Client Analytics</h4>
-                <div className="analytics-grid">
-                  <div className="analytics-card">
-                    <div className="analytics-icon">👥</div>
-                    <div className="analytics-content">
-                      <h5>Total Clients</h5>
-                      <div className="analytics-value">{analytics.clientStats.total}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">✅</div>
-                    <div className="analytics-content">
-                      <h5>Active Clients</h5>
-                      <div className="analytics-value">{analytics.clientStats.active}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">🆕</div>
-                    <div className="analytics-content">
-                      <h5>New This Month</h5>
-                      <div className="analytics-value">{analytics.clientStats.newThisMonth}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">📊</div>
-                    <div className="analytics-content">
-                      <h5>Retention Rate</h5>
-                      <div className="analytics-value">
-                        {analytics.clientStats.total > 0 
-                          ? Math.round((analytics.clientStats.active / analytics.clientStats.total) * 100)
-                          : 0}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Expense Analytics */}
-            {analytics.expenseStats && (
-              <div className="analytics-section">
-                <h4>💸 Expense Analytics</h4>
-                <div className="analytics-grid">
-                  <div className="analytics-card">
-                    <div className="analytics-icon">💸</div>
-                    <div className="analytics-content">
-                      <h5>Total Expenses</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.expenseStats.totalAmount)}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">✅</div>
-                    <div className="analytics-content">
-                      <h5>Paid Expenses</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.expenseStats.paidAmount)}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">⏳</div>
-                    <div className="analytics-content">
-                      <h5>Pending Expenses</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.expenseStats.unpaidAmount)}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">📊</div>
-                    <div className="analytics-content">
-                      <h5>Payment Rate</h5>
-                      <div className="analytics-value">
-                        {analytics.expenseStats.totalAmount > 0 
-                          ? Math.round((analytics.expenseStats.paidAmount / analytics.expenseStats.totalAmount) * 100)
-                          : 0}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Personal Development Analytics */}
-            {analytics.personalMeetingStats && (
-              <div className="analytics-section">
-                <h4>🧘‍♀️ Personal Development Analytics</h4>
-                <div className="analytics-grid">
-                  <div className="analytics-card">
-                    <div className="analytics-icon">🧘‍♀️</div>
-                    <div className="analytics-content">
-                      <h5>Total Sessions</h5>
-                      <div className="analytics-value">{analytics.personalMeetingStats.total}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">💰</div>
-                    <div className="analytics-content">
-                      <h5>Total Spent</h5>
-                      <div className="analytics-value">{formatCurrency(analytics.personalMeetingStats.totalSpent)}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">✅</div>
-                    <div className="analytics-content">
-                      <h5>Paid Sessions</h5>
-                      <div className="analytics-value">{analytics.personalMeetingStats.paid}</div>
-                    </div>
-                  </div>
-                  <div className="analytics-card">
-                    <div className="analytics-icon">📊</div>
-                    <div className="analytics-content">
-                      <h5>Payment Rate</h5>
-                      <div className="analytics-value">
-                        {analytics.personalMeetingStats.total > 0 
-                          ? Math.round((analytics.personalMeetingStats.paid / analytics.personalMeetingStats.total) * 100)
-                          : 0}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <AnalyticsPanel onClose={() => setActiveTab('dashboard')} />
         )}
 
         {/* Calendar Tab */}
@@ -1513,7 +1576,19 @@ const TherapistPanel: React.FC = () => {
               <h3>📆 Calendar View</h3>
               <p>All sessions and appointments</p>
             </div>
-            <Calendar meetings={meetingList} onClose={() => setActiveTab('dashboard')} />
+            <Calendar 
+              meetings={meetingList} 
+              personalMeetings={personalMeetingList}
+              onClose={() => setActiveTab('dashboard')}
+              onMeetingClick={(meeting) => {
+                setViewMeetingModal({ isOpen: true, meeting });
+                setActiveTab('dashboard');
+              }}
+              onPersonalMeetingClick={(meeting) => {
+                setViewPersonalMeetingModal({ isOpen: true, meeting });
+                setActiveTab('dashboard');
+              }}
+            />
           </div>
         )}
       </div>
@@ -1523,6 +1598,20 @@ const TherapistPanel: React.FC = () => {
         <MeetingPanel 
           onClose={() => setShowMeetingPanel(false)}
           onRefresh={fetchMeetings}
+        />
+      )}
+
+      {showSessionPanel && (
+        <SessionPanel 
+          onClose={() => setShowSessionPanel(false)}
+          onRefresh={fetchMeetings}
+        />
+      )}
+
+      {showClientPanel && (
+        <ClientPanel 
+          onClose={() => setShowClientPanel(false)}
+          onRefresh={fetchClients}
         />
       )}
 
@@ -1541,17 +1630,19 @@ const TherapistPanel: React.FC = () => {
       )}
 
       {showCalendar && (
-        <div className="modal-overlay">
-          <div className="modal calendar-modal">
-            <div className="modal-header">
-              <h3>📆 Calendar View</h3>
-              <button className="close-button" onClick={() => setShowCalendar(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <Calendar meetings={meetingList} onClose={() => setShowCalendar(false)} />
-            </div>
-          </div>
-        </div>
+        <Calendar 
+          meetings={meetingList} 
+          personalMeetings={personalMeetingList}
+          onClose={() => setShowCalendar(false)}
+          onMeetingClick={(meeting) => {
+            setViewMeetingModal({ isOpen: true, meeting });
+            setShowCalendar(false);
+          }}
+          onPersonalMeetingClick={(meeting) => {
+            setViewPersonalMeetingModal({ isOpen: true, meeting });
+            setShowCalendar(false);
+          }}
+        />
       )}
 
       {/* View Modals */}
@@ -1565,6 +1656,7 @@ const TherapistPanel: React.FC = () => {
         meeting={viewMeetingModal.meeting}
         isOpen={viewMeetingModal.isOpen}
         onClose={closeViewModals}
+        onRefresh={handleRefreshData}
       />
 
       <ViewPersonalMeetingModal
@@ -1611,6 +1703,18 @@ const TherapistPanel: React.FC = () => {
       {/* Add Modals */}
       <AddClientModal
         isOpen={addClientModal}
+        onClose={closeAddModals}
+        onSuccess={handleRefreshData}
+      />
+
+      <AddSessionModal
+        isOpen={showAddSessionModal}
+        onClose={closeAddModals}
+        onSuccess={handleRefreshData}
+      />
+
+      <AddPersonalMeetingModal
+        isOpen={showAddPersonalMeetingModal}
         onClose={closeAddModals}
         onSuccess={handleRefreshData}
       />

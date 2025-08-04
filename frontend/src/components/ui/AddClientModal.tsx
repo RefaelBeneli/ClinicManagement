@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { clients } from '../../services/api';
 import { ClientRequest } from '../../types';
 import './ViewClientModal.css';
@@ -17,6 +17,21 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
     notes: ''
   });
   const [loading, setLoading] = useState(false);
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, onClose]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

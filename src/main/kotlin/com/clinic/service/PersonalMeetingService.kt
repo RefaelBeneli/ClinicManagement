@@ -157,6 +157,34 @@ class PersonalMeetingService {
         personalMeetingRepository.save(deactivatedMeeting)
     }
 
+    fun activatePersonalMeeting(id: Long): PersonalMeetingResponse {
+        val currentUser = authService.getCurrentUser()
+        val meeting = personalMeetingRepository.findById(id).orElse(null)
+            ?: throw RuntimeException("Personal meeting not found")
+        
+        if (meeting.user.id != currentUser.id) {
+            throw RuntimeException("Personal meeting not found")
+        }
+
+        val activatedMeeting = meeting.copy(isActive = true)
+        val savedMeeting = personalMeetingRepository.save(activatedMeeting)
+        return mapToResponse(savedMeeting)
+    }
+
+    fun deactivatePersonalMeeting(id: Long): PersonalMeetingResponse {
+        val currentUser = authService.getCurrentUser()
+        val meeting = personalMeetingRepository.findById(id).orElse(null)
+            ?: throw RuntimeException("Personal meeting not found")
+        
+        if (meeting.user.id != currentUser.id) {
+            throw RuntimeException("Personal meeting not found")
+        }
+
+        val deactivatedMeeting = meeting.copy(isActive = false)
+        val savedMeeting = personalMeetingRepository.save(deactivatedMeeting)
+        return mapToResponse(savedMeeting)
+    }
+
     fun getPersonalMeetingsByMonth(year: Int, month: Int): List<PersonalMeetingResponse> {
         val currentUser = authService.getCurrentUser()
         return personalMeetingRepository.findByUserAndMonthYear(currentUser, year, month)

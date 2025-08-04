@@ -521,7 +521,10 @@ const AdminPanel: React.FC = () => {
               <h3>📆 Calendar View</h3>
               <p>All meetings and appointments</p>
             </div>
-            <Calendar meetings={meetingList} onClose={() => setActiveTab('dashboard')} />
+            <Calendar 
+              meetings={meetingList} 
+              onClose={() => setActiveTab('dashboard')}
+            />
           </div>
         )}
       </div>
@@ -567,7 +570,10 @@ const AdminPanel: React.FC = () => {
               <button className="close-button" onClick={() => setShowCalendar(false)}>&times;</button>
             </div>
             <div className="modal-body">
-              <Calendar meetings={meetingList} onClose={() => setShowCalendar(false)} />
+              <Calendar 
+                meetings={meetingList} 
+                onClose={() => setShowCalendar(false)}
+              />
             </div>
           </div>
         </div>

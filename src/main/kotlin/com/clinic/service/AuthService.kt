@@ -63,6 +63,7 @@ class AuthService {
         val authenticatedUser = authentication.principal as User
         return AuthResponse(
             token = jwt,
+            userId = authenticatedUser.id,
             username = authenticatedUser.username,
             email = authenticatedUser.email,
             fullName = authenticatedUser.fullName,

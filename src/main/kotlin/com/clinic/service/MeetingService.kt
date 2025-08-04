@@ -130,6 +130,34 @@ class MeetingService {
         meetingRepository.save(deactivatedMeeting)
     }
 
+    fun activateMeeting(id: Long): MeetingResponse {
+        val currentUser = authService.getCurrentUser()
+        val meeting = meetingRepository.findById(id).orElse(null)
+            ?: throw RuntimeException("Meeting not found")
+        
+        if (meeting.user.id != currentUser.id) {
+            throw RuntimeException("Meeting not found")
+        }
+
+        val activatedMeeting = meeting.copy(isActive = true)
+        val savedMeeting = meetingRepository.save(activatedMeeting)
+        return mapToResponse(savedMeeting)
+    }
+
+    fun deactivateMeeting(id: Long): MeetingResponse {
+        val currentUser = authService.getCurrentUser()
+        val meeting = meetingRepository.findById(id).orElse(null)
+            ?: throw RuntimeException("Meeting not found")
+        
+        if (meeting.user.id != currentUser.id) {
+            throw RuntimeException("Meeting not found")
+        }
+
+        val deactivatedMeeting = meeting.copy(isActive = false)
+        val savedMeeting = meetingRepository.save(deactivatedMeeting)
+        return mapToResponse(savedMeeting)
+    }
+
     fun getMeetingsByMonth(year: Int, month: Int): List<MeetingResponse> {
         val currentUser = authService.getCurrentUser()
         return meetingRepository.findByUserAndMonthYear(currentUser, year, month)

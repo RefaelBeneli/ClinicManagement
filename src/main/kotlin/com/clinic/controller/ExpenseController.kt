@@ -148,4 +148,24 @@ class ExpenseController {
             ResponseEntity.badRequest().body(MessageResponse("Error marking expense as unpaid: ${e.message}"))
         }
     }
+
+    @PostMapping("/{id}/activate")
+    fun activateExpense(@PathVariable id: Long): ResponseEntity<*> {
+        return try {
+            val expense = expenseService.activateExpense(id)
+            ResponseEntity.ok(expense)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error activating expense: ${e.message}"))
+        }
+    }
+
+    @PostMapping("/{id}/deactivate")
+    fun deactivateExpense(@PathVariable id: Long): ResponseEntity<*> {
+        return try {
+            val expense = expenseService.deactivateExpense(id)
+            ResponseEntity.ok(expense)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error deactivating expense: ${e.message}"))
+        }
+    }
 } 

@@ -335,6 +335,16 @@ export const meetings = {
     return response.data;
   },
 
+  activate: async (id: number): Promise<Meeting> => {
+    const response = await apiClient.post(`/meetings/${id}/activate`);
+    return transformMeetingResponse(response.data);
+  },
+
+  deactivate: async (id: number): Promise<Meeting> => {
+    const response = await apiClient.post(`/meetings/${id}/deactivate`);
+    return transformMeetingResponse(response.data);
+  },
+
   getByMonth: async (year: number, month: number): Promise<Meeting[]> => {
     const response = await apiClient.get(`/meetings/month?year=${year}&month=${month}`);
     return transformMeetingResponse(response.data);
@@ -399,6 +409,16 @@ export const personalMeetings = {
   disable: async (id: number): Promise<MessageResponse> => {
     const response = await apiClient.patch(`/personal-meetings/${id}/disable`);
     return response.data;
+  },
+
+  activate: async (id: number): Promise<PersonalMeeting> => {
+    const response = await apiClient.post(`/personal-meetings/${id}/activate`);
+    return transformPersonalMeetingResponse(response.data);
+  },
+
+  deactivate: async (id: number): Promise<PersonalMeeting> => {
+    const response = await apiClient.post(`/personal-meetings/${id}/deactivate`);
+    return transformPersonalMeetingResponse(response.data);
   },
 
   getByMonth: async (year: number, month: number): Promise<PersonalMeeting[]> => {
@@ -582,6 +602,16 @@ export const expenses = {
 
   disable: async (id: number) => {
     const response = await apiClient.patch(`/expenses/${id}/disable`);
+    return response.data;
+  },
+
+  activate: async (id: number) => {
+    const response = await apiClient.post(`/expenses/${id}/activate`);
+    return response.data;
+  },
+
+  deactivate: async (id: number) => {
+    const response = await apiClient.post(`/expenses/${id}/deactivate`);
     return response.data;
   },
 

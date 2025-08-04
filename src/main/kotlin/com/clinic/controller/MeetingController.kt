@@ -129,4 +129,24 @@ class MeetingController {
             ResponseEntity.badRequest().build()
         }
     }
+
+    @PostMapping("/{id}/activate")
+    fun activateMeeting(@PathVariable id: Long): ResponseEntity<MeetingResponse> {
+        return try {
+            val meeting = meetingService.activateMeeting(id)
+            ResponseEntity.ok(meeting)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @PostMapping("/{id}/deactivate")
+    fun deactivateMeeting(@PathVariable id: Long): ResponseEntity<MeetingResponse> {
+        return try {
+            val meeting = meetingService.deactivateMeeting(id)
+            ResponseEntity.ok(meeting)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
 } 

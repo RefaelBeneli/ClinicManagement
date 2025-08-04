@@ -32,6 +32,7 @@ data class RegisterRequest(
 data class AuthResponse(
     val token: String,
     val type: String = "Bearer",
+    val userId: Long,
     val username: String,
     val email: String,
     val fullName: String,

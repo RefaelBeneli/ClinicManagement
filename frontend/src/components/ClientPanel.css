@@ -1,5 +1,5 @@
-/* Expense Panel Overlay */
-.expense-panel-overlay {
+/* Client Panel Overlay */
+.client-panel-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -13,7 +13,7 @@
   animation: fadeIn 0.3s ease-out;
 }
 
-.expense-panel {
+.client-panel {
   background: white;
   border-radius: 16px;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
@@ -27,7 +27,7 @@
 }
 
 /* Header Section */
-.expense-panel-header {
+.client-panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -37,7 +37,7 @@
   position: relative;
 }
 
-.expense-panel-header::before {
+.client-panel-header::before {
   content: '';
   position: absolute;
   top: 0;
@@ -49,30 +49,30 @@
   transition: opacity 0.3s ease;
 }
 
-.expense-panel-header:hover::before {
+.client-panel-header:hover::before {
   opacity: 1;
 }
 
-.expense-panel-header > * {
+.client-panel-header > * {
   position: relative;
   z-index: 1;
 }
 
-.expense-panel-header h2 {
+.client-panel-header h2 {
   margin: 0 0 0.25rem 0;
   font-size: 1.75rem;
   font-weight: 700;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.expense-panel-header p {
+.client-panel-header p {
   margin: 0;
   font-size: 1rem;
   opacity: 0.9;
   font-weight: 300;
 }
 
-.expense-close-button {
+.client-close-button {
   background: rgba(255, 255, 255, 0.15) !important;
   border: 2px solid rgba(255, 255, 255, 0.3) !important;
   color: rgba(255, 255, 255, 0.8) !important;
@@ -89,14 +89,14 @@
   backdrop-filter: blur(10px);
 }
 
-.expense-close-button:hover {
+.client-close-button:hover {
   background: rgba(255, 255, 255, 0.2) !important;
   border-color: rgba(255, 255, 255, 0.4) !important;
   transform: scale(1.1);
 }
 
 /* Stats Section */
-.expense-stats-section {
+.client-stats-section {
   display: flex;
   gap: 1rem;
   padding: 1.5rem 2.5rem;
@@ -154,7 +154,7 @@
 }
 
 /* Controls Section */
-.expense-controls {
+.client-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -230,7 +230,7 @@
 }
 
 /* Form Section */
-.expense-form-section {
+.client-form-section {
   padding: 2rem 2.5rem;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-bottom: 1px solid #dee2e6;
@@ -240,25 +240,25 @@
   scrollbar-color: #667eea #f8f9fa;
 }
 
-.expense-form-section::-webkit-scrollbar {
+.client-form-section::-webkit-scrollbar {
   width: 8px;
 }
 
-.expense-form-section::-webkit-scrollbar-track {
+.client-form-section::-webkit-scrollbar-track {
   background: #f8f9fa;
   border-radius: 4px;
 }
 
-.expense-form-section::-webkit-scrollbar-thumb {
+.client-form-section::-webkit-scrollbar-thumb {
   background: #667eea;
   border-radius: 4px;
 }
 
-.expense-form-section::-webkit-scrollbar-thumb:hover {
+.client-form-section::-webkit-scrollbar-thumb:hover {
   background: #5a6fd8;
 }
 
-.expense-form {
+.client-form {
   background: white;
   padding: 2rem;
   border-radius: 12px;
@@ -266,7 +266,7 @@
   margin-bottom: 1rem;
 }
 
-.expense-form h3 {
+.client-form h3 {
   margin: 0 0 1.5rem 0;
   color: #2c3e50;
   font-size: 1.25rem;
@@ -377,7 +377,7 @@
 }
 
 /* Content Section */
-.expenses-content {
+.clients-content {
   flex: 1;
   padding: 1.5rem 2.5rem;
   overflow-y: auto;
@@ -427,14 +427,14 @@
   line-height: 1.5;
 }
 
-/* Expenses List */
-.expenses-list {
+/* Clients List */
+.clients-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.expense-card {
+.client-card {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
@@ -444,7 +444,7 @@
   overflow: hidden;
 }
 
-.expense-card::before {
+.client-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -456,31 +456,31 @@
   transition: transform 0.3s ease;
 }
 
-.expense-card:hover {
+.client-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-.expense-card:hover::before {
+.client-card:hover::before {
   transform: scaleX(1);
 }
 
-.expense-card.disabled-card {
+.client-card.disabled-card {
   opacity: 0.6;
   background: #f8f9fa;
   border-left: 4px solid #dc3545;
 }
 
-.expense-card.disabled-card .expense-header {
+.client-card.disabled-card .client-header {
   color: #6c757d;
 }
 
-.expense-card.disabled-card .expense-details,
-.expense-card.disabled-card .expense-notes {
+.client-card.disabled-card .client-details,
+.client-card.disabled-card .client-notes {
   color: #6c757d;
 }
 
-.expense-card.disabled-card:hover {
+.client-card.disabled-card:hover {
   transform: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
@@ -503,32 +503,32 @@
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
 }
 
-.expense-header {
+.client-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
 }
 
-.expense-info {
+.client-info {
   flex: 1;
 }
 
-.expense-name {
+.client-name {
   font-size: 1.25rem;
   font-weight: 600;
   color: #2c3e50;
   margin-bottom: 0.5rem;
 }
 
-.expense-meta {
+.client-meta {
   display: flex;
   gap: 1rem;
   font-size: 0.875rem;
   color: #6c757d;
 }
 
-.expense-actions {
+.client-actions {
   display: flex;
   gap: 0.5rem;
 }
@@ -553,7 +553,7 @@
   color: #d32f2f;
 }
 
-.expense-details {
+.client-details {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
@@ -573,7 +573,7 @@
   min-width: 80px;
 }
 
-.payment-toggle {
+.status-toggle {
   padding: 0.5rem 1rem;
   border: 2px solid #e9ecef;
   border-radius: 6px;
@@ -584,30 +584,24 @@
   background: white;
 }
 
-.payment-toggle.paid {
+.status-toggle.active {
   border-color: #28a745;
   color: #28a745;
   background: #d4edda;
 }
 
-.payment-toggle.unpaid {
+.status-toggle.inactive {
   border-color: #dc3545;
   color: #dc3545;
   background: #f8d7da;
 }
 
-.payment-toggle.paid:hover {
+.status-toggle.active:hover {
   background: #c3e6cb;
 }
 
-.payment-toggle.unpaid:hover {
+.status-toggle.inactive:hover {
   background: #f5c6cb;
-}
-
-.currency-display {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 0.875rem;
 }
 
 /* Inline Editing Styles */
@@ -703,21 +697,21 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .expense-panel {
+  .client-panel {
     width: 100%;
     height: 100vh;
     border-radius: 0;
   }
 
-  .expense-panel-header {
+  .client-panel-header {
     padding: 1.5rem;
   }
 
-  .expense-panel-header h2 {
+  .client-panel-header h2 {
     font-size: 1.5rem;
   }
 
-  .expense-stats-section {
+  .client-stats-section {
     flex-direction: column;
     padding: 1rem;
   }
@@ -730,7 +724,7 @@
     font-size: 1.5rem;
   }
 
-  .expense-controls {
+  .client-controls {
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
@@ -749,19 +743,19 @@
     grid-template-columns: 1fr;
   }
 
-  .expense-form-section {
+  .client-form-section {
     padding: 1rem;
   }
 
-  .expense-form {
+  .client-form {
     padding: 1.5rem;
   }
 
-  .expenses-content {
+  .clients-content {
     padding: 1rem;
   }
 
-  .expense-details {
+  .client-details {
     grid-template-columns: 1fr;
   }
 
@@ -776,25 +770,25 @@
 }
 
 @media (max-width: 480px) {
-  .expense-panel-header {
+  .client-panel-header {
     padding: 1rem;
   }
 
-  .expense-panel-header h2 {
+  .client-panel-header h2 {
     font-size: 1.25rem;
   }
 
-  .expense-stats-section {
+  .client-stats-section {
     padding: 0.5rem;
   }
 
-  .expense-header {
+  .client-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
 
-  .expense-actions {
+  .client-actions {
     width: 100%;
     justify-content: flex-end;
   }

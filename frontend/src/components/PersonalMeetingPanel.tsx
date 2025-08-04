@@ -52,6 +52,21 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     fetchStats();
   }, []);
 
+  // Handle ESC key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
   const fetchPersonalMeetings = async () => {
     try {
       setLoading(true);
@@ -164,6 +179,83 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     }
   };
 
+  const handleTherapistUpdate = async (meetingId: number, therapistName: string) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { therapistName });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating therapist name:', error);
+      setError('Failed to update therapist name');
+    }
+  };
+
+  const handleProviderTypeUpdate = async (meetingId: number, providerType: string) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { providerType });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating provider type:', error);
+      setError('Failed to update provider type');
+    }
+  };
+
+  const handleMeetingTypeUpdate = async (meetingId: number, meetingType: PersonalMeetingType) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { meetingType });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating meeting type:', error);
+      setError('Failed to update meeting type');
+    }
+  };
+
+  const handleDateUpdate = async (meetingId: number, meetingDate: string) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { meetingDate });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating meeting date:', error);
+      setError('Failed to update meeting date');
+    }
+  };
+
+  const handleDurationUpdate = async (meetingId: number, duration: number) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { duration });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating duration:', error);
+      setError('Failed to update duration');
+    }
+  };
+
+  const handlePriceUpdate = async (meetingId: number, price: number) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { price });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating price:', error);
+      setError('Failed to update price');
+    }
+  };
+
+  const handleNotesUpdate = async (meetingId: number, notes: string) => {
+    try {
+      await personalMeetingsApi.update(meetingId, { notes });
+      await fetchPersonalMeetings();
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating notes:', error);
+      setError('Failed to update notes');
+    }
+  };
+
   const handleAddMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -205,16 +297,38 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   };
 
   const handleDeleteMeeting = async (meetingId: number) => {
-    if (!window.confirm('Are you sure you want to delete this personal meeting?')) return;
+    if (window.confirm('Are you sure you want to delete this personal session? This action will deactivate the meeting.')) {
+      try {
+        await personalMeetingsApi.disable(meetingId);
+        console.log('✅ Personal meeting deleted successfully');
+        // Update the local state immediately for visual feedback
+        setPersonalMeetings(prev => prev.map(meeting => 
+          meeting.id === meetingId ? { ...meeting, active: false } : meeting
+        ));
+        await fetchPersonalMeetings(); // Refresh the list
+        await fetchStats();
+        onRefresh?.();
+      } catch (error) {
+        console.error('❌ Failed to delete personal meeting:', error);
+        setError('Failed to delete personal meeting');
+      }
+    }
+  };
 
+  const handleRestoreMeeting = async (meetingId: number) => {
     try {
-      await personalMeetingsApi.delete(meetingId);
-      setPersonalMeetings(prev => prev.filter(meeting => meeting.id !== meetingId));
+      await personalMeetingsApi.activate(meetingId);
+      console.log('✅ Personal meeting restored successfully');
+      // Update the local state immediately for visual feedback
+      setPersonalMeetings(prev => prev.map(meeting => 
+        meeting.id === meetingId ? { ...meeting, active: true } : meeting
+      ));
+      await fetchPersonalMeetings(); // Refresh the list
       await fetchStats();
       onRefresh?.();
-    } catch (error: any) {
-      console.error('Error deleting personal meeting:', error);
-      setError('Failed to delete personal meeting');
+    } catch (error) {
+      console.error('❌ Failed to restore personal meeting:', error);
+      setError('Failed to restore personal meeting');
     }
   };
 
@@ -228,6 +342,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const startEditing = (meeting: PersonalMeeting) => {
     setEditingMeeting(meeting);
     setFormData({
@@ -275,7 +390,20 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
             <h2>My Personal Therapy Sessions</h2>
             <p>Manage your own therapy and wellness appointments</p>
           </div>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button 
+            className="personal-meeting-close-button" 
+            onClick={onClose}
+            style={{ 
+              color: 'rgba(255, 255, 255, 0.8)',
+              backgroundColor: 'red',
+              border: '2px solid yellow',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              zIndex: '9999',
+              position: 'relative'
+            }}
+            onMouseEnter={() => console.log('Close button hovered')}
+          >X</button>
         </div>
 
         {/* Stats Dashboard */}
@@ -313,6 +441,8 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
             >
               + Add Personal Session
             </button>
+            
+
             
             <div className="search-container">
               <input
@@ -552,46 +682,98 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
           ) : (
             <div className="personal-meetings-list">
               {filteredMeetings.map((meeting) => (
-                <div key={meeting.id} className="personal-meeting-card">
+                <div key={meeting.id} className={`personal-meeting-card ${meeting.active === false ? 'disabled-card' : ''}`}>
                   <div className="meeting-header">
                     <div className="meeting-therapist">
-                      <h4>{meeting.therapistName}</h4>
-                      <span className="meeting-date">{formatDateTime(meeting.meetingDate)}</span>
+                      <input
+                        type="text"
+                        value={meeting.therapistName}
+                        onChange={(e) => handleTherapistUpdate(meeting.id, e.target.value)}
+                        className="inline-input"
+                        disabled={meeting.active === false}
+                        placeholder="Therapist name"
+                      />
+                      <input
+                        type="datetime-local"
+                        value={meeting.meetingDate.split('T')[0] + 'T' + meeting.meetingDate.split('T')[1]?.substring(0, 5) || ''}
+                        onChange={(e) => handleDateUpdate(meeting.id, e.target.value)}
+                        className="inline-input"
+                        disabled={meeting.active === false}
+                      />
                     </div>
                     <div className="meeting-actions">
-                      <button
-                        className="edit-button"
-                        onClick={() => startEditing(meeting)}
-                        title="Edit session"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="delete-button"
-                        onClick={() => handleDeleteMeeting(meeting.id)}
-                        title="Delete session"
-                      >
-                        🗑️
-                      </button>
+                      {meeting.active !== false ? (
+                        <>
+                          <button
+                            className="delete-button"
+                            onClick={() => handleDeleteMeeting(meeting.id)}
+                            title="Delete session"
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="restore-button"
+                          onClick={() => handleRestoreMeeting(meeting.id)}
+                          title="Restore session"
+                        >
+                          🔄 Restore
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <div className="meeting-details">
                     <div className="detail-item">
                       <span className="label">Provider:</span>
-                      <span>{meeting.providerType}</span>
+                      <input
+                        type="text"
+                        value={meeting.providerType}
+                        onChange={(e) => handleProviderTypeUpdate(meeting.id, e.target.value)}
+                        className="inline-input"
+                        disabled={meeting.active === false}
+                        placeholder="Provider type"
+                      />
                     </div>
                     <div className="detail-item">
                       <span className="label">Type:</span>
-                      <span>{meeting.meetingType.replace('_', ' ')}</span>
+                      <select
+                        value={meeting.meetingType}
+                        onChange={(e) => handleMeetingTypeUpdate(meeting.id, e.target.value as PersonalMeetingType)}
+                        className="inline-select"
+                        disabled={meeting.active === false}
+                      >
+                        <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
+                        <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
+                        <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
+                        <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                      </select>
                     </div>
                     <div className="detail-item">
                       <span className="label">Duration:</span>
-                      <span>{meeting.duration} minutes</span>
+                      <input
+                        type="number"
+                        min="15"
+                        max="300"
+                        value={meeting.duration}
+                        onChange={(e) => handleDurationUpdate(meeting.id, parseInt(e.target.value) || 60)}
+                        className="inline-input"
+                        disabled={meeting.active === false}
+                      />
+                      <span>min</span>
                     </div>
                     <div className="detail-item">
                       <span className="label">Price:</span>
-                      <span>{formatCurrency(meeting.price)}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={meeting.price}
+                        onChange={(e) => handlePriceUpdate(meeting.id, parseFloat(e.target.value) || 0)}
+                        className="inline-input"
+                        disabled={meeting.active === false}
+                      />
                     </div>
                     <div className="detail-item">
                       <span className="label">Status:</span>
@@ -600,6 +782,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                         onChange={(e) => handleStatusUpdate(meeting.id, e.target.value as PersonalMeetingStatus)}
                         className="status-select"
                         style={{ color: getStatusColor(meeting.status) }}
+                        disabled={meeting.active === false}
                       >
                         <option value="SCHEDULED">Scheduled</option>
                         <option value="COMPLETED">Completed</option>
@@ -612,6 +795,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                       <button
                         className={`payment-toggle ${meeting.isPaid ? 'paid' : 'unpaid'}`}
                         onClick={() => handlePaymentToggle(meeting.id, meeting.isPaid)}
+                        disabled={meeting.active === false}
                       >
                         {meeting.isPaid ? '✅ Paid' : '❌ Unpaid'}
                       </button>
@@ -624,11 +808,17 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                     )}
                   </div>
 
-                  {meeting.notes && (
-                    <div className="meeting-notes">
-                      <strong>Notes:</strong> {meeting.notes}
-                    </div>
-                  )}
+                  <div className="detail-item">
+                    <span className="label">Notes:</span>
+                    <textarea
+                      value={meeting.notes || ''}
+                      onChange={(e) => handleNotesUpdate(meeting.id, e.target.value)}
+                      className="inline-textarea"
+                      disabled={meeting.active === false}
+                      placeholder="Add notes..."
+                      rows={2}
+                    />
+                  </div>
 
                   {meeting.isPaid && meeting.paymentDate && (
                     <div className="payment-date">

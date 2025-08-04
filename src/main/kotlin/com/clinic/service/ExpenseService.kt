@@ -96,6 +96,28 @@ class ExpenseService {
         expenseRepository.save(deactivatedExpense)
     }
 
+    fun activateExpense(id: Long): ExpenseResponse {
+        val currentUser = authService.getCurrentUser()
+        val expense = expenseRepository.findById(id)
+            .filter { it.user.id == currentUser.id }
+            .orElseThrow { RuntimeException("Expense not found") }
+        
+        val activatedExpense = expense.copy(isActive = true)
+        val savedExpense = expenseRepository.save(activatedExpense)
+        return mapToResponse(savedExpense)
+    }
+
+    fun deactivateExpense(id: Long): ExpenseResponse {
+        val currentUser = authService.getCurrentUser()
+        val expense = expenseRepository.findById(id)
+            .filter { it.user.id == currentUser.id }
+            .orElseThrow { RuntimeException("Expense not found") }
+        
+        val deactivatedExpense = expense.copy(isActive = false)
+        val savedExpense = expenseRepository.save(deactivatedExpense)
+        return mapToResponse(savedExpense)
+    }
+
     fun getExpensesByCategory(category: String): List<ExpenseResponse> {
         val currentUser = authService.getCurrentUser()
         return expenseRepository.findByUserAndCategory(currentUser, category)

@@ -1,5 +1,6 @@
 package com.clinic.security
 
+import com.clinic.entity.User
 import io.jsonwebtoken.*
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
@@ -22,9 +23,10 @@ class JwtUtils {
     }
 
     fun generateJwtToken(authentication: Authentication): String {
-        val userPrincipal = authentication.principal as org.springframework.security.core.userdetails.UserDetails
+        val userPrincipal = authentication.principal as User
         return Jwts.builder()
             .setSubject(userPrincipal.username)
+            .claim("userId", userPrincipal.id)
             .setIssuedAt(Date())
             .setExpiration(Date(Date().time + jwtExpirationMs))
             .signWith(key, SignatureAlgorithm.HS256)
@@ -38,6 +40,15 @@ class JwtUtils {
             .parseSignedClaims(token)
             .payload
             .subject
+    }
+
+    fun getUserIdFromJwtToken(token: String): Long {
+        return Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+            .get("userId", Long::class.java)
     }
 
     fun validateJwtToken(authToken: String): Boolean {
