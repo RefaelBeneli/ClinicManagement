@@ -87,7 +87,7 @@ const Calendar: React.FC<CalendarProps> = ({
     notes: ''
   });
 
-  // Add ESC key functionality
+  // Add ESC key functionality for event details modal
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       console.log('ESC key pressed, showEventDetails:', showEventDetails);
@@ -106,6 +106,24 @@ const Calendar: React.FC<CalendarProps> = ({
       };
     }
   }, [showEventDetails]);
+
+  // Add ESC key functionality for main calendar
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      console.log('ESC key pressed for main calendar');
+      if (event.key === 'Escape') {
+        console.log('Closing main calendar with ESC key');
+        onClose();
+      }
+    };
+
+    console.log('Adding ESC key listener for main calendar');
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      console.log('Removing ESC key listener for main calendar');
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose]);
 
   // Calculate date ranges based on view mode
   const getDateRange = (): {
@@ -918,8 +936,8 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="calendar-overlay">
-      <div className="calendar-container">
+    <div className="calendar-overlay" onClick={onClose}>
+      <div className="calendar-container" onClick={(e) => e.stopPropagation()}>
         {renderHeader()}
         {renderQuickStats()}
         {viewMode === 'day' ? renderDailyListView() : (
