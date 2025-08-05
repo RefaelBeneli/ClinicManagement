@@ -73,10 +73,42 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   // Stats state
   const [stats, setStats] = useState<PersonalMeetingStats | null>(null);
 
+  const fetchPersonalMeetings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const meetingData = await personalMeetingsApi.getAll();
+      setPersonalMeetings(meetingData);
+      setError('');
+      
+      // Calculate stats after meetings are loaded
+      await fetchStats(meetingData);
+    } catch (error: any) {
+      console.error('Error fetching personal meetings:', error);
+      setError('Failed to load personal meetings');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchStats = useCallback(async (meetingData?: PersonalMeeting[]) => {
+    try {
+      const statsData = await personalMeetingsApi.getStats();
+      const meetingsToUse = meetingData || personalMeetings;
+      
+      setStats({
+        ...statsData,
+        totalPersonalSessions: meetingsToUse.length,
+        paidPersonalSessions: meetingsToUse.filter(m => m.isPaid).length
+      });
+    } catch (error) {
+      console.warn('Failed to fetch personal meeting stats:', error);
+    }
+  }, [personalMeetings]);
+
   useEffect(() => {
     fetchPersonalMeetings();
-    fetchStats();
-  }, []);
+    // fetchStats(); // This will be called after meetings are loaded
+  }, [fetchPersonalMeetings]);
 
   // Handle ESC key
   useEffect(() => {
@@ -92,30 +124,6 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       document.removeEventListener('keydown', handleEscape);
     };
   }, [onClose]);
-
-  const fetchPersonalMeetings = async () => {
-    try {
-      setLoading(true);
-      const meetingData = await personalMeetingsApi.getAll();
-      setPersonalMeetings(meetingData);
-      setError('');
-    } catch (error: any) {
-      console.error('Error fetching personal meetings:', error);
-      setError('Failed to load personal meetings');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const statsData = await personalMeetingsApi.getStats();
-      setStats(statsData);
-    } catch (error) {
-      console.warn('Failed to fetch personal meeting stats:', error);
-    }
-  };
-
 
 
   const filterAndSortMeetings = useCallback(() => {
@@ -175,15 +183,16 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       const updateData: UpdatePersonalMeetingRequest = { status: newStatus };
       await personalMeetingsApi.update(meetingId, updateData);
       
-      setPersonalMeetings(prevMeetings =>
-        prevMeetings.map(meeting =>
-          meeting.id === meetingId
-            ? { ...meeting, status: newStatus }
-            : meeting
-        )
+      const updatedMeetings = personalMeetings.map(meeting =>
+        meeting.id === meetingId
+          ? { ...meeting, status: newStatus }
+          : meeting
       );
       
-      await fetchStats();
+      setPersonalMeetings(updatedMeetings);
+      
+      // Recalculate stats with updated meeting data
+      await fetchStats(updatedMeetings);
     } catch (error: any) {
       console.error('Error updating meeting status:', error);
       setError('Failed to update meeting status');
@@ -194,13 +203,16 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     try {
       const updatedMeeting = await personalMeetingsApi.updatePayment(meetingId, !currentPaidStatus);
       
-      setPersonalMeetings(prevMeetings =>
-        prevMeetings.map(meeting =>
-          meeting.id === meetingId ? updatedMeeting : meeting
-        )
+      const updatedMeetings = personalMeetings.map(meeting =>
+        meeting.id === meetingId ? updatedMeeting : meeting
       );
       
-      await fetchStats();
+      setPersonalMeetings(updatedMeetings);
+      
+      // Recalculate stats with updated meeting data
+      await fetchStats(updatedMeetings);
+      
+      onRefresh?.();
     } catch (error: any) {
       console.error('Error updating payment status:', error);
       setError('Failed to update payment status');
@@ -326,10 +338,14 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     e.preventDefault();
     try {
       const newMeeting = await personalMeetingsApi.create(formData);
-      setPersonalMeetings(prev => [...prev, newMeeting]);
+      const updatedMeetings = [...personalMeetings, newMeeting];
+      setPersonalMeetings(updatedMeetings);
+      
+      // Recalculate stats with new meeting
+      await fetchStats(updatedMeetings);
+      
       setShowAddForm(false);
       resetForm();
-      await fetchStats();
       onRefresh?.();
     } catch (error: any) {
       console.error('Error creating personal meeting:', error);
@@ -363,19 +379,20 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   };
 
   const handleDeleteMeeting = async (meetingId: number) => {
-    if (window.confirm('Are you sure you want to delete this personal session? This action will deactivate the meeting.')) {
+    if (window.confirm('Are you sure you want to delete this personal meeting? This action cannot be undone.')) {
       try {
         await personalMeetingsApi.disable(meetingId);
-        console.log('✅ Personal meeting deleted successfully');
-        // Update the local state immediately for visual feedback
-        setPersonalMeetings(prev => prev.map(meeting => 
+        const updatedMeetings = personalMeetings.map(meeting => 
           meeting.id === meetingId ? { ...meeting, active: false } : meeting
-        ));
-        await fetchPersonalMeetings(); // Refresh the list
-        await fetchStats();
+        );
+        setPersonalMeetings(updatedMeetings);
+        
+        // Recalculate stats after deletion
+        await fetchStats(updatedMeetings);
+        
         onRefresh?.();
       } catch (error) {
-        console.error('❌ Failed to delete personal meeting:', error);
+        console.error('Failed to delete personal meeting:', error);
         setError('Failed to delete personal meeting');
       }
     }
@@ -384,16 +401,17 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const handleRestoreMeeting = async (meetingId: number) => {
     try {
       await personalMeetingsApi.activate(meetingId);
-      console.log('✅ Personal meeting restored successfully');
-      // Update the local state immediately for visual feedback
-      setPersonalMeetings(prev => prev.map(meeting => 
+      const updatedMeetings = personalMeetings.map(meeting => 
         meeting.id === meetingId ? { ...meeting, active: true } : meeting
-      ));
-      await fetchPersonalMeetings(); // Refresh the list
-      await fetchStats();
+      );
+      setPersonalMeetings(updatedMeetings);
+      
+      // Recalculate stats after restoration
+      await fetchStats(updatedMeetings);
+      
       onRefresh?.();
     } catch (error) {
-      console.error('❌ Failed to restore personal meeting:', error);
+      console.error('Failed to restore personal meeting:', error);
       setError('Failed to restore personal meeting');
     }
   };

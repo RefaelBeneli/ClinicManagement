@@ -5,8 +5,8 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "meeting_sources")
-data class MeetingSource(
+@Table(name = "client_sources")
+data class ClientSource(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,

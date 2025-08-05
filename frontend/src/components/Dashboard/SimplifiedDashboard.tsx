@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Client, 
+  Meeting, 
+  DashboardStats, 
+  ExpenseSummary, 
+  ClientSourceResponse,
+  ClientRequest
+} from '../../types';
 import { clients, meetings, expenses } from '../../services/api';
-import { Client, Meeting, DashboardStats, ExpenseSummary, MeetingSource, PaymentType } from '../../types';
 import DashboardLayout from './DashboardLayout';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
@@ -11,17 +18,19 @@ import ClientForm from './ClientForm';
 import MeetingForm from './MeetingForm';
 import './SimplifiedDashboard.css';
 
-const SimplifiedDashboard: React.FC = () => {
+interface SimplifiedDashboardProps {}
+
+const SimplifiedDashboard: React.FC<SimplifiedDashboardProps> = () => {
   // Core data state
   const [clientList, setClientList] = useState<Client[]>([]);
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [todayMeetings, setTodayMeetings] = useState<Meeting[]>([]);
-  const [sources, setSources] = useState<MeetingSource[]>([]);
+  const [sources, setSources] = useState<ClientSourceResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
   // Mock payment types - in a real app, this would come from an API
-  const paymentTypes: PaymentType[] = [
+  const paymentTypes = [
     { id: 1, name: 'Bank Transfer', isActive: true, createdAt: '', updatedAt: '' },
     { id: 2, name: 'Bit', isActive: true, createdAt: '', updatedAt: '' },
     { id: 3, name: 'Paybox', isActive: true, createdAt: '', updatedAt: '' },
@@ -307,7 +316,6 @@ const SimplifiedDashboard: React.FC = () => {
         >
           <MeetingForm
             clients={clientList}
-            sources={sources}
             paymentTypes={paymentTypes}
             onSubmit={async (data) => {
               try {

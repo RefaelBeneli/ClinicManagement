@@ -454,23 +454,9 @@ class ResourceOwnershipValidatorTest {
             id = id,
             client = createClient(1L, user),
             user = user ?: createUser(1L, Role.USER),
-            source = createMeetingSource(1L),
             meetingDate = LocalDateTime.now(),
             duration = 60,
             price = BigDecimal("100.00")
-        )
-    }
-
-    private fun createMeetingSource(id: Long): MeetingSource {
-        return MeetingSource(
-            id = id,
-            name = "Test Source",
-            duration = 60,
-            price = BigDecimal("100.00"),
-            noShowPrice = BigDecimal("50.00"),
-            isActive = true,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
         )
     }
 
@@ -480,7 +466,21 @@ class ResourceOwnershipValidatorTest {
             fullName = "Client $id",
             email = "client$id@example.com",
             phone = "1234567890",
-            user = user ?: createUser(1L, Role.USER)
+            user = user ?: createUser(1L, Role.USER),
+            source = createClientSource(1L)
+        )
+    }
+
+    private fun createClientSource(id: Long): ClientSource {
+        return ClientSource(
+            id = id,
+            name = "Test Source",
+            duration = 60,
+            price = BigDecimal("100.00"),
+            noShowPrice = BigDecimal("50.00"),
+            isActive = true,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
     }
 

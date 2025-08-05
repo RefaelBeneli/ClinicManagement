@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { MeetingRequest, Client, MeetingSource } from '../../types';
-import { clients as clientsApi, meetings as meetingsApi } from '../../services/api';
+import { Meeting, MeetingRequest, Client } from '../../types';
+import { meetings as meetingsApi, clients as clientsApi } from '../../services/api';
 import './Modal.css';
 
 interface AddSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSessionAdded: (session: Meeting) => void;
 }
 
-const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [meetingSources, setMeetingSources] = useState<MeetingSource[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSessionAdded }) => {
   const [formData, setFormData] = useState<MeetingRequest>({
     clientId: 0,
-    sourceId: 0,
     meetingDate: '',
     duration: 60,
     price: 0,
@@ -24,83 +19,29 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
     summary: ''
   });
 
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showDefaultsApplied, setShowDefaultsApplied] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       fetchClients();
-      fetchMeetingSources();
-      resetForm();
     }
   }, [isOpen]);
 
   const fetchClients = async () => {
     try {
       const clientsData = await clientsApi.getAll();
-      setClients(clientsData.filter(client => client.active));
+      setClients(clientsData);
     } catch (error) {
       console.error('Error fetching clients:', error);
-      setError('Failed to load clients');
     }
-  };
-
-  const fetchMeetingSources = async () => {
-    try {
-      const sourcesData = await meetingsApi.getActiveSources();
-      setMeetingSources(sourcesData);
-      
-      // Apply default values from the first source if available
-      if (sourcesData.length > 0) {
-        const defaultSource = sourcesData[0];
-        setFormData(prev => ({
-          ...prev,
-          sourceId: defaultSource.id,
-          duration: defaultSource.duration,
-          price: defaultSource.price
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching meeting sources:', error);
-      setError('Failed to load meeting sources');
-    }
-  };
-
-  const handleSourceChange = (sourceId: number) => {
-    const selectedSource = meetingSources.find(source => source.id === sourceId);
-    if (selectedSource) {
-      setFormData(prev => ({
-        ...prev,
-        sourceId: selectedSource.id,
-        duration: selectedSource.duration,
-        price: selectedSource.price
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        sourceId: sourceId
-      }));
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      clientId: 0,
-      sourceId: meetingSources.length > 0 ? meetingSources[0].id : 0,
-      meetingDate: '',
-      duration: 60,
-      price: 0,
-      notes: '',
-      summary: ''
-    });
-    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.sourceId === 0) {
-      setError('Please select a meeting source');
-      return;
-    }
-
     if (formData.clientId === 0) {
       setError('Please select a client');
       return;
@@ -120,10 +61,10 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
       setLoading(true);
       setError('');
       
-      await meetingsApi.create(formData);
+      const createdSession = await meetingsApi.create(formData);
       
       console.log('✅ Session created successfully');
-      onSuccess();
+      onSessionAdded(createdSession);
       onClose();
       resetForm();
     } catch (error: any) {
@@ -141,6 +82,19 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      clientId: 0,
+      meetingDate: '',
+      duration: 60,
+      price: 0,
+      notes: '',
+      summary: ''
+    });
+    setError('');
+    setShowDefaultsApplied(false);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -148,8 +102,31 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
     }).format(amount);
   };
 
-  const getSelectedSource = () => {
-    return meetingSources.find(source => source.id === formData.sourceId);
+  const handleClientChange = (clientId: number) => {
+    const selectedClient = clients.find(client => client.id === clientId);
+    
+    if (selectedClient && selectedClient.source) {
+      // Apply default values from client's source
+      setFormData(prev => ({
+        ...prev,
+        clientId: clientId,
+        price: selectedClient.source!.price,
+        duration: 60 // Default duration of 60 minutes
+      }));
+      
+      // Show message that defaults were applied
+      setShowDefaultsApplied(true);
+      setTimeout(() => setShowDefaultsApplied(false), 3000); // Hide after 3 seconds
+    } else {
+      // Reset to defaults if no client selected or no source
+      setFormData(prev => ({
+        ...prev,
+        clientId: clientId,
+        price: 0,
+        duration: 60
+      }));
+      setShowDefaultsApplied(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -181,36 +158,6 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
 
         <div className="modal-body enhanced-body">
           <form onSubmit={handleSubmit} className="session-form enhanced-form">
-            {/* Source Selection Section */}
-            <div className="form-section source-section">
-              <div className="form-group enhanced-group">
-                <label htmlFor="sourceId">Meeting Source *</label>
-                <select
-                  id="sourceId"
-                  required
-                  value={formData.sourceId}
-                  onChange={(e) => handleSourceChange(parseInt(e.target.value))}
-                  disabled={loading}
-                  className="form-select enhanced-select"
-                >
-                  <option value={0}>Select a meeting source</option>
-                  {meetingSources.map(source => (
-                    <option key={source.id} value={source.id}>
-                      {source.name} (${source.price}, {source.duration}min)
-                    </option>
-                  ))}
-                </select>
-                {getSelectedSource() && (
-                  <div className="source-preview">
-                    <span className="preview-label">Selected:</span>
-                    <span className="preview-value">
-                      {getSelectedSource()?.name} • {getSelectedSource()?.duration}min • {formatCurrency(getSelectedSource()?.price || 0)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Client and Schedule Section */}
             <div className="form-section schedule-section">
               <div className="section-header">
@@ -225,10 +172,7 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
                     id="clientId"
                     required
                     value={formData.clientId}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      clientId: parseInt(e.target.value) || 0 
-                    }))}
+                    onChange={(e) => handleClientChange(parseInt(e.target.value) || 0)}
                     disabled={loading}
                     className="form-select enhanced-select"
                   >
@@ -361,6 +305,22 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSu
                   className="error-close enhanced" 
                   onClick={() => setError('')}
                   aria-label="Close error"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {showDefaultsApplied && (
+              <div className="success-message enhanced">
+                <div className="success-icon">✅</div>
+                <div className="success-content">
+                  <strong>Defaults Applied:</strong> Price and duration set from client's source
+                </div>
+                <button 
+                  className="success-close enhanced" 
+                  onClick={() => setShowDefaultsApplied(false)}
+                  aria-label="Close message"
                 >
                   ×
                 </button>

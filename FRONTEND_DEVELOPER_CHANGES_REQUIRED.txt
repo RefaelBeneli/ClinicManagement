@@ -1,0 +1,536 @@
+# Frontend Developer Changes Required - MeetingSource → ClientSource
+
+## Overview
+The backend has been updated to move the `source` field from `Meeting` to `Client` entity. This means:
+- **Clients** now have a source (Private, Natal, Clalit) that determines their pricing
+- **Meetings** no longer have individual sources - they use the client's source
+- **API endpoints** have been updated accordingly
+
+## 1. API Endpoint Changes
+
+### Old Endpoints (Remove/Update)
+```typescript
+// OLD: /api/meeting-sources
+// OLD: MeetingSourceResponse
+// OLD: MeetingSourceRequest
+```
+
+### New Endpoints (Use These)
+```typescript
+// NEW: /api/client-sources
+// NEW: ClientSourceResponse
+// NEW: ClientSourceRequest
+```
+
+## 2. Type Definitions Updates
+
+### Client Types
+```typescript
+// OLD: No source in client creation
+interface ClientRequest {
+  fullName: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+}
+
+// NEW: Source required in client creation
+interface ClientRequest {
+  fullName: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  sourceId: number; // REQUIRED field
+}
+
+// OLD: No source in client response
+interface ClientResponse {
+  id: number;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
+// NEW: Source included in client response
+interface ClientResponse {
+  id: number;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  source: ClientSourceResponse; // NEW field
+  createdAt: string;
+  isActive: boolean;
+}
+
+// OLD: No source in client update
+interface UpdateClientRequest {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  isActive?: boolean;
+}
+
+// NEW: Optional source in client update
+interface UpdateClientRequest {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  sourceId?: number; // NEW optional field
+  isActive?: boolean;
+}
+```
+
+### Meeting Types
+```typescript
+// OLD: Source in meeting creation
+interface MeetingRequest {
+  clientId: number;
+  sourceId: number; // REMOVE this field
+  meetingDate: string;
+  duration?: number;
+  price?: number;
+  notes?: string;
+  summary?: string;
+}
+
+// NEW: No source in meeting creation
+interface MeetingRequest {
+  clientId: number;
+  meetingDate: string;
+  duration?: number;
+  price?: number;
+  notes?: string;
+  summary?: string;
+}
+
+// OLD: Direct source in meeting response
+interface MeetingResponse {
+  id: number;
+  client: ClientResponse;
+  source: MeetingSourceResponse; // REMOVE this field
+  meetingDate: string;
+  duration: number;
+  price: number;
+  isPaid: boolean;
+  paymentDate?: string;
+  paymentType?: PaymentTypeResponse;
+  notes?: string;
+  summary?: string;
+  status: MeetingStatus;
+  createdAt: string;
+  isActive: boolean;
+}
+
+// NEW: Source comes from client
+interface MeetingResponse {
+  id: number;
+  client: ClientResponse; // Now includes source field
+  meetingDate: string;
+  duration: number;
+  price: number;
+  isPaid: boolean;
+  paymentDate?: string;
+  paymentType?: PaymentTypeResponse;
+  notes?: string;
+  summary?: string;
+  status: MeetingStatus;
+  createdAt: string;
+  isActive: boolean;
+}
+
+// OLD: Source in meeting update
+interface UpdateMeetingRequest {
+  clientId?: number;
+  sourceId?: number; // REMOVE this field
+  meetingDate?: string;
+  duration?: number;
+  price?: number;
+  isPaid?: boolean;
+  paymentDate?: string;
+  paymentTypeId?: number;
+  notes?: string;
+  summary?: string;
+  status?: MeetingStatus;
+}
+
+// NEW: No source in meeting update
+interface UpdateMeetingRequest {
+  clientId?: number;
+  meetingDate?: string;
+  duration?: number;
+  price?: number;
+  isPaid?: boolean;
+  paymentDate?: string;
+  paymentTypeId?: number;
+  notes?: string;
+  summary?: string;
+  status?: MeetingStatus;
+}
+```
+
+### Source Types (Renamed)
+```typescript
+// OLD: MeetingSourceResponse
+// NEW: ClientSourceResponse
+interface ClientSourceResponse {
+  id: number;
+  name: string;
+  duration: number;
+  price: number;
+  noShowPrice: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+## 3. API Service Updates
+
+### Client API Service
+```typescript
+// OLD: No source in client creation
+const createClient = async (clientData: ClientRequest) => {
+  const response = await api.post('/clients', {
+    fullName: clientData.fullName,
+    email: clientData.email,
+    phone: clientData.phone,
+    notes: clientData.notes
+  });
+  return response.data;
+};
+
+// NEW: Include sourceId in client creation
+const createClient = async (clientData: ClientRequest) => {
+  const response = await api.post('/clients', {
+    fullName: clientData.fullName,
+    email: clientData.email,
+    phone: clientData.phone,
+    notes: clientData.notes,
+    sourceId: clientData.sourceId // NEW required field
+  });
+  return response.data;
+};
+
+// OLD: No source in client update
+const updateClient = async (id: number, clientData: UpdateClientRequest) => {
+  const response = await api.put(`/clients/${id}`, {
+    fullName: clientData.fullName,
+    email: clientData.email,
+    phone: clientData.phone,
+    notes: clientData.notes,
+    isActive: clientData.isActive
+  });
+  return response.data;
+};
+
+// NEW: Optional source in client update
+const updateClient = async (id: number, clientData: UpdateClientRequest) => {
+  const response = await api.put(`/clients/${id}`, {
+    fullName: clientData.fullName,
+    email: clientData.email,
+    phone: clientData.phone,
+    notes: clientData.notes,
+    sourceId: clientData.sourceId, // NEW optional field
+    isActive: clientData.isActive
+  });
+  return response.data;
+};
+```
+
+### Meeting API Service
+```typescript
+// OLD: Include sourceId in meeting creation
+const createMeeting = async (meetingData: MeetingRequest) => {
+  const response = await api.post('/meetings', {
+    clientId: meetingData.clientId,
+    sourceId: meetingData.sourceId, // REMOVE this
+    meetingDate: meetingData.meetingDate,
+    duration: meetingData.duration,
+    price: meetingData.price,
+    notes: meetingData.notes,
+    summary: meetingData.summary
+  });
+  return response.data;
+};
+
+// NEW: No sourceId in meeting creation
+const createMeeting = async (meetingData: MeetingRequest) => {
+  const response = await api.post('/meetings', {
+    clientId: meetingData.clientId,
+    meetingDate: meetingData.meetingDate,
+    duration: meetingData.duration,
+    price: meetingData.price,
+    notes: meetingData.notes,
+    summary: meetingData.summary
+  });
+  return response.data;
+};
+
+// OLD: Include sourceId in meeting update
+const updateMeeting = async (id: number, meetingData: UpdateMeetingRequest) => {
+  const response = await api.put(`/meetings/${id}`, {
+    clientId: meetingData.clientId,
+    sourceId: meetingData.sourceId, // REMOVE this
+    meetingDate: meetingData.meetingDate,
+    duration: meetingData.duration,
+    price: meetingData.price,
+    isPaid: meetingData.isPaid,
+    paymentDate: meetingData.paymentDate,
+    paymentTypeId: meetingData.paymentTypeId,
+    notes: meetingData.notes,
+    summary: meetingData.summary,
+    status: meetingData.status
+  });
+  return response.data;
+};
+
+// NEW: No sourceId in meeting update
+const updateMeeting = async (id: number, meetingData: UpdateMeetingRequest) => {
+  const response = await api.put(`/meetings/${id}`, {
+    clientId: meetingData.clientId,
+    meetingDate: meetingData.meetingDate,
+    duration: meetingData.duration,
+    price: meetingData.price,
+    isPaid: meetingData.isPaid,
+    paymentDate: meetingData.paymentDate,
+    paymentTypeId: meetingData.paymentTypeId,
+    notes: meetingData.notes,
+    summary: meetingData.summary,
+    status: meetingData.status
+  });
+  return response.data;
+};
+```
+
+### Source API Service (Renamed)
+```typescript
+// OLD: MeetingSourceService
+// NEW: ClientSourceService
+
+// OLD: /api/meeting-sources
+// NEW: /api/client-sources
+
+const getClientSources = async () => {
+  const response = await api.get('/client-sources');
+  return response.data;
+};
+
+const getActiveClientSources = async () => {
+  const response = await api.get('/client-sources/active');
+  return response.data;
+};
+```
+
+## 4. Component Updates
+
+### Client Form Components
+```typescript
+// OLD: No source selector
+const ClientForm = () => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    notes: ''
+  });
+
+  // NEW: Add source selector
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    notes: '',
+    sourceId: 0 // NEW required field
+  });
+
+  // Add source options
+  const [sources, setSources] = useState<ClientSourceResponse[]>([]);
+
+  useEffect(() => {
+    // Load client sources
+    const loadSources = async () => {
+      const sourcesData = await getActiveClientSources();
+      setSources(sourcesData);
+    };
+    loadSources();
+  }, []);
+
+  return (
+    <form>
+      {/* Existing fields */}
+      <input
+        type="text"
+        value={formData.fullName}
+        onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+        placeholder="Full Name"
+      />
+      
+      {/* NEW: Source selector */}
+      <select
+        value={formData.sourceId}
+        onChange={(e) => setFormData({...formData, sourceId: Number(e.target.value)})}
+        required
+      >
+        <option value={0}>Select Source</option>
+        {sources.map(source => (
+          <option key={source.id} value={source.id}>
+            {source.name} - ₪{source.price}
+          </option>
+        ))}
+      </select>
+    </form>
+  );
+};
+```
+
+### Meeting Form Components
+```typescript
+// OLD: Include source selector
+const MeetingForm = () => {
+  const [formData, setFormData] = useState({
+    clientId: 0,
+    sourceId: 0, // REMOVE this
+    meetingDate: '',
+    duration: 60,
+    price: 0,
+    notes: '',
+    summary: ''
+  });
+
+  // NEW: No source selector
+  const [formData, setFormData] = useState({
+    clientId: 0,
+    meetingDate: '',
+    duration: 60,
+    price: 0,
+    notes: '',
+    summary: ''
+  });
+
+  return (
+    <form>
+      {/* Client selector */}
+      <select
+        value={formData.clientId}
+        onChange={(e) => setFormData({...formData, clientId: Number(e.target.value)})}
+      >
+        <option value={0}>Select Client</option>
+        {clients.map(client => (
+          <option key={client.id} value={client.id}>
+            {client.fullName} ({client.source.name})
+          </option>
+        ))}
+      </select>
+
+      {/* REMOVE: Source selector - no longer needed */}
+      
+      {/* Other fields remain the same */}
+    </form>
+  );
+};
+```
+
+### Display Components
+```typescript
+// OLD: Show source separately
+const MeetingCard = ({ meeting }: { meeting: MeetingResponse }) => {
+  return (
+    <div>
+      <h3>{meeting.client.fullName}</h3>
+      <p>Source: {meeting.source.name}</p> {/* REMOVE this */}
+      <p>Price: ₪{meeting.price}</p>
+      {/* ... */}
+    </div>
+  );
+};
+
+// NEW: Show source from client
+const MeetingCard = ({ meeting }: { meeting: MeetingResponse }) => {
+  return (
+    <div>
+      <h3>{meeting.client.fullName}</h3>
+      <p>Source: {meeting.client.source.name}</p> {/* NEW: from client */}
+      <p>Price: ₪{meeting.price}</p>
+      {/* ... */}
+    </div>
+  );
+};
+```
+
+## 5. Data Flow Changes
+
+### Client Creation Flow
+1. **Select source** (REQUIRED - determines pricing)
+2. **Fill client details** (name, email, phone, notes)
+3. **Submit** (backend creates client with source)
+
+### Meeting Creation Flow
+1. **Select client** (source comes from client)
+2. **Fill meeting details** (no source selection needed)
+3. **Submit** (backend uses client's source for defaults)
+
+### Pricing Logic
+- **OLD**: Used selected source for price/duration defaults
+- **NEW**: Uses client's source for price/duration defaults
+
+## 6. Migration Considerations
+
+### Existing Data
+- Backend migration preserves source information
+- Existing clients get their most common meeting source
+- Clients without meetings get 'Private' as default
+
+### User Experience
+- **Existing clients**: Source is preserved and displayed
+- **New clients**: Must select source during creation
+- **Existing meetings**: Continue to work with client's source
+
+## 7. Testing Checklist
+
+### Frontend Testing
+- [ ] Client creation with source selection
+- [ ] Client editing with source change
+- [ ] Meeting creation without source selection
+- [ ] Meeting editing (source comes from client)
+- [ ] Display source in client lists/details
+- [ ] Display source in meeting lists/details
+- [ ] Default pricing from client's source
+- [ ] No-show pricing from client's source
+
+### API Testing
+- [ ] Client creation API with sourceId
+- [ ] Client update API with sourceId
+- [ ] Meeting creation API without sourceId
+- [ ] Meeting update API without sourceId
+- [ ] Response formats include source in client data
+
+## 8. Breaking Changes Summary
+
+### Removed
+- `sourceId` field from `MeetingRequest`
+- `sourceId` field from `UpdateMeetingRequest`
+- `source` field from `MeetingResponse`
+- `/api/meeting-sources` endpoints
+- `MeetingSourceResponse` type
+- Source selector in meeting forms
+
+### Added
+- `sourceId` field to `ClientRequest` (required)
+- `sourceId` field to `UpdateClientRequest` (optional)
+- `source` field to `ClientResponse`
+- `/api/client-sources` endpoints
+- `ClientSourceResponse` type
+- Source selector in client forms
+
+### Changed
+- Source display now comes from client instead of meeting
+- Pricing logic uses client's source instead of meeting's source
+- API endpoints renamed from `meeting-sources` to `client-sources`
+
+This architectural change improves the data model by making the source a client-level attribute rather than a meeting-level attribute, which is more logical since a client typically uses the same source (Private, Natal, Clalit) for all their sessions. 

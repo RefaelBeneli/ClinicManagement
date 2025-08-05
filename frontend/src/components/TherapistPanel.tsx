@@ -9,7 +9,17 @@ import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
 import AnalyticsPanel from './AnalyticsPanel';
 import { clients, meetings, personalMeetings, expenses, paymentTypes as paymentTypesApi } from '../services/api';
-import { Client, Meeting, PersonalMeeting, Expense, MeetingStatus, PersonalMeetingStatus, PersonalMeetingType, MeetingSource, PaymentType } from '../types';
+import { 
+  Client, 
+  Meeting, 
+  PersonalMeeting, 
+  Expense, 
+  MeetingStatus, 
+  PersonalMeetingStatus, 
+  PersonalMeetingType, 
+  ClientSourceResponse, 
+  PaymentType 
+} from '../types';
 import ViewClientModal from './ui/ViewClientModal';
 import ViewMeetingModal from './ui/ViewMeetingModal';
 import ViewPersonalMeetingModal from './ui/ViewPersonalMeetingModal';
@@ -30,7 +40,7 @@ const TherapistPanel: React.FC = () => {
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [personalMeetingList, setPersonalMeetingList] = useState<PersonalMeeting[]>([]);
   const [expenseList, setExpenseList] = useState<Expense[]>([]);
-  const [meetingSources, setMeetingSources] = useState<MeetingSource[]>([]);
+  const [meetingSources, setMeetingSources] = useState<ClientSourceResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'meetings' | 'personal-meetings' | 'expenses' | 'analytics' | 'calendar'>('dashboard');
   const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
@@ -667,7 +677,7 @@ const TherapistPanel: React.FC = () => {
   };
 
   const handleAddExpense = () => {
-    setShowExpensePanel(true);
+    setAddExpenseModal(true);
   };
 
   const closeAddModals = () => {
@@ -677,6 +687,7 @@ const TherapistPanel: React.FC = () => {
     setShowExpensePanel(false);
     setShowAddSessionModal(false);
     setShowAddPersonalMeetingModal(false);
+    setAddExpenseModal(false);
   };
 
   // Delete handlers (soft delete)
@@ -858,25 +869,13 @@ const TherapistPanel: React.FC = () => {
 
   const handleMeetingPriceUpdate = async (meetingId: number, price: number) => {
     try {
-      console.log('🔄 Updating meeting price:', { meetingId, price });
-      await meetings.update(meetingId, { price });
-      console.log('✅ Meeting price updated successfully');
+      const updatedMeeting = await meetings.update(meetingId, { price });
+      setMeetingList(prev =>
+        prev.map(meeting => meeting.id === meetingId ? updatedMeeting : meeting)
+      );
       await fetchMeetings();
     } catch (error) {
-      console.error('❌ Failed to update meeting price:', error);
-      alert('Failed to update price. Please try again.');
-    }
-  };
-
-  const handleMeetingSourceUpdate = async (meetingId: number, sourceId: number) => {
-    try {
-      console.log('🔄 Updating meeting source:', { meetingId, sourceId });
-      await meetings.update(meetingId, { sourceId });
-      console.log('✅ Meeting source updated successfully');
-      await fetchMeetings();
-    } catch (error) {
-      console.error('❌ Failed to update meeting source:', error);
-      alert('Failed to update source. Please try again.');
+      console.error('Failed to update meeting price:', error);
     }
   };
 
@@ -1398,16 +1397,7 @@ const TherapistPanel: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <select
-                          value={meeting.source?.id || ''}
-                          onChange={(e) => handleMeetingSourceUpdate(meeting.id, parseInt(e.target.value) || 0)}
-                          className="inline-select"
-                          disabled={meeting.active === false}
-                        >
-                          {meetingSources.map(source => (
-                            <option key={source.id} value={source.id}>{source.name}</option>
-                          ))}
-                        </select>
+                        <span>Source: {meeting.client?.source?.name || 'No source'}</span>
                       </td>
                       <td>
                         <button 
@@ -1934,7 +1924,6 @@ const TherapistPanel: React.FC = () => {
         meeting={viewMeetingModal.meeting}
         isOpen={viewMeetingModal.isOpen}
         onClose={closeViewModals}
-        onRefresh={handleRefreshData}
       />
 
       <ViewPersonalMeetingModal
@@ -1988,7 +1977,7 @@ const TherapistPanel: React.FC = () => {
       <AddSessionModal
         isOpen={showAddSessionModal}
         onClose={closeAddModals}
-        onSuccess={handleRefreshData}
+        onSessionAdded={handleRefreshData}
       />
 
       <AddPersonalMeetingModal
@@ -1997,45 +1986,52 @@ const TherapistPanel: React.FC = () => {
         onSuccess={handleRefreshData}
       />
 
-             {/* Payment Type Selection Modal */}
-       {showPaymentTypeModal && sessionToPay && (
-         <div className="modal-overlay">
-           <div className="modal-content">
-             <div className="modal-header">
-               <h3>Select Payment Type</h3>
-               <button className="modal-close-button" onClick={handleCancelPaymentType}>×</button>
-             </div>
-             <div className="modal-body">
-               <p>Select payment type for <strong>{sessionToPay.client?.fullName}</strong>:</p>
-               <div className="payment-type-selection">
-                 <select
-                   className="payment-type-select"
-                   value={selectedPaymentType?.id || ''}
-                   onChange={(e) => {
-                     const type = paymentTypes.find(t => t.id === parseInt(e.target.value));
-                     setSelectedPaymentType(type || null);
-                   }}
-                 >
-                   <option value="">Select a payment type...</option>
-                   {paymentTypes.map(type => (
-                     <option key={type.id} value={type.id}>{type.name}</option>
-                   ))}
-                 </select>
-               </div>
-             </div>
-             <div className="modal-actions">
-               <button className="btn-secondary" onClick={handleCancelPaymentType}>Cancel</button>
-               <button 
-                 className="btn-primary" 
-                 onClick={handleConfirmPaymentType}
-                 disabled={!selectedPaymentType}
-               >
-                 Mark as Paid
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+      <EditExpenseModal
+        expense={null}
+        isOpen={addExpenseModal}
+        onClose={closeAddModals}
+        onSuccess={handleRefreshData}
+      />
+
+      {/* Payment Type Selection Modal */}
+      {showPaymentTypeModal && sessionToPay && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Select Payment Type</h3>
+              <button className="modal-close-button" onClick={handleCancelPaymentType}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>Select payment type for <strong>{sessionToPay.client?.fullName}</strong>:</p>
+              <div className="payment-type-selection">
+                <select
+                  className="payment-type-select"
+                  value={selectedPaymentType?.id || ''}
+                  onChange={(e) => {
+                    const type = paymentTypes.find(t => t.id === parseInt(e.target.value));
+                    setSelectedPaymentType(type || null);
+                  }}
+                >
+                  <option value="">Select a payment type...</option>
+                  {paymentTypes.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={handleCancelPaymentType}>Cancel</button>
+              <button 
+                className="btn-primary" 
+                onClick={handleConfirmPaymentType}
+                disabled={!selectedPaymentType}
+              >
+                Mark as Paid
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

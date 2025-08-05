@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Meeting, MeetingStatus, MeetingRequest, UpdateMeetingRequest, Client, MeetingSource, PaymentType } from '../types';
+import { 
+  Meeting, 
+  MeetingRequest, 
+  UpdateMeetingRequest,
+  Client, 
+  PaymentType, 
+  MeetingStatus 
+} from '../types';
 import { meetings as meetingsApi, clients as clientsApi, paymentTypes as paymentTypesApi } from '../services/api';
 import './SessionPanel.css';
 
@@ -19,23 +26,19 @@ interface SessionStats {
 const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   const [sessions, setSessions] = useState<Meeting[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<Meeting[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [meetingSources, setMeetingSources] = useState<MeetingSource[]>([]);
-  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<MeetingStatus | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | MeetingStatus>('ALL');
   const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
   const [sortBy, setSortBy] = useState<'date' | 'client' | 'status' | 'price'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
-  // Form states for adding new sessions
+  // Form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSession, setEditingSession] = useState<Meeting | null>(null);
   const [formData, setFormData] = useState<MeetingRequest>({
     clientId: 0,
-    sourceId: 1, // Default to first source (Private)
     meetingDate: '',
     duration: 60,
     price: 0,
@@ -43,21 +46,74 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     summary: ''
   });
 
+  // Data states
+  const [clients, setClients] = useState<Client[]>([]);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
+  const [stats, setStats] = useState<SessionStats | null>(null);
+
   // Payment type selection state
   const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
   const [sessionToPay, setSessionToPay] = useState<Meeting | null>(null);
   const [selectedPaymentTypeId, setSelectedPaymentTypeId] = useState<number>(0);
 
-  // Stats state
-  const [stats, setStats] = useState<SessionStats | null>(null);
+  const fetchSessions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const sessionData = await meetingsApi.getAll();
+      setSessions(sessionData);
+      setError('');
+      
+      // Calculate stats after sessions are loaded
+      await fetchStats(sessionData);
+    } catch (error: any) {
+      console.error('Error fetching sessions:', error);
+      setError('Failed to load sessions');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const clientData = await clientsApi.getAll();
+      setClients(clientData);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    }
+  }, []);
+
+  const fetchPaymentTypes = useCallback(async () => {
+    try {
+      const paymentTypeData = await paymentTypesApi.getAll();
+      setPaymentTypes(paymentTypeData);
+    } catch (error) {
+      console.error('Error fetching payment types:', error);
+    }
+  }, []);
+
+  const fetchStats = useCallback(async (sessionData?: Meeting[]) => {
+    try {
+      const statsData = await meetingsApi.getDashboardStats();
+      const sessionsToUse = sessionData || sessions;
+      
+      setStats({
+        sessionsToday: statsData.meetingsToday,
+        unpaidSessions: statsData.unpaidSessions,
+        monthlyRevenue: statsData.monthlyRevenue,
+        totalSessions: sessionsToUse.length,
+        paidSessions: sessionsToUse.filter(s => s.isPaid).length
+      });
+    } catch (error) {
+      console.warn('Failed to fetch session stats:', error);
+    }
+  }, [sessions]);
 
   useEffect(() => {
     fetchSessions();
     fetchClients();
-    fetchMeetingSources();
     fetchPaymentTypes();
-    fetchStats();
-  }, []);
+    // fetchStats(); // This will be called after sessions are fetched
+  }, [fetchSessions, fetchClients, fetchPaymentTypes]);
 
   // Debug modal state
   useEffect(() => {
@@ -82,75 +138,6 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [onClose]);
-
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      const sessionData = await meetingsApi.getAll();
-      setSessions(sessionData);
-      setError('');
-    } catch (error: any) {
-      console.error('Error fetching sessions:', error);
-      setError('Failed to load sessions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchClients = async () => {
-    try {
-      const clientsData = await clientsApi.getAll();
-      setClients(clientsData);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-    }
-  };
-
-  const fetchMeetingSources = async () => {
-    try {
-      const sourcesData = await meetingsApi.getActiveSources();
-      setMeetingSources(sourcesData);
-      
-      // Apply default values from the first source if available
-      if (sourcesData.length > 0 && !editingSession) {
-        const defaultSource = sourcesData[0];
-        setFormData(prev => ({
-          ...prev,
-          sourceId: defaultSource.id,
-          duration: defaultSource.duration,
-          price: defaultSource.price
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching meeting sources:', error);
-    }
-  };
-
-  const fetchPaymentTypes = async () => {
-    try {
-      console.log('🔍 Fetching payment types...');
-      const paymentTypesData = await paymentTypesApi.getActive();
-      console.log('✅ Payment types fetched:', paymentTypesData);
-      setPaymentTypes(paymentTypesData);
-    } catch (error) {
-      console.error('❌ Error fetching payment types:', error);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const statsData = await meetingsApi.getDashboardStats();
-      setStats({
-        sessionsToday: statsData.meetingsToday,
-        unpaidSessions: statsData.unpaidSessions,
-        monthlyRevenue: statsData.monthlyRevenue,
-        totalSessions: sessions.length,
-        paidSessions: sessions.filter(s => s.isPaid).length
-      });
-    } catch (error) {
-      console.warn('Failed to fetch session stats:', error);
-    }
-  };
 
   const filterAndSortSessions = useCallback(() => {
     let filtered = [...sessions];
@@ -210,15 +197,16 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
       const updateData: UpdateMeetingRequest = { status: newStatus };
       await meetingsApi.update(sessionId, updateData);
       
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId
-            ? { ...session, status: newStatus }
-            : session
-        )
+      const updatedSessions = sessions.map(session =>
+        session.id === sessionId
+          ? { ...session, status: newStatus }
+          : session
       );
       
-      await fetchStats();
+      setSessions(updatedSessions);
+      
+      // Recalculate stats with updated session data
+      await fetchStats(updatedSessions);
     } catch (error: any) {
       console.error('Error updating session status:', error);
       setError('Failed to update session status');
@@ -237,25 +225,32 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
         setSessionToPay(session);
         setSelectedPaymentTypeId(0);
         setShowPaymentTypeModal(true);
-      } else {
-        console.error('❌ Session not found for ID:', sessionId);
       }
     } else {
-      // Marking as unpaid - directly update
-      console.log('❌ Marking as unpaid');
+      // Marking as unpaid
       try {
-        const updatedSession = await meetingsApi.updatePayment(sessionId, false);
+        const updateData: UpdateMeetingRequest = { 
+          isPaid: false,
+          paymentDate: undefined,
+          paymentTypeId: undefined
+        };
+        await meetingsApi.update(sessionId, updateData);
         
-        setSessions(prevSessions =>
-          prevSessions.map(session =>
-            session.id === sessionId ? updatedSession : session
-          )
+        const updatedSessions = sessions.map(session =>
+          session.id === sessionId
+            ? { ...session, isPaid: false, paymentDate: undefined, paymentType: undefined }
+            : session
         );
         
-        await fetchStats();
+        setSessions(updatedSessions);
+        
+        // Recalculate stats with updated session data
+        await fetchStats(updatedSessions);
+        
+        onRefresh?.();
       } catch (error: any) {
-        console.error('Error updating payment status:', error);
-        setError('Failed to update payment status');
+        console.error('Error updating session payment status:', error);
+        setError('Failed to update session payment status');
       }
     }
   };
@@ -368,32 +363,18 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
-  const handleSourceUpdate = async (sessionId: number, sourceId: number) => {
-    try {
-      const updatedSession = await meetingsApi.update(sessionId, { sourceId });
-      
-      // Update the session locally instead of fetching all sessions
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId ? updatedSession : session
-        )
-      );
-      
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating source:', error);
-      setError('Failed to update source');
-    }
-  };
-
   const handleAddSession = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const newSession = await meetingsApi.create(formData);
-      setSessions(prev => [...prev, newSession]);
+      const updatedSessions = [...sessions, newSession];
+      setSessions(updatedSessions);
+      
+      // Recalculate stats with new session
+      await fetchStats(updatedSessions);
+      
       setShowAddForm(false);
       resetForm();
-      await fetchStats();
       onRefresh?.();
     } catch (error: any) {
       console.error('Error creating session:', error);
@@ -420,18 +401,20 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   };
 
   const handleDeleteSession = async (sessionId: number) => {
-    if (window.confirm('Are you sure you want to delete this session? This action will deactivate the session.')) {
+    if (window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
       try {
         await meetingsApi.disable(sessionId);
-        console.log('✅ Session deleted successfully');
-        setSessions(prev => prev.map(session => 
+        const updatedSessions = sessions.map(session => 
           session.id === sessionId ? { ...session, active: false } : session
-        ));
-        await fetchSessions();
-        await fetchStats();
+        );
+        setSessions(updatedSessions);
+        
+        // Recalculate stats after deletion
+        await fetchStats(updatedSessions);
+        
         onRefresh?.();
       } catch (error) {
-        console.error('❌ Failed to delete session:', error);
+        console.error('Failed to delete session:', error);
         setError('Failed to delete session');
       }
     }
@@ -440,15 +423,17 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   const handleRestoreSession = async (sessionId: number) => {
     try {
       await meetingsApi.activate(sessionId);
-      console.log('✅ Session restored successfully');
-      setSessions(prev => prev.map(session => 
+      const updatedSessions = sessions.map(session => 
         session.id === sessionId ? { ...session, active: true } : session
-      ));
-      await fetchSessions();
-      await fetchStats();
+      );
+      setSessions(updatedSessions);
+      
+      // Recalculate stats after restoration
+      await fetchStats(updatedSessions);
+      
       onRefresh?.();
     } catch (error) {
-      console.error('❌ Failed to restore session:', error);
+      console.error('Failed to restore session:', error);
       setError('Failed to restore session');
     }
   };
@@ -456,7 +441,6 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   const resetForm = () => {
     setFormData({
       clientId: 0,
-      sourceId: meetingSources.length > 0 ? meetingSources[0].id : 0,
       meetingDate: '',
       duration: 60,
       price: 0,
@@ -469,7 +453,6 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     setEditingSession(session);
     setFormData({
       clientId: session.client?.id || 0,
-      sourceId: session.source?.id || (meetingSources.length > 0 ? meetingSources[0].id : 0),
       meetingDate: session.meetingDate.split('T')[0] + 'T' + session.meetingDate.split('T')[1]?.substring(0, 5) || '',
       duration: session.duration,
       price: session.price,
@@ -506,32 +489,10 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
 
   const getStatusColor = (status: MeetingStatus) => {
     switch (status) {
-      case MeetingStatus.SCHEDULED: return '#3498db';
-      case MeetingStatus.COMPLETED: return '#2ecc71';
-      case MeetingStatus.CANCELLED: return '#e74c3c';
-      case MeetingStatus.NO_SHOW: return '#f39c12';
-      default: return '#95a5a6';
-    }
-  };
-
-  const getSourceName = (meeting: Meeting) => {
-    return meeting.source?.name || 'Unknown Source';
-  };
-
-  const handleSourceChange = (sourceId: number) => {
-    const selectedSource = meetingSources.find(source => source.id === sourceId);
-    if (selectedSource) {
-      setFormData(prev => ({
-        ...prev,
-        sourceId: selectedSource.id,
-        duration: selectedSource.duration,
-        price: selectedSource.price
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        sourceId: sourceId
-      }));
+      case 'COMPLETED': return '#28a745';
+      case 'CANCELLED': return '#dc3545';
+      case 'NO_SHOW': return '#ffc107';
+      default: return '#007bff';
     }
   };
 
@@ -554,13 +515,14 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
       const updatedSession = await meetingsApi.update(sessionToPay.id, updateData);
       console.log('✅ Session updated successfully:', updatedSession);
       
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionToPay.id ? updatedSession : session
-        )
+      const updatedSessions = sessions.map(session =>
+        session.id === sessionToPay.id ? updatedSession : session
       );
       
-      await fetchStats();
+      setSessions(updatedSessions);
+      
+      // Recalculate stats with updated session data
+      await fetchStats(updatedSessions);
       
       // Close modal and reset state
       setShowPaymentTypeModal(false);
@@ -688,22 +650,6 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
               <h3>{editingSession ? 'Edit Session' : 'Add New Session'}</h3>
               
               <div className="form-row">
-                <div className="form-group">
-                  <label>Meeting Source *</label>
-                  <select
-                    required
-                    value={formData.sourceId}
-                    onChange={(e) => handleSourceChange(parseInt(e.target.value))}
-                  >
-                    <option value={0}>Select a meeting source</option>
-                    {meetingSources.map(source => (
-                      <option key={source.id} value={source.id}>
-                        {source.name} (${source.price}, {source.duration}min)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
                 <div className="form-group">
                   <label>Client *</label>
                   <select
@@ -846,20 +792,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                         ))}
                       </select>
                       <div className="session-meta">
-                        <span>Source: 
-                          <select
-                            value={session.source?.id || 0}
-                            onChange={(e) => handleSourceUpdate(session.id, parseInt(e.target.value))}
-                            className="inline-select"
-                            disabled={session.active === false}
-                          >
-                            {meetingSources.map(source => (
-                              <option key={source.id} value={source.id}>
-                                {source.name}
-                              </option>
-                            ))}
-                          </select>
-                        </span>
+                        <span>Source: {session.client?.source?.name || 'No source'}</span>
                       </div>
                     </div>
                     <div className="session-actions">

@@ -82,6 +82,7 @@ export interface Client {
   email?: string;
   phone?: string;
   notes?: string;
+  source?: ClientSourceResponse; // NEW: Client source information
   createdAt: string;
   active: boolean;
 }
@@ -91,6 +92,7 @@ export interface ClientRequest {
   email?: string;
   phone?: string;
   notes?: string;
+  sourceId: number; // NEW: Required source ID
 }
 
 export interface PaymentType {
@@ -110,6 +112,29 @@ export interface MeetingSource {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// NEW: ClientSourceResponse interface
+export interface ClientSourceResponse {
+  id: number;
+  name: string;
+  price: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// NEW: ClientSourceRequest interface
+export interface ClientSourceRequest {
+  name: string;
+  price: number;
+}
+
+// NEW: UpdateClientSourceRequest interface
+export interface UpdateClientSourceRequest {
+  name?: string;
+  price?: number;
+  isActive?: boolean;
 }
 
 export interface PersonalMeetingTypeEntity {
@@ -158,7 +183,6 @@ export interface Meeting {
 
 export interface MeetingRequest {
   clientId: number;
-  sourceId: number;
   meetingDate: string;
   duration?: number;
   price?: number;
@@ -168,7 +192,6 @@ export interface MeetingRequest {
 
 export interface UpdateMeetingRequest {
   clientId?: number;
-  sourceId?: number;
   meetingDate?: string;
   duration?: number;
   price?: number;

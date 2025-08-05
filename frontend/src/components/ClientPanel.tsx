@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Client, ClientRequest } from '../types';
-import { clients as clientsApi } from '../services/api';
+import { Client, ClientRequest, ClientSourceResponse } from '../types';
+import { clients as clientsApi, clientSources } from '../services/api';
 import './ClientPanel.css';
 
 interface ClientPanelProps {
@@ -32,16 +32,73 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
     fullName: '',
     email: '',
     phone: '',
-    notes: ''
+    notes: '',
+    sourceId: 0 // NEW: Required source ID
   });
+
+  // Source state
+  const [sources, setSources] = useState<ClientSourceResponse[]>([]);
 
   // Stats state
   const [stats, setStats] = useState<ClientStats | null>(null);
 
+  const fetchClients = useCallback(async () => {
+    try {
+      setLoading(true);
+      const clientData = await clientsApi.getAll();
+      setClients(clientData);
+      setError('');
+      
+      // Calculate stats after clients are loaded
+      await fetchStats(clientData);
+    } catch (error: any) {
+      console.error('Error fetching clients:', error);
+      setError('Failed to load clients');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchStats = useCallback(async (clientData?: Client[]) => {
+    try {
+      const now = new Date();
+      const thisMonth = now.getMonth();
+      const thisYear = now.getFullYear();
+      
+      const clientsToUse = clientData || clients;
+      
+      const activeClients = clientsToUse.filter(c => c.active).length;
+      const inactiveClients = clientsToUse.filter(c => !c.active).length;
+      const newClientsThisMonth = clientsToUse.filter(c => {
+        const createdAt = new Date(c.createdAt);
+        return createdAt.getMonth() === thisMonth && 
+               createdAt.getFullYear() === thisYear;
+      }).length;
+
+      setStats({
+        totalClients: clientsToUse.length,
+        activeClients,
+        inactiveClients,
+        newClientsThisMonth
+      });
+    } catch (error) {
+      console.warn('Failed to fetch client stats:', error);
+    }
+  }, [clients]);
+
+  const fetchSources = useCallback(async () => {
+    try {
+      const sourceData = await clientSources.getAll();
+      setSources(sourceData);
+    } catch (error) {
+      console.warn('Failed to fetch client sources:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchClients();
-    fetchStats();
-  }, []);
+    fetchSources(); // NEW: Load client sources
+  }, [fetchClients, fetchSources]);
 
   // Handle ESC key
   useEffect(() => {
@@ -57,45 +114,6 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [onClose]);
-
-  const fetchClients = async () => {
-    try {
-      setLoading(true);
-      const clientData = await clientsApi.getAll();
-      setClients(clientData);
-      setError('');
-    } catch (error: any) {
-      console.error('Error fetching clients:', error);
-      setError('Failed to load clients');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const now = new Date();
-      const thisMonth = now.getMonth();
-      const thisYear = now.getFullYear();
-      
-      const activeClients = clients.filter(c => c.active).length;
-      const inactiveClients = clients.filter(c => !c.active).length;
-      const newClientsThisMonth = clients.filter(c => {
-        const createdAt = new Date(c.createdAt);
-        return createdAt.getMonth() === thisMonth && 
-               createdAt.getFullYear() === thisYear;
-      }).length;
-
-      setStats({
-        totalClients: clients.length,
-        activeClients,
-        inactiveClients,
-        newClientsThisMonth
-      });
-    } catch (error) {
-      console.warn('Failed to fetch client stats:', error);
-    }
-  };
 
   const filterAndSortClients = useCallback(() => {
     let filtered = [...clients];
@@ -154,15 +172,18 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
         await clientsApi.activate(clientId);
       }
       
-      setClients(prevClients =>
-        prevClients.map(client =>
-          client.id === clientId
-            ? { ...client, active: !currentActiveStatus }
-            : client
-        )
+      const updatedClients = clients.map(client =>
+        client.id === clientId
+          ? { ...client, active: !currentActiveStatus }
+          : client
       );
       
-      await fetchStats();
+      setClients(updatedClients);
+      
+      // Recalculate stats with updated client data
+      await fetchStats(updatedClients);
+      
+      onRefresh?.();
     } catch (error: any) {
       console.error('Error updating client status:', error);
       setError('Failed to update client status');
@@ -204,12 +225,27 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
 
   const handleNotesUpdate = async (clientId: number, notes: string) => {
     try {
-      await clientsApi.update(clientId, { notes });
-      await fetchClients();
+      const updatedClient = await clientsApi.update(clientId, { notes });
+      setClients(prev =>
+        prev.map(client => client.id === clientId ? updatedClient : client)
+      );
       onRefresh?.();
     } catch (error: any) {
-      console.error('Error updating client notes:', error);
-      setError('Failed to update client notes');
+      console.error('Error updating notes:', error);
+      setError('Failed to update notes');
+    }
+  };
+
+  const handleSourceUpdate = async (clientId: number, sourceId: number) => {
+    try {
+      const updatedClient = await clientsApi.update(clientId, { sourceId });
+      setClients(prev =>
+        prev.map(client => client.id === clientId ? updatedClient : client)
+      );
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Error updating source:', error);
+      setError('Failed to update source');
     }
   };
 
@@ -217,10 +253,14 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
     e.preventDefault();
     try {
       const newClient = await clientsApi.create(formData);
-      setClients(prev => [...prev, newClient]);
+      const updatedClients = [...clients, newClient];
+      setClients(updatedClients);
+      
+      // Recalculate stats with new client
+      await fetchStats(updatedClients);
+      
       setShowAddForm(false);
       resetForm();
-      await fetchStats();
       onRefresh?.();
     } catch (error: any) {
       console.error('Error creating client:', error);
@@ -250,15 +290,17 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
     if (window.confirm('Are you sure you want to delete this client? This action will deactivate the client.')) {
       try {
         await clientsApi.disable(clientId);
-        console.log('✅ Client deleted successfully');
-        setClients(prev => prev.map(client => 
+        const updatedClients = clients.map(client => 
           client.id === clientId ? { ...client, active: false } : client
-        ));
-        await fetchClients();
-        await fetchStats();
+        );
+        setClients(updatedClients);
+        
+        // Recalculate stats after deletion
+        await fetchStats(updatedClients);
+        
         onRefresh?.();
       } catch (error) {
-        console.error('❌ Failed to delete client:', error);
+        console.error('Failed to delete client:', error);
         setError('Failed to delete client');
       }
     }
@@ -267,15 +309,17 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
   const handleRestoreClient = async (clientId: number) => {
     try {
       await clientsApi.activate(clientId);
-      console.log('✅ Client restored successfully');
-      setClients(prev => prev.map(client => 
+      const updatedClients = clients.map(client => 
         client.id === clientId ? { ...client, active: true } : client
-      ));
-      await fetchClients();
-      await fetchStats();
+      );
+      setClients(updatedClients);
+      
+      // Recalculate stats after restoration
+      await fetchStats(updatedClients);
+      
       onRefresh?.();
     } catch (error) {
-      console.error('❌ Failed to restore client:', error);
+      console.error('Failed to restore client:', error);
       setError('Failed to restore client');
     }
   };
@@ -285,19 +329,9 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
       fullName: '',
       email: '',
       phone: '',
-      notes: ''
+      notes: '',
+      sourceId: 0 // Reset sourceId
     });
-  };
-
-  const startEditing = (client: Client) => {
-    setEditingClient(client);
-    setFormData({
-      fullName: client.fullName,
-      email: client.email || '',
-      phone: client.phone || '',
-      notes: client.notes || ''
-    });
-    setShowAddForm(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -440,14 +474,16 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
                 </div>
                 
                 <div className="form-group">
-                  <label>Status</label>
+                  <label>Source</label>
                   <select
-                    value={editingClient?.active ? 'active' : 'inactive'}
-                    disabled
+                    value={formData.sourceId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, sourceId: parseInt(e.target.value, 10) }))}
                     className="form-select"
                   >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="0">Select a Source</option>
+                    {sources.map(source => (
+                      <option key={source.id} value={source.id}>{source.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -533,13 +569,6 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
                       {client.active !== false ? (
                         <>
                           <button
-                            className="edit-button"
-                            onClick={() => startEditing(client)}
-                            title="Edit client"
-                          >
-                            ✏️
-                          </button>
-                          <button
                             className="delete-button"
                             onClick={() => handleDeleteClient(client.id)}
                             title="Delete client"
@@ -581,6 +610,22 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
                         disabled={client.active === false}
                         placeholder="Enter phone"
                       />
+                    </div>
+                    <div className="detail-item">
+                      <span className="label">Source:</span>
+                      <select
+                        value={client.source?.id || 0}
+                        onChange={(e) => handleSourceUpdate(client.id, parseInt(e.target.value, 10))}
+                        className="inline-select"
+                        disabled={client.active === false}
+                      >
+                        <option value={0}>Select a Source</option>
+                        {sources.map(source => (
+                          <option key={source.id} value={source.id}>
+                            {source.name} - ₪{source.price}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="detail-item">
                       <span className="label">Status:</span>

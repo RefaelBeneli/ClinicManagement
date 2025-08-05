@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { clients } from '../../services/api';
-import { ClientRequest } from '../../types';
+import { clients, clientSources } from '../../services/api';
+import { ClientRequest, ClientSourceResponse } from '../../types';
 import './ViewClientModal.css';
 
 interface AddClientModalProps {
@@ -14,9 +14,30 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
     fullName: '',
     email: '',
     phone: '',
-    notes: ''
+    notes: '',
+    sourceId: 1 // Default to first source (Private)
   });
+  const [sources, setSources] = useState<ClientSourceResponse[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Load sources when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchSources = async () => {
+        try {
+          const sourcesData = await clientSources.getAll();
+          setSources(sourcesData);
+          // Set default source if available
+          if (sourcesData.length > 0) {
+            setFormData(prev => ({ ...prev, sourceId: sourcesData[0].id }));
+          }
+        } catch (error) {
+          console.error('Error fetching sources:', error);
+        }
+      };
+      fetchSources();
+    }
+  }, [isOpen]);
 
   // Handle ESC key
   useEffect(() => {
@@ -33,11 +54,11 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
     };
   }, [isOpen, onClose]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'sourceId' ? parseInt(value, 10) : value
     }));
   };
 
@@ -50,7 +71,13 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
       console.log('✅ Client created successfully');
       onSuccess();
       onClose();
-      setFormData({ fullName: '', email: '', phone: '', notes: '' });
+      setFormData({ 
+        fullName: '', 
+        email: '', 
+        phone: '', 
+        notes: '', 
+        sourceId: sources.length > 0 ? sources[0].id : 1 
+      });
     } catch (error) {
       console.error('❌ Failed to create client:', error);
       alert('Failed to create client. Please try again.');
@@ -115,6 +142,24 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
                 rows={3}
               />
             </div>
+            <div className="form-group">
+              <label htmlFor="sourceId">Source *</label>
+              <select
+                id="sourceId"
+                name="sourceId"
+                value={formData.sourceId}
+                onChange={handleInputChange}
+                required
+                className="form-input"
+              >
+                <option value={0}>Select a source</option>
+                {sources.map(source => (
+                  <option key={source.id} value={source.id}>
+                    {source.name} - ₪{source.price}
+                  </option>
+                ))}
+              </select>
+            </div>
           </form>
         </div>
         <div className="modal__footer">
@@ -124,7 +169,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
           <button 
             className="btn btn-primary" 
             onClick={handleSubmit}
-            disabled={loading || !formData.fullName.trim()}
+            disabled={loading || !formData.fullName.trim() || !formData.sourceId}
           >
             {loading ? 'Creating...' : 'Create Client'}
           </button>

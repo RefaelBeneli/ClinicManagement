@@ -50,10 +50,49 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   // Stats state
   const [stats, setStats] = useState<ExpenseStats | null>(null);
 
+  const fetchExpenses = useCallback(async () => {
+    try {
+      setLoading(true);
+      const expenseData = await expensesApi.getAll();
+      setExpenses(expenseData);
+      setError('');
+      
+      // Calculate stats after expenses are loaded
+      await fetchStats(expenseData);
+    } catch (error: any) {
+      console.error('Error fetching expenses:', error);
+      setError('Failed to load expenses');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchStats = useCallback(async (expenseData?: Expense[]) => {
+    try {
+      const expensesToUse = expenseData || expenses;
+      const paidExpenses = expensesToUse.filter(e => e.paid).length;
+      const unpaidExpenses = expensesToUse.filter(e => !e.paid).length;
+      const totalAmount = expensesToUse.reduce((sum, e) => sum + e.amount, 0);
+      const paidAmount = expensesToUse.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
+      const unpaidAmount = expensesToUse.filter(e => !e.paid).reduce((sum, e) => sum + e.amount, 0);
+
+      setStats({
+        totalExpenses: expensesToUse.length,
+        paidExpenses,
+        unpaidExpenses,
+        totalAmount,
+        paidAmount,
+        unpaidAmount
+      });
+    } catch (error) {
+      console.warn('Failed to fetch expense stats:', error);
+    }
+  }, [expenses]);
+
   useEffect(() => {
     fetchExpenses();
-    fetchStats();
-  }, []);
+    // fetchStats(); // This will be called after expenses are loaded
+  }, [fetchExpenses]);
 
   // Handle ESC key
   useEffect(() => {
@@ -69,41 +108,6 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [onClose]);
-
-  const fetchExpenses = async () => {
-    try {
-      setLoading(true);
-      const expenseData = await expensesApi.getAll();
-      setExpenses(expenseData);
-      setError('');
-    } catch (error: any) {
-      console.error('Error fetching expenses:', error);
-      setError('Failed to load expenses');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const paidExpenses = expenses.filter(e => e.paid).length;
-      const unpaidExpenses = expenses.filter(e => !e.paid).length;
-      const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
-      const paidAmount = expenses.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
-      const unpaidAmount = expenses.filter(e => !e.paid).reduce((sum, e) => sum + e.amount, 0);
-
-      setStats({
-        totalExpenses: expenses.length,
-        paidExpenses,
-        unpaidExpenses,
-        totalAmount,
-        paidAmount,
-        unpaidAmount
-      });
-    } catch (error) {
-      console.warn('Failed to fetch expense stats:', error);
-    }
-  };
 
   const filterAndSortExpenses = useCallback(() => {
     let filtered = [...expenses];
@@ -170,15 +174,16 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
         await expensesApi.markAsPaid(expenseId);
       }
       
-      setExpenses(prevExpenses =>
-        prevExpenses.map(expense =>
-          expense.id === expenseId
-            ? { ...expense, paid: !currentPaidStatus }
-            : expense
-        )
+      const updatedExpenses = expenses.map(expense =>
+        expense.id === expenseId
+          ? { ...expense, paid: !currentPaidStatus }
+          : expense
       );
       
-      await fetchStats();
+      setExpenses(updatedExpenses);
+      
+      // Recalculate stats with updated expense data
+      await fetchStats(updatedExpenses);
     } catch (error: any) {
       console.error('Error updating expense payment status:', error);
       setError('Failed to update payment status');
@@ -244,10 +249,14 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     e.preventDefault();
     try {
       const newExpense = await expensesApi.create(formData);
-      setExpenses(prev => [...prev, newExpense]);
+      const updatedExpenses = [...expenses, newExpense];
+      setExpenses(updatedExpenses);
+      
+      // Recalculate stats with new expense
+      await fetchStats(updatedExpenses);
+      
       setShowAddForm(false);
       resetForm();
-      await fetchStats();
       onRefresh?.();
     } catch (error: any) {
       console.error('Error creating expense:', error);
@@ -274,18 +283,20 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   };
 
   const handleDeleteExpense = async (expenseId: number) => {
-    if (window.confirm('Are you sure you want to delete this expense? This action will deactivate the expense.')) {
+    if (window.confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
       try {
         await expensesApi.disable(expenseId);
-        console.log('✅ Expense deleted successfully');
-        setExpenses(prev => prev.map(expense => 
+        const updatedExpenses = expenses.map(expense => 
           expense.id === expenseId ? { ...expense, active: false } : expense
-        ));
-        await fetchExpenses();
-        await fetchStats();
+        );
+        setExpenses(updatedExpenses);
+        
+        // Recalculate stats after deletion
+        await fetchStats(updatedExpenses);
+        
         onRefresh?.();
       } catch (error) {
-        console.error('❌ Failed to delete expense:', error);
+        console.error('Failed to delete expense:', error);
         setError('Failed to delete expense');
       }
     }
@@ -294,15 +305,17 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   const handleRestoreExpense = async (expenseId: number) => {
     try {
       await expensesApi.activate(expenseId);
-      console.log('✅ Expense restored successfully');
-      setExpenses(prev => prev.map(expense => 
+      const updatedExpenses = expenses.map(expense => 
         expense.id === expenseId ? { ...expense, active: true } : expense
-      ));
-      await fetchExpenses();
-      await fetchStats();
+      );
+      setExpenses(updatedExpenses);
+      
+      // Recalculate stats after restoration
+      await fetchStats(updatedExpenses);
+      
       onRefresh?.();
     } catch (error) {
-      console.error('❌ Failed to restore expense:', error);
+      console.error('Failed to restore expense:', error);
       setError('Failed to restore expense');
     }
   };
@@ -366,113 +379,289 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   };
 
   return (
-    <div className="expense-panel-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="expense-panel">
-        <div className="expense-panel-header">
-          <div>
-            <h2>Expense Management</h2>
-            <p>Manage your practice expenses and financial records</p>
-          </div>
-          <button 
-            className="expense-close-button" 
-            onClick={onClose}
-          >X</button>
-        </div>
-
-        {/* Stats Dashboard */}
-        {stats && (
-          <div className="expense-stats-section">
-            <div className="stat-card">
-              <div className="stat-value">{stats.totalExpenses}</div>
-              <div className="stat-label">Total Expenses</div>
+    <>
+      <div className="expense-panel-overlay" onClick={(e) => {
+        if (e.target === e.currentTarget && !showAddForm) {
+          onClose();
+        }
+      }}>
+        <div className="expense-panel">
+          <div className="expense-panel-header">
+            <div>
+              <h2>Expense Management</h2>
+              <p>Manage your practice expenses and financial records</p>
             </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.paidExpenses}</div>
-              <div className="stat-label">Paid</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.unpaidExpenses}</div>
-              <div className="stat-label">Unpaid</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{formatCurrency(stats.totalAmount)}</div>
-              <div className="stat-label">Total Amount</div>
-            </div>
-          </div>
-        )}
-
-        {/* Controls */}
-        <div className="expense-controls">
-          <div className="controls-left">
             <button 
-              className="add-button"
-              onClick={() => {
-                setShowAddForm(true);
-                setEditingExpense(null);
-                resetForm();
-              }}
-            >
-              + Add New Expense
-            </button>
-            
-            <div className="search-container">
-              <input
-                type="text"
-                placeholder="Search expenses..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-              />
+              className="expense-close-button" 
+              onClick={onClose}
+            >X</button>
+          </div>
+
+          {/* Stats Dashboard */}
+          {stats && (
+            <div className="expense-stats-section">
+              <div className="stat-card">
+                <div className="stat-value">{stats.totalExpenses}</div>
+                <div className="stat-label">Total Expenses</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{stats.paidExpenses}</div>
+                <div className="stat-label">Paid</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{stats.unpaidExpenses}</div>
+                <div className="stat-label">Unpaid</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{formatCurrency(stats.totalAmount)}</div>
+                <div className="stat-label">Total Amount</div>
+              </div>
+            </div>
+          )}
+
+          {/* Controls */}
+          <div className="expense-controls">
+            <div className="controls-left">
+              
+              <button 
+                className="add-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowAddForm(true);
+                  setEditingExpense(null);
+                  resetForm();
+                }}
+              >
+                + Add New Expense
+              </button>
+              
+              <div className="search-container">
+                <input
+                  type="text"
+                  placeholder="Search expenses..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+            </div>
+
+            <div className="controls-right">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'PAID' | 'UNPAID')}
+                className="filter-select"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="PAID">Paid</option>
+                <option value="UNPAID">Unpaid</option>
+              </select>
+
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="ALL">All Categories</option>
+                {getCategories().map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+
+              <select
+                value={`${sortBy}-${sortOrder}`}
+                onChange={(e) => {
+                  const [newSortBy, newSortOrder] = e.target.value.split('-');
+                  setSortBy(newSortBy as any);
+                  setSortOrder(newSortOrder as 'asc' | 'desc');
+                }}
+                className="sort-select"
+              >
+                <option value="date-desc">Latest First</option>
+                <option value="date-asc">Oldest First</option>
+                <option value="amount-desc">Highest Amount</option>
+                <option value="amount-asc">Lowest Amount</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+              </select>
             </div>
           </div>
 
-          <div className="controls-right">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'PAID' | 'UNPAID')}
-              className="filter-select"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="PAID">Paid</option>
-              <option value="UNPAID">Unpaid</option>
-            </select>
+          {/* Error Display */}
+          {error && (
+            <div className="error-message">
+              {error}
+              <button onClick={() => setError('')} className="error-close">×</button>
+            </div>
+          )}
 
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="ALL">All Categories</option>
-              {getCategories().map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-
-            <select
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [newSortBy, newSortOrder] = e.target.value.split('-');
-                setSortBy(newSortBy as any);
-                setSortOrder(newSortOrder as 'asc' | 'desc');
-              }}
-              className="sort-select"
-            >
-              <option value="date-desc">Latest First</option>
-              <option value="date-asc">Oldest First</option>
-              <option value="amount-desc">Highest Amount</option>
-              <option value="amount-asc">Lowest Amount</option>
-              <option value="name-asc">Name A-Z</option>
-              <option value="name-desc">Name Z-A</option>
-            </select>
+          {/* Expenses List */}
+          <div className="expenses-content">
+            {loading ? (
+              <div className="loading-spinner">Loading expenses...</div>
+            ) : filteredExpenses.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">💰</div>
+                <h3>No Expenses Found</h3>
+                <p>Start tracking your practice expenses by adding your first expense.</p>
+                <button 
+                  className="add-button"
+                  onClick={() => {
+                    setShowAddForm(true);
+                    setEditingExpense(null);
+                    resetForm();
+                  }}
+                >
+                  Add Your First Expense
+                </button>
+              </div>
+            ) : (
+              <div className="expenses-list">
+                {filteredExpenses.map((expense) => (
+                  <div key={expense.id} className={`expense-card ${expense.active === false ? 'disabled-card' : ''}`}>
+                    <div className="expense-header">
+                      <div className="expense-info">
+                        <input
+                          type="text"
+                          value={expense.name}
+                          onChange={(e) => handleNameUpdate(expense.id, e.target.value)}
+                          className="inline-input expense-name"
+                          disabled={expense.active === false}
+                          placeholder="Expense name"
+                        />
+                        <div className="expense-meta">
+                          <span>ID: {expense.id}</span>
+                          <span>Date: {formatDate(expense.expenseDate)}</span>
+                        </div>
+                      </div>
+                      <div className="expense-actions">
+                        {expense.active !== false ? (
+                          <>
+                            <button
+                              className="edit-button"
+                              onClick={() => startEditing(expense)}
+                              title="Edit expense"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="delete-button"
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              title="Delete expense"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="restore-button"
+                            onClick={() => handleRestoreExpense(expense.id)}
+                            title="Restore expense"
+                          >
+                            🔄
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="expense-details">
+                      <div className="detail-item">
+                        <span className="label">Category:</span>
+                        <input
+                          type="text"
+                          value={expense.category}
+                          onChange={(e) => handleCategoryUpdate(expense.id, e.target.value)}
+                          className="inline-input"
+                          disabled={expense.active === false}
+                          placeholder="Category"
+                        />
+                      </div>
+                      
+                      <div className="detail-item">
+                        <span className="label">Amount:</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={expense.amount}
+                          onChange={(e) => handleAmountUpdate(expense.id, parseFloat(e.target.value) || 0)}
+                          className="inline-input"
+                          disabled={expense.active === false}
+                          placeholder="0.00"
+                        />
+                        <span className="currency-display">USD</span>
+                      </div>
+                      
+                      <div className="detail-item">
+                        <span className="label">Date:</span>
+                        <input
+                          type="date"
+                          value={expense.expenseDate.split('T')[0]}
+                          onChange={(e) => handleDateUpdate(expense.id, e.target.value)}
+                          className="inline-input"
+                          disabled={expense.active === false}
+                        />
+                      </div>
+                      
+                      <div className="detail-item">
+                        <span className="label">Payment Status:</span>
+                        <button
+                          className={`payment-toggle ${expense.paid ? 'paid' : 'unpaid'}`}
+                          onClick={() => handlePaymentToggle(expense.id, expense.paid)}
+                          disabled={expense.active === false}
+                        >
+                          {expense.paid ? '✅ Paid' : '❌ Unpaid'}
+                        </button>
+                      </div>
+                      
+                      <div className="detail-item">
+                        <span className="label">Notes:</span>
+                        <textarea
+                          value={expense.notes || ''}
+                          onChange={(e) => handleNotesUpdate(expense.id, e.target.value)}
+                          className="inline-textarea"
+                          disabled={expense.active === false}
+                          placeholder="Add notes..."
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Add/Edit Form */}
-        {showAddForm && (
-          <div className="expense-form-section">
-            <form onSubmit={editingExpense ? handleEditExpense : handleAddExpense} className="expense-form">
+      {/* Add/Edit Form - Rendered outside the expense panel */}
+      {showAddForm && (
+        <div 
+          className="expense-form-overlay" 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddForm(false);
+              setEditingExpense(null);
+              resetForm();
+            }
+          }}
+        >
+          <div className="expense-form-modal">
+            <div className="expense-form-header">
               <h3>{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h3>
-              
+              <button 
+                className="form-close-button"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingExpense(null);
+                  resetForm();
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={editingExpense ? handleEditExpense : handleAddExpense} className="expense-form">
               <div className="form-row">
                 <div className="form-group">
                   <label>Expense Name *</label>
@@ -623,156 +812,9 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
               </div>
             </form>
           </div>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <div className="error-message">
-            {error}
-            <button onClick={() => setError('')} className="error-close">×</button>
-          </div>
-        )}
-
-        {/* Expenses List */}
-        <div className="expenses-content">
-          {loading ? (
-            <div className="loading-spinner">Loading expenses...</div>
-          ) : filteredExpenses.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">💰</div>
-              <h3>No Expenses Found</h3>
-              <p>Start tracking your practice expenses by adding your first expense.</p>
-              <button 
-                className="add-button"
-                onClick={() => {
-                  setShowAddForm(true);
-                  setEditingExpense(null);
-                  resetForm();
-                }}
-              >
-                Add Your First Expense
-              </button>
-            </div>
-          ) : (
-            <div className="expenses-list">
-              {filteredExpenses.map((expense) => (
-                <div key={expense.id} className={`expense-card ${expense.active === false ? 'disabled-card' : ''}`}>
-                  <div className="expense-header">
-                    <div className="expense-info">
-                      <input
-                        type="text"
-                        value={expense.name}
-                        onChange={(e) => handleNameUpdate(expense.id, e.target.value)}
-                        className="inline-input expense-name"
-                        disabled={expense.active === false}
-                        placeholder="Expense name"
-                      />
-                      <div className="expense-meta">
-                        <span>ID: {expense.id}</span>
-                        <span>Date: {formatDate(expense.expenseDate)}</span>
-                      </div>
-                    </div>
-                    <div className="expense-actions">
-                      {expense.active !== false ? (
-                        <>
-                          <button
-                            className="edit-button"
-                            onClick={() => startEditing(expense)}
-                            title="Edit expense"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="delete-button"
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            title="Delete expense"
-                          >
-                            🗑️
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          className="restore-button"
-                          onClick={() => handleRestoreExpense(expense.id)}
-                          title="Restore expense"
-                        >
-                          🔄 Restore
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="expense-details">
-                    <div className="detail-item">
-                      <span className="label">Amount:</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={expense.amount}
-                        onChange={(e) => handleAmountUpdate(expense.id, parseFloat(e.target.value) || 0)}
-                        className="inline-input"
-                        disabled={expense.active === false}
-                      />
-                      <span className="currency-display">{formatCurrency(expense.amount)}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Category:</span>
-                      <input
-                        type="text"
-                        value={expense.category}
-                        onChange={(e) => handleCategoryUpdate(expense.id, e.target.value)}
-                        className="inline-input"
-                        disabled={expense.active === false}
-                        placeholder="Category"
-                      />
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Date:</span>
-                      <input
-                        type="date"
-                        value={expense.expenseDate.split('T')[0]}
-                        onChange={(e) => handleDateUpdate(expense.id, e.target.value)}
-                        className="inline-input"
-                        disabled={expense.active === false}
-                      />
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Status:</span>
-                      <button
-                        className={`payment-toggle ${expense.paid ? 'paid' : 'unpaid'}`}
-                        onClick={() => handlePaymentToggle(expense.id, expense.paid)}
-                        disabled={expense.active === false}
-                      >
-                        {expense.paid ? '✅ Paid' : '❌ Unpaid'}
-                      </button>
-                    </div>
-                    {expense.recurring && (
-                      <div className="detail-item">
-                        <span className="label">Recurring:</span>
-                        <span>🔄 {expense.recurrenceFrequency}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="detail-item">
-                    <span className="label">Notes:</span>
-                    <textarea
-                      value={expense.notes || ''}
-                      onChange={(e) => handleNotesUpdate(expense.id, e.target.value)}
-                      className="inline-textarea"
-                      disabled={expense.active === false}
-                      placeholder="Add notes..."
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 

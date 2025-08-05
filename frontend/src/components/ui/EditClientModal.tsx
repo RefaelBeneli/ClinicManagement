@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Client, ClientRequest } from '../../types';
-import { clients } from '../../services/api';
+import { Client, ClientRequest, ClientSourceResponse } from '../../types';
+import { clients, clientSources } from '../../services/api';
 import './ViewClientModal.css';
 
 interface EditClientModalProps {
@@ -15,10 +15,27 @@ const EditClientModal: React.FC<EditClientModalProps> = ({ client, isOpen, onClo
     fullName: '',
     email: '',
     phone: '',
-    notes: ''
+    notes: '',
+    sourceId: 0
   });
+  const [sources, setSources] = useState<ClientSourceResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Load sources when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchSources = async () => {
+        try {
+          const sourcesData = await clientSources.getAll();
+          setSources(sourcesData);
+        } catch (error) {
+          console.error('Error fetching sources:', error);
+        }
+      };
+      fetchSources();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (client) {
@@ -26,7 +43,8 @@ const EditClientModal: React.FC<EditClientModalProps> = ({ client, isOpen, onClo
         fullName: client.fullName,
         email: client.email || '',
         phone: client.phone || '',
-        notes: client.notes || ''
+        notes: client.notes || '',
+        sourceId: client.source?.id || 0
       });
       setError('');
     }
@@ -49,11 +67,11 @@ const EditClientModal: React.FC<EditClientModalProps> = ({ client, isOpen, onClo
     };
   }, [isOpen, onClose]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'sourceId' ? parseInt(value, 10) : value
     }));
   };
 
@@ -126,6 +144,25 @@ const EditClientModal: React.FC<EditClientModalProps> = ({ client, isOpen, onClo
                 value={formData.phone}
                 onChange={handleInputChange}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="sourceId">Source *</label>
+              <select
+                id="sourceId"
+                name="sourceId"
+                value={formData.sourceId}
+                onChange={handleInputChange}
+                required
+                className="form-input"
+              >
+                <option value={0}>Select a source</option>
+                {sources.map(source => (
+                  <option key={source.id} value={source.id}>
+                    {source.name} - ₪{source.price}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">

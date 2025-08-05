@@ -19,10 +19,6 @@ data class Meeting(
     @JoinColumn(name = "user_id", nullable = false)
     val user: User,
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "source_id", nullable = false)
-    val source: MeetingSource,
-    
     @Column(name = "meeting_date", nullable = false)
     val meetingDate: LocalDateTime,
     

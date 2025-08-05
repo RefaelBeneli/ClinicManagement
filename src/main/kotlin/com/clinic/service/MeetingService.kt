@@ -4,13 +4,11 @@ import com.clinic.dto.MeetingRequest
 import com.clinic.dto.MeetingResponse
 import com.clinic.dto.UpdateMeetingRequest
 import com.clinic.dto.ClientResponse
-import com.clinic.dto.MeetingSourceResponse
 import com.clinic.dto.PaymentTypeResponse
 import com.clinic.entity.Meeting
 import com.clinic.entity.MeetingStatus
 import com.clinic.repository.MeetingRepository
 import com.clinic.repository.ClientRepository
-import com.clinic.repository.MeetingSourceRepository
 import com.clinic.repository.PaymentTypeRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -28,9 +26,6 @@ class MeetingService {
 
     @Autowired
     private lateinit var authService: AuthService
-
-    @Autowired
-    private lateinit var meetingSourceRepository: MeetingSourceRepository
     
     @Autowired
     private lateinit var paymentTypeRepository: PaymentTypeRepository
@@ -40,17 +35,13 @@ class MeetingService {
         val client = clientRepository.findByIdAndUser(meetingRequest.clientId, currentUser)
             ?: throw RuntimeException("Client not found")
 
-        val source = meetingSourceRepository.findById(meetingRequest.sourceId)
-            .orElseThrow { RuntimeException("Meeting source not found") }
-
-        // Use source defaults if not provided
-        val finalDuration = meetingRequest.duration ?: source.duration
-        val finalPrice = meetingRequest.price ?: source.price
+        // Use client's source defaults if not provided
+        val finalDuration = meetingRequest.duration ?: client.source.duration
+        val finalPrice = meetingRequest.price ?: client.source.price
 
         val meeting = Meeting(
             client = client,
             user = currentUser,
-            source = source,
             meetingDate = meetingRequest.meetingDate,
             duration = finalDuration,
             price = finalPrice,
@@ -97,14 +88,6 @@ class MeetingService {
             meeting.client
         }
 
-        // Handle source change if sourceId is provided
-        val newSource = if (updateRequest.sourceId != null && updateRequest.sourceId != meeting.source.id) {
-            meetingSourceRepository.findById(updateRequest.sourceId)
-                .orElseThrow { RuntimeException("Meeting source not found") }
-        } else {
-            meeting.source
-        }
-
         // Handle payment type change if paymentTypeId is provided
         val newPaymentType = if (updateRequest.paymentTypeId != null) {
             if (updateRequest.paymentTypeId == 0L) {
@@ -119,7 +102,7 @@ class MeetingService {
 
         // Apply no-show pricing if status is being changed to NO_SHOW
         val finalPrice = if (updateRequest.status == MeetingStatus.NO_SHOW && meeting.status != MeetingStatus.NO_SHOW) {
-            newSource.noShowPrice
+            newClient.source.noShowPrice
         } else if (updateRequest.price != null) {
             updateRequest.price
         } else {
@@ -128,7 +111,6 @@ class MeetingService {
 
         val updatedMeeting = meeting.copy(
             client = newClient,
-            source = newSource,
             meetingDate = updateRequest.meetingDate ?: meeting.meetingDate,
             duration = updateRequest.duration ?: meeting.duration,
             price = finalPrice,
@@ -308,18 +290,9 @@ class MeetingService {
                 email = meeting.client.email,
                 phone = meeting.client.phone,
                 notes = meeting.client.notes,
+                source = mapToSourceResponse(meeting.client.source),
                 createdAt = meeting.client.createdAt,
                 isActive = meeting.client.isActive
-            ),
-            source = MeetingSourceResponse(
-                id = meeting.source.id,
-                name = meeting.source.name,
-                duration = meeting.source.duration,
-                price = meeting.source.price,
-                noShowPrice = meeting.source.noShowPrice,
-                isActive = meeting.source.isActive,
-                createdAt = meeting.source.createdAt,
-                updatedAt = meeting.source.updatedAt
             ),
             meetingDate = meeting.meetingDate,
             duration = meeting.duration,
@@ -340,6 +313,19 @@ class MeetingService {
             status = meeting.status,
             createdAt = meeting.createdAt,
             isActive = meeting.isActive
+        )
+    }
+
+    private fun mapToSourceResponse(source: com.clinic.entity.ClientSource): com.clinic.dto.ClientSourceResponse {
+        return com.clinic.dto.ClientSourceResponse(
+            id = source.id,
+            name = source.name,
+            duration = source.duration,
+            price = source.price,
+            noShowPrice = source.noShowPrice,
+            isActive = source.isActive,
+            createdAt = source.createdAt,
+            updatedAt = source.updatedAt
         )
     }
 } 

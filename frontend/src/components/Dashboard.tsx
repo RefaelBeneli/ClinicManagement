@@ -55,7 +55,8 @@ const Dashboard: React.FC = () => {
     fullName: '',
     email: '',
     phone: '',
-    notes: ''
+    notes: '',
+    sourceId: 1 // Default to first source (Private)
   });
   const [newMeetingData, setNewMeetingData] = useState({
     clientId: '',
@@ -246,14 +247,21 @@ const Dashboard: React.FC = () => {
 
   const handleSaveClient = async () => {
     try {
-      const savedClient = await clients.create(newClientData);
-      setClientList(prev => [...prev, savedClient]);
+      const newClient = await clients.create({
+        fullName: newClientData.fullName,
+        email: newClientData.email,
+        phone: newClientData.phone,
+        notes: newClientData.notes,
+        sourceId: 1 // Default to first source (Private)
+      });
+      setClientList(prev => [...prev, newClient]);
       setShowAddClientModal(false);
       setNewClientData({
         fullName: '',
         email: '',
         phone: '',
-        notes: ''
+        notes: '',
+        sourceId: 1 // Default to first source (Private)
       });
     } catch (error) {
       console.error('Error creating client:', error);
@@ -267,7 +275,8 @@ const Dashboard: React.FC = () => {
       fullName: '',
       email: '',
       phone: '',
-      notes: ''
+      notes: '',
+      sourceId: 1 // Default to first source (Private)
     });
   };
 
@@ -286,7 +295,6 @@ const Dashboard: React.FC = () => {
       
       const meetingRequest = {
         clientId: parseInt(newMeetingData.clientId),
-        sourceId: 1, // Default to first source (Private)
         meetingDate: meetingDateTime.toISOString(),
         duration: newMeetingData.duration,
         price: newMeetingData.price,
@@ -295,7 +303,13 @@ const Dashboard: React.FC = () => {
 
       // Import the meetings API if not already imported
       const { meetings } = await import('../services/api');
-      const newMeeting = await meetings.create(meetingRequest);
+      const newMeeting = await meetings.create({
+        clientId: parseInt(newMeetingData.clientId),
+        meetingDate: meetingDateTime.toISOString(),
+        duration: newMeetingData.duration,
+        price: newMeetingData.price,
+        notes: newMeetingData.notes
+      });
       
       // Add the new meeting to the local list
       setMeetingList(prevMeetings => [...prevMeetings, newMeeting]);

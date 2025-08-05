@@ -20,9 +20,11 @@ import {
   UserRejectionRequest,
   UserApprovalResponse,
   ApprovalHistoryResponse,
-  MeetingSource,
   PersonalMeetingTypeEntity,
-  PaymentType
+  PaymentType,
+  ClientSourceResponse,
+  ClientSourceRequest,
+  UpdateClientSourceRequest
 } from '../types';
 
 // Data transformation functions to handle backend/frontend property name mismatches
@@ -367,8 +369,8 @@ export const meetings = {
     return response.data;
   },
 
-  getActiveSources: async (): Promise<MeetingSource[]> => {
-    const response = await apiClient.get('/meetings/sources');
+  getActiveSources: async (): Promise<ClientSourceResponse[]> => {
+    const response = await apiClient.get('/client-sources/active');
     return response.data;
   },
 };
@@ -698,6 +700,39 @@ export const paymentTypes = {
 
   toggleActive: async (id: number): Promise<PaymentType> => {
     const response = await apiClient.patch(`/admin/payment-types/${id}/toggle`);
+    return response.data;
+  },
+};
+
+// Client Source API
+export const clientSources = {
+  getAll: async (): Promise<ClientSourceResponse[]> => {
+    const response = await apiClient.get('/client-sources');
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ClientSourceResponse> => {
+    const response = await apiClient.get(`/client-sources/${id}`);
+    return response.data;
+  },
+
+  create: async (sourceData: ClientSourceRequest): Promise<ClientSourceResponse> => {
+    const response = await apiClient.post('/client-sources', sourceData);
+    return response.data;
+  },
+
+  update: async (id: number, sourceData: UpdateClientSourceRequest): Promise<ClientSourceResponse> => {
+    const response = await apiClient.put(`/client-sources/${id}`, sourceData);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete(`/client-sources/${id}`);
+    return response.data;
+  },
+
+  toggleActive: async (id: number): Promise<ClientSourceResponse> => {
+    const response = await apiClient.patch(`/client-sources/${id}/toggle`);
     return response.data;
   },
 };

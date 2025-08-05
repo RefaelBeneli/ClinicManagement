@@ -19,22 +19,8 @@ CREATE TABLE users (
     FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Create clients table
-CREATE TABLE clients (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    phone VARCHAR(255),
-    notes VARCHAR(1000),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Create meeting_sources table
-CREATE TABLE meeting_sources (
+-- Create client_sources table
+CREATE TABLE client_sources (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     duration INTEGER NOT NULL DEFAULT 60,
@@ -43,6 +29,22 @@ CREATE TABLE meeting_sources (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create clients table
+CREATE TABLE clients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    source_id BIGINT NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(255),
+    notes VARCHAR(1000),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (source_id) REFERENCES client_sources(id)
 );
 
 -- Create payment_types table
@@ -72,7 +74,6 @@ CREATE TABLE meetings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     client_id BIGINT NOT NULL,
-    source_id BIGINT NOT NULL,
     payment_type_id BIGINT NULL,
     meeting_date TIMESTAMP NOT NULL,
     duration INTEGER NOT NULL DEFAULT 60,
@@ -88,7 +89,6 @@ CREATE TABLE meetings (
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-    FOREIGN KEY (source_id) REFERENCES meeting_sources(id),
     FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
 );
 
@@ -158,8 +158,8 @@ CREATE TABLE calendar_integration (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Insert default meeting sources
-INSERT INTO meeting_sources (name, duration, price, no_show_price) VALUES
+-- Insert default client sources
+INSERT INTO client_sources (name, duration, price, no_show_price) VALUES
 ('Private', 60, 350.00, 350.00),
 ('Natal', 60, 300.00, 150.00),
 ('Clalit', 60, 280.00, 280.00);
@@ -182,13 +182,13 @@ INSERT INTO personal_meeting_types (name, duration, price, is_recurring, recurre
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_approval_status ON users(approval_status);
+CREATE INDEX idx_client_sources_active ON client_sources(is_active);
 CREATE INDEX idx_clients_user_id ON clients(user_id);
-CREATE INDEX idx_meeting_sources_active ON meeting_sources(is_active);
+CREATE INDEX idx_clients_source_id ON clients(source_id);
 CREATE INDEX idx_payment_types_active ON payment_types(is_active);
 CREATE INDEX idx_personal_meeting_types_active ON personal_meeting_types(is_active);
 CREATE INDEX idx_meetings_user_id ON meetings(user_id);
 CREATE INDEX idx_meetings_client_id ON meetings(client_id);
-CREATE INDEX idx_meetings_source_id ON meetings(source_id);
 CREATE INDEX idx_meetings_payment_type_id ON meetings(payment_type_id);
 CREATE INDEX idx_meetings_date ON meetings(meeting_date);
 CREATE INDEX idx_personal_meetings_user_id ON personal_meetings(user_id);

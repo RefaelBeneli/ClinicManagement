@@ -20,7 +20,5 @@ interface MeetingRepository : JpaRepository<Meeting, Long> {
     
     fun findByUserAndIsPaidFalse(user: User): List<Meeting>
     
-    fun existsBySourceId(sourceId: Long): Boolean
-    
     fun existsByPaymentTypeId(paymentTypeId: Long): Boolean
 } 

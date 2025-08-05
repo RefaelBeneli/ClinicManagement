@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ClientSourceResponse } from '../../types';
+import { clientSources } from '../../services/api';
 import Button from '../ui/Button';
 import './ClientForm.css';
 
@@ -8,6 +10,7 @@ interface ClientFormData {
   phone?: string;
   address?: string;
   notes?: string;
+  sourceId: number; // NEW: Required source ID
 }
 
 interface ClientFormProps {
@@ -21,16 +24,34 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) => {
     email: '',
     phone: '',
     address: '',
-    notes: ''
+    notes: '',
+    sourceId: 0 // NEW: Required source ID
   });
+  const [sources, setSources] = useState<ClientSourceResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<ClientFormData>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof ClientFormData, string>>>({});
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    const fetchSources = async () => {
+      try {
+        const sourcesData = await clientSources.getAll();
+        setSources(sourcesData);
+        // Set default source if available
+        if (sourcesData.length > 0) {
+          setFormData(prev => ({ ...prev, sourceId: sourcesData[0].id }));
+        }
+      } catch (error) {
+        console.error('Error fetching sources:', error);
+      }
+    };
+    fetchSources();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'sourceId' ? parseInt(value, 10) : value
     }));
 
     // Clear error when user starts typing
@@ -43,7 +64,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) => {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ClientFormData> = {};
+    const newErrors: Partial<Record<keyof ClientFormData, string>> = {};
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
@@ -55,6 +76,10 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) => {
 
     if (formData.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/\s/g, ''))) {
       newErrors.phone = 'Please enter a valid phone number';
+    }
+
+    if (!formData.sourceId || formData.sourceId === 0) {
+      newErrors.sourceId = 'Please select a source';
     }
 
     setErrors(newErrors);
@@ -128,6 +153,28 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) => {
             placeholder="+1 (555) 123-4567"
           />
           {errors.phone && <span className="error-message">{errors.phone}</span>}
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="sourceId" className="form-label">
+            Source *
+          </label>
+          <select
+            id="sourceId"
+            name="sourceId"
+            value={formData.sourceId}
+            onChange={handleChange}
+            className={`form-input ${errors.sourceId ? 'error' : ''}`}
+            required
+          >
+            <option value={0}>Select a source</option>
+            {sources.map(source => (
+              <option key={source.id} value={source.id}>
+                {source.name} - ₪{source.price}
+              </option>
+            ))}
+          </select>
+          {errors.sourceId && <span className="error-message">{errors.sourceId}</span>}
         </div>
 
         <div className="form-field">

@@ -41,14 +41,15 @@ data class AdminClientRequest(
     val phone: String? = null,
     val notes: String? = null,
     val isActive: Boolean = true,
-    val userId: Long
+    val userId: Long,
+    val sourceId: Long
 )
 
 // Meeting Management DTOs
 data class AdminMeetingResponse(
     val id: Long,
     val clientId: Long,
-    val clientName: String,
+    val clientFullName: String,
     val userId: Long,
     val userFullName: String,
     val meetingDate: LocalDateTime,

@@ -16,7 +16,7 @@ class AdminService(
     private val clientRepository: ClientRepository,
     private val meetingRepository: MeetingRepository,
     private val personalMeetingRepository: PersonalMeetingRepository,
-    private val meetingSourceRepository: MeetingSourceRepository,
+    private val clientSourceRepository: ClientSourceRepository,
     private val paymentTypeRepository: PaymentTypeRepository,
     private val personalMeetingTypeRepository: PersonalMeetingTypeRepository,
     private val passwordEncoder: PasswordEncoder
@@ -112,13 +112,16 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
+        val source = clientSourceRepository.findById(request.sourceId)
+            .orElseThrow { RuntimeException("Client source not found with id: ${request.sourceId}") }
+
         val client = Client(
             fullName = request.fullName,
             email = request.email,
             phone = request.phone,
             notes = request.notes,
-            isActive = request.isActive,
-            user = user
+            user = user,
+            source = source
         )
 
         val saved = clientRepository.save(client)
@@ -132,13 +135,16 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
+        val source = clientSourceRepository.findById(request.sourceId)
+            .orElseThrow { RuntimeException("Client source not found with id: ${request.sourceId}") }
+
         val updatedClient = client.copy(
             fullName = request.fullName,
             email = request.email,
             phone = request.phone,
             notes = request.notes,
-            isActive = request.isActive,
-            user = user
+            user = user,
+            source = source
         )
 
         val saved = clientRepository.save(updatedClient)
@@ -158,7 +164,7 @@ class AdminService(
             AdminMeetingResponse(
                 id = meeting.id,
                 clientId = meeting.client.id,
-                clientName = meeting.client.fullName,
+                clientFullName = meeting.client.fullName,
                 userId = meeting.user.id,
                 userFullName = meeting.user.fullName,
                 meetingDate = meeting.meetingDate,
@@ -180,7 +186,7 @@ class AdminService(
         return AdminMeetingResponse(
             id = meeting.id,
             clientId = meeting.client.id,
-            clientName = meeting.client.fullName,
+            clientFullName = meeting.client.fullName,
             userId = meeting.user.id,
             userFullName = meeting.user.fullName,
             meetingDate = meeting.meetingDate,
@@ -201,9 +207,6 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
-        val source = meetingSourceRepository.findById(request.sourceId)
-            .orElseThrow { RuntimeException("Meeting source not found with id: ${request.sourceId}") }
-
         val paymentType = if (request.paymentTypeId != null) {
             paymentTypeRepository.findById(request.paymentTypeId)
                 .orElseThrow { RuntimeException("Payment type not found with id: ${request.paymentTypeId}") }
@@ -212,7 +215,6 @@ class AdminService(
         val meeting = Meeting(
             client = client,
             user = user,
-            source = source,
             meetingDate = request.meetingDate,
             duration = request.duration,
             price = request.price,
@@ -237,9 +239,6 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
-        val source = meetingSourceRepository.findById(request.sourceId)
-            .orElseThrow { RuntimeException("Meeting source not found with id: ${request.sourceId}") }
-
         val paymentType = if (request.paymentTypeId != null) {
             paymentTypeRepository.findById(request.paymentTypeId)
                 .orElseThrow { RuntimeException("Payment type not found with id: ${request.paymentTypeId}") }
@@ -248,7 +247,6 @@ class AdminService(
         val updatedMeeting = meeting.copy(
             client = client,
             user = user,
-            source = source,
             meetingDate = request.meetingDate,
             duration = request.duration,
             price = request.price,

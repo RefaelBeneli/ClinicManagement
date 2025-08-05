@@ -109,7 +109,7 @@ class TestDataGenerator:
         self.cursor = None
         self.user_ids = []
         self.client_ids = []
-        self.meeting_source_ids = []
+        self.client_source_ids = []
         self.payment_type_ids = []
         self.personal_meeting_type_ids = []
         
@@ -340,10 +340,13 @@ class TestDataGenerator:
                     )
                     
                     try:
+                        # Assign a random client source
+                        source_id = random.choice(self.client_source_ids)
+                        
                         self.cursor.execute("""
-                            INSERT INTO clients (user_id, full_name, email, phone, notes, is_active, created_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """, (user_id, full_name, email, phone, notes, is_active, created_at))
+                            INSERT INTO clients (user_id, source_id, full_name, email, phone, notes, is_active, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (user_id, source_id, full_name, email, phone, notes, is_active, created_at))
                         
                         client_id = self.cursor.lastrowid
                         self.client_ids.append(client_id)
@@ -359,9 +362,9 @@ class TestDataGenerator:
         """Get existing IDs from database"""
         logger.info("Fetching existing data...")
         
-        # Get meeting sources
-        self.cursor.execute("SELECT id FROM meeting_sources")
-        self.meeting_source_ids = [row[0] for row in self.cursor.fetchall()]
+        # Get client sources
+        self.cursor.execute("SELECT id FROM client_sources")
+        self.client_source_ids = [row[0] for row in self.cursor.fetchall()]
         
         # Get payment types
         self.cursor.execute("SELECT id FROM payment_types")
@@ -371,7 +374,7 @@ class TestDataGenerator:
         self.cursor.execute("SELECT id FROM personal_meeting_types")
         self.personal_meeting_type_ids = [row[0] for row in self.cursor.fetchall()]
         
-        logger.info(f"Found {len(self.meeting_source_ids)} meeting sources, {len(self.payment_type_ids)} payment types, {len(self.personal_meeting_type_ids)} personal meeting types")
+        logger.info(f"Found {len(self.client_source_ids)} client sources, {len(self.payment_type_ids)} payment types, {len(self.personal_meeting_type_ids)} personal meeting types")
     
     def generate_meetings(self):
         """Generate production-like meetings with realistic scheduling patterns"""
@@ -482,14 +485,17 @@ class TestDataGenerator:
     
     def _create_meeting(self, user_id, client_id, meeting_date, meeting_index=0, meeting_notes=None, meeting_summaries=None):
         """Create a single meeting with production-like data"""
-        source_id = random.choice(self.meeting_source_ids)
         payment_type_id = random.choice([None] + self.payment_type_ids)
         
-        # Realistic duration and pricing based on source
-        if source_id == 1:  # Private
+        # Get client's source for pricing
+        self.cursor.execute("SELECT source_id FROM clients WHERE id = %s", (client_id,))
+        client_source_id = self.cursor.fetchone()[0]
+        
+        # Realistic duration and pricing based on client's source
+        if client_source_id == 1:  # Private
             duration = random.choice([60, 90, 120])
             price = random.choice([350.00, 400.00, 450.00])
-        elif source_id == 2:  # Natal
+        elif client_source_id == 2:  # Natal
             duration = random.choice([45, 60, 90])
             price = random.choice([300.00, 350.00, 400.00])
         else:  # Clalit
@@ -536,11 +542,11 @@ class TestDataGenerator:
         
         try:
             self.cursor.execute("""
-                INSERT INTO meetings (user_id, client_id, source_id, payment_type_id, meeting_date, 
+                INSERT INTO meetings (user_id, client_id, payment_type_id, meeting_date, 
                                    duration, price, notes, summary, status, is_paid, payment_date, 
                                    google_event_id, is_active, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (user_id, client_id, source_id, payment_type_id, meeting_date, duration, price,
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (user_id, client_id, payment_type_id, meeting_date, duration, price,
                   notes, summary, status, is_paid, payment_date, google_event_id, is_active, meeting_date))
             
         except mysql.connector.Error as err:

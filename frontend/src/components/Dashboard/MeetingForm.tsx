@@ -4,7 +4,6 @@ import './ClientForm.css';
 
 interface MeetingFormData {
   clientId: number;
-  sourceId: number;
   meetingDate: string;
   meetingTime: string;
   duration: number;
@@ -20,7 +19,6 @@ interface MeetingFormData {
 
 interface MeetingFormErrors {
   clientId?: string;
-  sourceId?: string;
   meetingDate?: string;
   meetingTime?: string;
   duration?: string;
@@ -37,15 +35,6 @@ interface Client {
   fullName: string;
 }
 
-interface MeetingSource {
-  id: number;
-  name: string;
-  duration: number;
-  price: number;
-  noShowPrice: number;
-  isActive: boolean;
-}
-
 interface PaymentType {
   id: number;
   name: string;
@@ -54,16 +43,14 @@ interface PaymentType {
 
 interface MeetingFormProps {
   clients: Client[];
-  sources: MeetingSource[];
   paymentTypes: PaymentType[];
   onSubmit: (data: MeetingFormData) => Promise<void>;
   onCancel: () => void;
 }
 
-const MeetingForm: React.FC<MeetingFormProps> = ({ clients, sources, paymentTypes, onSubmit, onCancel }) => {
+const MeetingForm: React.FC<MeetingFormProps> = ({ clients, paymentTypes, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState<MeetingFormData>({
     clientId: 0,
-    sourceId: 0,
     meetingDate: '',
     meetingTime: '',
     duration: 60,
@@ -104,35 +91,11 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, sources, paymentType
     }
   };
 
-  const handleSourceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const sourceId = parseInt(e.target.value);
-    const selectedSource = sources.find(s => s.id === sourceId);
-    
-    setFormData(prev => ({
-      ...prev,
-      sourceId: sourceId,
-      duration: selectedSource?.duration || prev.duration,
-      price: selectedSource?.price || prev.price
-    }));
-
-    // Clear error when user starts typing
-    if (errors.sourceId) {
-      setErrors(prev => ({
-        ...prev,
-        sourceId: undefined
-      }));
-    }
-  };
-
   const validateForm = (): boolean => {
     const newErrors: MeetingFormErrors = {};
 
     if (!formData.clientId || formData.clientId === 0) {
       newErrors.clientId = 'Please select a client';
-    }
-
-    if (!formData.sourceId || formData.sourceId === 0) {
-      newErrors.sourceId = 'Please select a source';
     }
 
     if (!formData.meetingDate) {
@@ -205,28 +168,6 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, sources, paymentType
         </div>
 
         <div className="form-field">
-          <label htmlFor="sourceId" className="form-label">
-            Source *
-          </label>
-          <select
-            id="sourceId"
-            name="sourceId"
-            value={formData.sourceId}
-            onChange={handleSourceChange}
-            className={`form-input ${errors.sourceId ? 'error' : ''}`}
-            required
-          >
-            <option value="0">Select a source</option>
-            {sources.map(source => (
-              <option key={source.id} value={source.id}>
-                {source.name} - {source.price}₪ ({source.duration}min)
-              </option>
-            ))}
-          </select>
-          {errors.sourceId && <span className="error-message">{errors.sourceId}</span>}
-        </div>
-
-        <div className="form-field">
           <label htmlFor="meetingDate" className="form-label">
             Date *
           </label>
@@ -275,11 +216,6 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, sources, paymentType
             step="15"
             required
           />
-          {formData.sourceId > 0 && (
-            <small className="form-help">
-              Default: {sources.find(s => s.id === formData.sourceId)?.duration || 60} minutes
-            </small>
-          )}
           {errors.duration && <span className="error-message">{errors.duration}</span>}
         </div>
 
@@ -298,12 +234,6 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, sources, paymentType
             step="0.01"
             required
           />
-          {formData.sourceId > 0 && (
-            <small className="form-help">
-              Default: {sources.find(s => s.id === formData.sourceId)?.price || 0}₪ | 
-              No-show: {sources.find(s => s.id === formData.sourceId)?.noShowPrice || 0}₪
-            </small>
-          )}
           {errors.price && <span className="error-message">{errors.price}</span>}
         </div>
 

@@ -638,39 +638,83 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: var(--error-50);
-  border: 1px solid var(--error-200);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-4);
-  position: relative;
+  margin: var(--space-4) 0;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-lg);
+  color: #dc2626;
+  font-size: var(--text-sm);
+  animation: slideIn var(--transition-base);
+}
+
+.add-session-modal .success-message.enhanced {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-lg);
+  color: #16a34a;
+  font-size: var(--text-sm);
+  animation: slideIn var(--transition-base);
 }
 
 .add-session-modal .error-icon {
-  font-size: var(--text-lg);
   flex-shrink: 0;
+  font-size: var(--text-lg);
+}
+
+.add-session-modal .success-icon {
+  flex-shrink: 0;
+  font-size: var(--text-lg);
 }
 
 .add-session-modal .error-content {
   flex: 1;
-  font-size: var(--text-sm);
-  color: var(--error-800);
+  line-height: var(--line-height-relaxed);
+}
+
+.add-session-modal .success-content {
+  flex: 1;
+  line-height: var(--line-height-relaxed);
 }
 
 .add-session-modal .error-close.enhanced {
+  flex-shrink: 0;
   background: none;
   border: none;
-  color: var(--error-600);
-  font-size: var(--text-lg);
+  color: #dc2626;
   cursor: pointer;
   padding: var(--space-1);
   border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.add-session-modal .success-close.enhanced {
   flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #16a34a;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
+  font-size: var(--text-lg);
+  line-height: 1;
 }
 
 .add-session-modal .error-close.enhanced:hover {
-  background: var(--error-100);
-  color: var(--error-700);
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+
+.add-session-modal .success-close.enhanced:hover {
+  background: rgba(22, 163, 74, 0.1);
+  color: #15803d;
 }
 
 /* Enhanced Form Actions */
