@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { clients, meetings, expenses } from '../../services/api';
-import { Client, Meeting, DashboardStats, ExpenseSummary } from '../../types';
+import { Client, Meeting, DashboardStats, ExpenseSummary, MeetingSource, PaymentType } from '../../types';
 import DashboardLayout from './DashboardLayout';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
@@ -16,8 +16,17 @@ const SimplifiedDashboard: React.FC = () => {
   const [clientList, setClientList] = useState<Client[]>([]);
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [todayMeetings, setTodayMeetings] = useState<Meeting[]>([]);
+  const [sources, setSources] = useState<MeetingSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Mock payment types - in a real app, this would come from an API
+  const paymentTypes: PaymentType[] = [
+    { id: 1, name: 'Bank Transfer', isActive: true, createdAt: '', updatedAt: '' },
+    { id: 2, name: 'Bit', isActive: true, createdAt: '', updatedAt: '' },
+    { id: 3, name: 'Paybox', isActive: true, createdAt: '', updatedAt: '' },
+    { id: 4, name: 'Cash', isActive: true, createdAt: '', updatedAt: '' }
+  ];
   
   // Stats state
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
@@ -35,15 +44,17 @@ const SimplifiedDashboard: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [clientsData, meetingsData, statsData] = await Promise.all([
+      const [clientsData, meetingsData, statsData, sourcesData] = await Promise.all([
         clients.getAll(),
         meetings.getAll(),
-        meetings.getDashboardStats()
+        meetings.getDashboardStats(),
+        meetings.getActiveSources()
       ]);
       
       setClientList(clientsData);
       setMeetingList(meetingsData);
       setDashboardStats(statsData);
+      setSources(sourcesData);
       
       // Filter today's meetings
       const today = new Date().toISOString().split('T')[0];
@@ -296,6 +307,8 @@ const SimplifiedDashboard: React.FC = () => {
         >
           <MeetingForm
             clients={clientList}
+            sources={sources}
+            paymentTypes={paymentTypes}
             onSubmit={async (data) => {
               try {
                 // Handle recurring meetings

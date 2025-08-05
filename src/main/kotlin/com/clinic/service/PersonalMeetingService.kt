@@ -5,8 +5,9 @@ import com.clinic.dto.PersonalMeetingResponse
 import com.clinic.dto.UpdatePersonalMeetingRequest
 import com.clinic.entity.PersonalMeeting
 import com.clinic.entity.PersonalMeetingStatus
-import com.clinic.entity.PersonalMeetingType
+import com.clinic.dto.PersonalMeetingTypeResponse
 import com.clinic.repository.PersonalMeetingRepository
+import com.clinic.repository.PersonalMeetingTypeRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -20,6 +21,9 @@ class PersonalMeetingService {
     private lateinit var personalMeetingRepository: PersonalMeetingRepository
 
     @Autowired
+    private lateinit var personalMeetingTypeRepository: PersonalMeetingTypeRepository
+
+    @Autowired
     private lateinit var authService: AuthService
 
     @Autowired
@@ -28,10 +32,13 @@ class PersonalMeetingService {
     fun createPersonalMeeting(meetingRequest: PersonalMeetingRequest): PersonalMeetingResponse {
         val currentUser = authService.getCurrentUser()
 
+        val meetingType = personalMeetingTypeRepository.findById(meetingRequest.meetingTypeId)
+            .orElseThrow { RuntimeException("Personal meeting type not found with id: ${meetingRequest.meetingTypeId}") }
+
         val meeting = PersonalMeeting(
             user = currentUser,
             therapistName = meetingRequest.therapistName,
-            meetingType = meetingRequest.meetingType,
+            meetingType = meetingType,
             providerType = meetingRequest.providerType,
             providerCredentials = meetingRequest.providerCredentials,
             meetingDate = meetingRequest.meetingDate,
@@ -57,7 +64,7 @@ class PersonalMeetingService {
     private fun createGuideExpense(personalMeeting: PersonalMeeting) {
         val expenseRequest = com.clinic.dto.ExpenseRequest(
             name = "Guide Session - ${personalMeeting.therapistName}",
-            description = "Personal session with guide: ${personalMeeting.meetingType}",
+            description = "Personal session with guide: ${personalMeeting.meetingType.name}",
             amount = personalMeeting.price,
             currency = "ILS",
             category = "Professional Development",
@@ -108,7 +115,10 @@ class PersonalMeetingService {
 
         val updatedMeeting = meeting.copy(
             therapistName = updateRequest.therapistName ?: meeting.therapistName,
-            meetingType = updateRequest.meetingType ?: meeting.meetingType,
+            meetingType = updateRequest.meetingTypeId?.let { typeId ->
+                personalMeetingTypeRepository.findById(typeId)
+                    .orElseThrow { RuntimeException("Personal meeting type not found with id: $typeId") }
+            } ?: meeting.meetingType,
             providerType = updateRequest.providerType ?: meeting.providerType,
             providerCredentials = updateRequest.providerCredentials ?: meeting.providerCredentials,
             meetingDate = updateRequest.meetingDate ?: meeting.meetingDate,
@@ -251,8 +261,21 @@ class PersonalMeetingService {
         )
     }
 
-    fun getMeetingTypes(): List<PersonalMeetingType> {
-        return PersonalMeetingType.values().toList()
+    fun getMeetingTypes(): List<PersonalMeetingTypeResponse> {
+        return personalMeetingTypeRepository.findByIsActiveTrue()
+            .map { meetingType ->
+                PersonalMeetingTypeResponse(
+                    id = meetingType.id,
+                    name = meetingType.name,
+                    duration = meetingType.duration,
+                    price = meetingType.price,
+                    isRecurring = meetingType.isRecurring,
+                    recurrenceFrequency = meetingType.recurrenceFrequency,
+                    isActive = meetingType.isActive,
+                    createdAt = meetingType.createdAt,
+                    updatedAt = meetingType.updatedAt
+                )
+            }
     }
 
     fun getProviderTypes(): List<String> {
@@ -263,7 +286,17 @@ class PersonalMeetingService {
         return PersonalMeetingResponse(
             id = meeting.id,
             therapistName = meeting.therapistName,
-            meetingType = meeting.meetingType,
+            meetingType = PersonalMeetingTypeResponse(
+                id = meeting.meetingType.id,
+                name = meeting.meetingType.name,
+                duration = meeting.meetingType.duration,
+                price = meeting.meetingType.price,
+                isRecurring = meeting.meetingType.isRecurring,
+                recurrenceFrequency = meeting.meetingType.recurrenceFrequency,
+                isActive = meeting.meetingType.isActive,
+                createdAt = meeting.meetingType.createdAt,
+                updatedAt = meeting.meetingType.updatedAt
+            ),
             providerType = meeting.providerType,
             providerCredentials = meeting.providerCredentials,
             meetingDate = meeting.meetingDate,

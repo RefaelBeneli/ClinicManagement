@@ -4,6 +4,7 @@ import './ClientForm.css';
 
 interface MeetingFormData {
   clientId: number;
+  sourceId: number;
   meetingDate: string;
   meetingTime: string;
   duration: number;
@@ -11,10 +12,15 @@ interface MeetingFormData {
   notes: string;
   isRecurring: boolean;
   recurringMonths: number;
+  // Payment tracking fields
+  isPaid: boolean;
+  paymentDate: string;
+  paymentTypeId: number;
 }
 
 interface MeetingFormErrors {
   clientId?: string;
+  sourceId?: string;
   meetingDate?: string;
   meetingTime?: string;
   duration?: string;
@@ -22,6 +28,8 @@ interface MeetingFormErrors {
   notes?: string;
   isRecurring?: string;
   recurringMonths?: string;
+  paymentDate?: string;
+  paymentTypeId?: string;
 }
 
 interface Client {
@@ -29,22 +37,44 @@ interface Client {
   fullName: string;
 }
 
+interface MeetingSource {
+  id: number;
+  name: string;
+  duration: number;
+  price: number;
+  noShowPrice: number;
+  isActive: boolean;
+}
+
+interface PaymentType {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
 interface MeetingFormProps {
   clients: Client[];
+  sources: MeetingSource[];
+  paymentTypes: PaymentType[];
   onSubmit: (data: MeetingFormData) => Promise<void>;
   onCancel: () => void;
 }
 
-const MeetingForm: React.FC<MeetingFormProps> = ({ clients, onSubmit, onCancel }) => {
+const MeetingForm: React.FC<MeetingFormProps> = ({ clients, sources, paymentTypes, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState<MeetingFormData>({
     clientId: 0,
+    sourceId: 0,
     meetingDate: '',
     meetingTime: '',
     duration: 60,
     price: 0,
     notes: '',
     isRecurring: false,
-    recurringMonths: 3
+    recurringMonths: 3,
+    // Payment tracking fields
+    isPaid: false,
+    paymentDate: '',
+    paymentTypeId: 0
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<MeetingFormErrors>({});
@@ -66,10 +96,30 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, onSubmit, onCancel }
     });
 
     // Clear error when user starts typing
-    if (errors[name as keyof MeetingFormData]) {
+    if (errors[name as keyof MeetingFormErrors]) {
       setErrors(prev => ({
         ...prev,
         [name]: undefined
+      }));
+    }
+  };
+
+  const handleSourceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const sourceId = parseInt(e.target.value);
+    const selectedSource = sources.find(s => s.id === sourceId);
+    
+    setFormData(prev => ({
+      ...prev,
+      sourceId: sourceId,
+      duration: selectedSource?.duration || prev.duration,
+      price: selectedSource?.price || prev.price
+    }));
+
+    // Clear error when user starts typing
+    if (errors.sourceId) {
+      setErrors(prev => ({
+        ...prev,
+        sourceId: undefined
       }));
     }
   };
@@ -79,6 +129,10 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, onSubmit, onCancel }
 
     if (!formData.clientId || formData.clientId === 0) {
       newErrors.clientId = 'Please select a client';
+    }
+
+    if (!formData.sourceId || formData.sourceId === 0) {
+      newErrors.sourceId = 'Please select a source';
     }
 
     if (!formData.meetingDate) {
@@ -151,6 +205,28 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, onSubmit, onCancel }
         </div>
 
         <div className="form-field">
+          <label htmlFor="sourceId" className="form-label">
+            Source *
+          </label>
+          <select
+            id="sourceId"
+            name="sourceId"
+            value={formData.sourceId}
+            onChange={handleSourceChange}
+            className={`form-input ${errors.sourceId ? 'error' : ''}`}
+            required
+          >
+            <option value="0">Select a source</option>
+            {sources.map(source => (
+              <option key={source.id} value={source.id}>
+                {source.name} - {source.price}₪ ({source.duration}min)
+              </option>
+            ))}
+          </select>
+          {errors.sourceId && <span className="error-message">{errors.sourceId}</span>}
+        </div>
+
+        <div className="form-field">
           <label htmlFor="meetingDate" className="form-label">
             Date *
           </label>
@@ -199,6 +275,11 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, onSubmit, onCancel }
             step="15"
             required
           />
+          {formData.sourceId > 0 && (
+            <small className="form-help">
+              Default: {sources.find(s => s.id === formData.sourceId)?.duration || 60} minutes
+            </small>
+          )}
           {errors.duration && <span className="error-message">{errors.duration}</span>}
         </div>
 
@@ -217,7 +298,82 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ clients, onSubmit, onCancel }
             step="0.01"
             required
           />
+          {formData.sourceId > 0 && (
+            <small className="form-help">
+              Default: {sources.find(s => s.id === formData.sourceId)?.price || 0}₪ | 
+              No-show: {sources.find(s => s.id === formData.sourceId)?.noShowPrice || 0}₪
+            </small>
+          )}
           {errors.price && <span className="error-message">{errors.price}</span>}
+        </div>
+
+        {/* Payment Tracking Section */}
+        <div className="form-field form-field--full">
+          <div className="payment-section">
+            <h4 className="section-title">Payment Information</h4>
+            
+            <div className="payment-row">
+              <div className="form-field">
+                <label className="form-label">
+                  <input
+                    type="checkbox"
+                    name="isPaid"
+                    checked={formData.isPaid}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        isPaid: e.target.checked,
+                        paymentDate: e.target.checked ? new Date().toISOString().split('T')[0] : ''
+                      }));
+                    }}
+                    className="form-checkbox"
+                  />
+                  <span>Mark as paid</span>
+                </label>
+              </div>
+              
+              {formData.isPaid && (
+                <>
+                  <div className="form-field">
+                    <label htmlFor="paymentDate" className="form-label">
+                      Payment Date
+                    </label>
+                    <input
+                      type="date"
+                      id="paymentDate"
+                      name="paymentDate"
+                      value={formData.paymentDate}
+                      onChange={handleChange}
+                      className={`form-input ${errors.paymentDate ? 'error' : ''}`}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                    {errors.paymentDate && <span className="error-message">{errors.paymentDate}</span>}
+                  </div>
+                  
+                  <div className="form-field">
+                    <label htmlFor="paymentTypeId" className="form-label">
+                      Payment Method
+                    </label>
+                    <select
+                      id="paymentTypeId"
+                      name="paymentTypeId"
+                      value={formData.paymentTypeId}
+                      onChange={handleChange}
+                      className={`form-input ${errors.paymentTypeId ? 'error' : ''}`}
+                    >
+                      <option value="0">Select payment method</option>
+                      {paymentTypes.map(paymentType => (
+                        <option key={paymentType.id} value={paymentType.id}>
+                          {paymentType.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.paymentTypeId && <span className="error-message">{errors.paymentTypeId}</span>}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="form-field form-field--full">

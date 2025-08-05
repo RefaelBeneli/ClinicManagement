@@ -19,7 +19,10 @@ import {
   UserApprovalRequest,
   UserRejectionRequest,
   UserApprovalResponse,
-  ApprovalHistoryResponse
+  ApprovalHistoryResponse,
+  MeetingSource,
+  PersonalMeetingTypeEntity,
+  PaymentType
 } from '../types';
 
 // Data transformation functions to handle backend/frontend property name mismatches
@@ -363,6 +366,11 @@ export const meetings = {
     const response = await apiClient.get('/meetings/user-dashboard-stats');
     return response.data;
   },
+
+  getActiveSources: async (): Promise<MeetingSource[]> => {
+    const response = await apiClient.get('/meetings/sources');
+    return response.data;
+  },
 };
 
 // Personal Meeting API
@@ -433,6 +441,11 @@ export const personalMeetings = {
 
   getTypes: async (): Promise<string[]> => {
     const response = await apiClient.get('/personal-meetings/types');
+    return response.data;
+  },
+
+  getActiveMeetingTypes: async (): Promise<PersonalMeetingTypeEntity[]> => {
+    const response = await apiClient.get('/personal-meetings/types/active');
     return response.data;
   },
 
@@ -647,6 +660,44 @@ export const expenses = {
 
   markAsUnpaid: async (id: number) => {
     const response = await apiClient.post(`/expenses/${id}/mark-unpaid`);
+    return response.data;
+  },
+};
+
+// Payment Types API
+export const paymentTypes = {
+  getAll: async (): Promise<PaymentType[]> => {
+    const response = await apiClient.get('/admin/payment-types');
+    return response.data;
+  },
+
+  getActive: async (): Promise<PaymentType[]> => {
+    const response = await apiClient.get('/admin/payment-types/active');
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<PaymentType> => {
+    const response = await apiClient.get(`/admin/payment-types/${id}`);
+    return response.data;
+  },
+
+  create: async (paymentTypeData: { name: string }): Promise<PaymentType> => {
+    const response = await apiClient.post('/admin/payment-types', paymentTypeData);
+    return response.data;
+  },
+
+  update: async (id: number, paymentTypeData: { name?: string; isActive?: boolean }): Promise<PaymentType> => {
+    const response = await apiClient.put(`/admin/payment-types/${id}`, paymentTypeData);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete(`/admin/payment-types/${id}`);
+    return response.data;
+  },
+
+  toggleActive: async (id: number): Promise<PaymentType> => {
+    const response = await apiClient.patch(`/admin/payment-types/${id}/toggle`);
     return response.data;
   },
 };

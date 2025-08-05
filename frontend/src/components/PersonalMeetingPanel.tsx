@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingType, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
+import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingType, PersonalMeetingRequest, UpdatePersonalMeetingRequest, PersonalMeetingTypeEntity } from '../types';
 import { personalMeetings as personalMeetingsApi } from '../services/api';
 import './PersonalMeetingPanel.css';
 
@@ -17,8 +17,30 @@ interface PersonalMeetingStats {
 }
 
 const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, onRefresh }) => {
+  // Helper functions for meeting type defaults
+  const getDefaultDuration = (type: PersonalMeetingType): number => {
+    switch (type) {
+      case PersonalMeetingType.PERSONAL_THERAPY: return 60;
+      case PersonalMeetingType.PROFESSIONAL_DEVELOPMENT: return 90;
+      case PersonalMeetingType.SUPERVISION: return 60;
+      case PersonalMeetingType.TEACHING_SESSION: return 120;
+      default: return 60;
+    }
+  };
+
+  const getDefaultPrice = (type: PersonalMeetingType): number => {
+    switch (type) {
+      case PersonalMeetingType.PERSONAL_THERAPY: return 400;
+      case PersonalMeetingType.PROFESSIONAL_DEVELOPMENT: return 500;
+      case PersonalMeetingType.SUPERVISION: return 350;
+      case PersonalMeetingType.TEACHING_SESSION: return 600;
+      default: return 400;
+    }
+  };
+
   const [personalMeetings, setPersonalMeetings] = useState<PersonalMeeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<PersonalMeeting[]>([]);
+  const [personalMeetingTypes, setPersonalMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,7 +64,10 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     summary: '',
     isRecurring: false,
     recurrenceFrequency: '',
-    nextDueDate: ''
+    nextDueDate: '',
+    // Payment tracking fields
+    isPaid: false,
+    paymentDate: ''
   });
 
   // Stats state
@@ -51,6 +76,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   useEffect(() => {
     fetchPersonalMeetings();
     fetchStats();
+    fetchPersonalMeetingTypes();
   }, []);
 
   // Handle ESC key
@@ -88,6 +114,15 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       setStats(statsData);
     } catch (error) {
       console.warn('Failed to fetch personal meeting stats:', error);
+    }
+  };
+
+  const fetchPersonalMeetingTypes = async () => {
+    try {
+      const typesData = await personalMeetingsApi.getActiveMeetingTypes();
+      setPersonalMeetingTypes(typesData);
+    } catch (error) {
+      console.warn('Failed to fetch personal meeting types:', error);
     }
   };
 
@@ -549,14 +584,29 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                   <label>Session Type *</label>
                   <select
                     required
+                    name="meetingType"
                     value={formData.meetingType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, meetingType: e.target.value as PersonalMeetingType }))}
+                    onChange={(e) => {
+                      const selectedType = e.target.value as PersonalMeetingType;
+                      const selectedTypeEntity = personalMeetingTypes.find(t => t.name === selectedType);
+                      setFormData(prev => ({
+                        ...prev,
+                        meetingType: selectedType,
+                        duration: selectedTypeEntity?.duration || 60,
+                        price: selectedTypeEntity?.price || 0
+                      }));
+                    }}
+                    className="meeting-type-select"
                   >
-                    <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
-                    <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
-                    <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
-                    <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                    {personalMeetingTypes.map(type => (
+                      <option key={type.id} value={type.name}>
+                        {type.name} ({type.duration}min - {formatCurrency(type.price)})
+                      </option>
+                    ))}
                   </select>
+                  <small className="form-help">
+                    Duration and price will be automatically set based on the session type
+                  </small>
                 </div>
                 
                 <div className="form-group">
@@ -594,6 +644,36 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                     placeholder="120.00"
                   />
                 </div>
+              </div>
+
+              {/* Payment Tracking Section */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.isPaid || false}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        isPaid: e.target.checked,
+                        paymentDate: e.target.checked ? new Date().toISOString().split('T')[0] : ''
+                      }))}
+                    />
+                    Mark as paid
+                  </label>
+                </div>
+                
+                {(formData.isPaid || false) && (
+                  <div className="form-group">
+                    <label>Payment Date</label>
+                    <input
+                      type="date"
+                      value={formData.paymentDate || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, paymentDate: e.target.value }))}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="form-row">
@@ -758,10 +838,11 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                         className="inline-select"
                         disabled={meeting.active === false}
                       >
-                        <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
-                        <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
-                        <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
-                        <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                        {personalMeetingTypes.map(type => (
+                          <option key={type.id} value={type.name}>
+                            {type.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="detail-item">

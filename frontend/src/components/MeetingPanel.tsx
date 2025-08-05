@@ -285,6 +285,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
     try {
       const meetingRequest: MeetingRequest = {
         clientId: formData.clientId,
+        sourceId: 1, // Default to first source (Private)
         meetingDate: formData.meetingDate,
         duration: formData.duration,
         price: formData.price,

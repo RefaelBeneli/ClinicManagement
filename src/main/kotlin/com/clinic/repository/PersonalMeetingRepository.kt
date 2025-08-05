@@ -17,4 +17,6 @@ interface PersonalMeetingRepository : JpaRepository<PersonalMeeting, Long> {
     fun findByUserAndMonthYear(@Param("user") user: User, @Param("year") year: Int, @Param("month") month: Int): List<PersonalMeeting>
     
     fun findByUserAndIsPaidFalse(user: User): List<PersonalMeeting>
+    
+    fun existsByMeetingTypeId(meetingTypeId: Long): Boolean
 } 

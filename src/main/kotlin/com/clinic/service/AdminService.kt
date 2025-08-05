@@ -16,6 +16,9 @@ class AdminService(
     private val clientRepository: ClientRepository,
     private val meetingRepository: MeetingRepository,
     private val personalMeetingRepository: PersonalMeetingRepository,
+    private val meetingSourceRepository: MeetingSourceRepository,
+    private val paymentTypeRepository: PaymentTypeRepository,
+    private val personalMeetingTypeRepository: PersonalMeetingTypeRepository,
     private val passwordEncoder: PasswordEncoder
 ) {
 
@@ -198,14 +201,24 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
+        val source = meetingSourceRepository.findById(request.sourceId)
+            .orElseThrow { RuntimeException("Meeting source not found with id: ${request.sourceId}") }
+
+        val paymentType = if (request.paymentTypeId != null) {
+            paymentTypeRepository.findById(request.paymentTypeId)
+                .orElseThrow { RuntimeException("Payment type not found with id: ${request.paymentTypeId}") }
+        } else null
+
         val meeting = Meeting(
             client = client,
             user = user,
+            source = source,
             meetingDate = request.meetingDate,
             duration = request.duration,
             price = request.price,
             isPaid = request.isPaid,
             paymentDate = request.paymentDate,
+            paymentType = paymentType,
             status = MeetingStatus.valueOf(request.status),
             notes = request.notes
         )
@@ -224,14 +237,24 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
+        val source = meetingSourceRepository.findById(request.sourceId)
+            .orElseThrow { RuntimeException("Meeting source not found with id: ${request.sourceId}") }
+
+        val paymentType = if (request.paymentTypeId != null) {
+            paymentTypeRepository.findById(request.paymentTypeId)
+                .orElseThrow { RuntimeException("Payment type not found with id: ${request.paymentTypeId}") }
+        } else null
+
         val updatedMeeting = meeting.copy(
             client = client,
             user = user,
+            source = source,
             meetingDate = request.meetingDate,
             duration = request.duration,
             price = request.price,
             isPaid = request.isPaid,
             paymentDate = request.paymentDate,
+            paymentType = paymentType,
             status = MeetingStatus.valueOf(request.status),
             notes = request.notes
         )
@@ -297,10 +320,13 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
+        val meetingType = personalMeetingTypeRepository.findById(request.meetingTypeId)
+            .orElseThrow { RuntimeException("Personal meeting type not found with id: ${request.meetingTypeId}") }
+
         val meeting = PersonalMeeting(
             user = user,
             therapistName = request.therapistName,
-            meetingType = PersonalMeetingType.valueOf(request.meetingType),
+            meetingType = meetingType,
             providerType = request.providerType,
             providerCredentials = request.providerCredentials,
             meetingDate = request.meetingDate,
@@ -323,10 +349,13 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
+        val meetingType = personalMeetingTypeRepository.findById(request.meetingTypeId)
+            .orElseThrow { RuntimeException("Personal meeting type not found with id: ${request.meetingTypeId}") }
+
         val updatedMeeting = meeting.copy(
             user = user,
             therapistName = request.therapistName,
-            meetingType = PersonalMeetingType.valueOf(request.meetingType),
+            meetingType = meetingType,
             providerType = request.providerType,
             providerCredentials = request.providerCredentials,
             meetingDate = request.meetingDate,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Meeting, MeetingStatus } from '../../types';
-import { meetings } from '../../services/api';
+import { Meeting, MeetingStatus, PaymentType } from '../../types';
+import { meetings, paymentTypes as paymentTypesApi } from '../../services/api';
 import './ViewMeetingModal.css';
 import './Modal.css';
 
@@ -12,16 +12,41 @@ interface ViewMeetingModalProps {
 }
 
 const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, onClose, onRefresh }) => {
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentMeeting, setCurrentMeeting] = useState<Meeting | null>(meeting);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
 
   // Update current meeting when prop changes
   useEffect(() => {
     setCurrentMeeting(meeting);
   }, [meeting]);
+
+  // Fetch payment types when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchPaymentTypes();
+    }
+  }, [isOpen]);
+
+  const fetchPaymentTypes = async () => {
+    try {
+      const types = await paymentTypesApi.getAll();
+      setPaymentTypes(types);
+    } catch (error) {
+      console.log('⚠️ Failed to fetch payment types from API, using fallback:', error);
+      // Fallback payment types if API fails
+      const fallbackPaymentTypes: PaymentType[] = [
+        { id: 1, name: 'Bank Transfer', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 2, name: 'Bit', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 3, name: 'Paybox', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 4, name: 'Cash', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      ];
+      setPaymentTypes(fallbackPaymentTypes);
+    }
+  };
 
   // Handle Escape key press
   useEffect(() => {
@@ -109,8 +134,14 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
         case 'notes':
           updateData.notes = editValue;
           break;
+        case 'summary':
+          updateData.summary = editValue;
+          break;
         case 'status':
           updateData.status = editValue as MeetingStatus;
+          break;
+        case 'paymentType':
+          updateData.paymentTypeId = parseInt(editValue) || null;
           break;
       }
 
@@ -118,7 +149,7 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
       setCurrentMeeting(updatedMeeting);
       setEditingField(null);
       setEditValue('');
-      onRefresh?.();
+      // Don't call onRefresh to avoid page refresh/scrolling
     } catch (error: any) {
       console.error('Error updating meeting:', error);
       setError('Failed to update meeting');
@@ -126,8 +157,6 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
       setLoading(false);
     }
   };
-
-
 
   const handlePaymentToggle = async () => {
     if (!currentMeeting) return;
@@ -138,7 +167,7 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
     try {
       const updatedMeeting = await meetings.updatePayment(currentMeeting.id, !currentMeeting.isPaid);
       setCurrentMeeting(updatedMeeting);
-      onRefresh?.();
+      // Don't call onRefresh to avoid page refresh/scrolling
     } catch (error: any) {
       console.error('Error updating payment status:', error);
       setError('Failed to update payment status');
@@ -158,7 +187,7 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
     try {
       await meetings.disable(currentMeeting.id);
       setCurrentMeeting({ ...currentMeeting, active: false });
-      onRefresh?.();
+      // Don't call onRefresh to avoid page refresh/scrolling
     } catch (error: any) {
       console.error('Error deleting meeting:', error);
       setError('Failed to delete meeting');
@@ -176,7 +205,7 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
     try {
       await meetings.activate(currentMeeting.id);
       setCurrentMeeting({ ...currentMeeting, active: true });
-      onRefresh?.();
+      // Don't call onRefresh to avoid page refresh/scrolling
     } catch (error: any) {
       console.error('Error restoring meeting:', error);
       setError('Failed to restore meeting');
@@ -193,6 +222,7 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
     options?: { value: string; label: string }[]
   ) => {
     const isEditing = editingField === field;
+    const displayValue = isEditing ? editValue : value;
 
     return (
       <div className="detail-item">
@@ -201,23 +231,51 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
           <div className="edit-field">
             {type === 'textarea' ? (
               <textarea
-                value={editValue}
+                value={displayValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 className="edit-input"
-                rows={3}
+                rows={field === 'summary' ? 15 : 8}
+                placeholder={field === 'notes' ? 'Enter session notes here...' : 'Enter detailed session summary here (up to 2 A4 pages)...'}
+                onBlur={handleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.ctrlKey) {
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    cancelEditing();
+                  }
+                }}
+                autoFocus
               />
             ) : type === 'number' ? (
               <input
                 type="number"
-                value={editValue}
+                value={displayValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 className="edit-input"
+                onBlur={handleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    cancelEditing();
+                  }
+                }}
+                autoFocus
               />
             ) : options ? (
               <select
-                value={editValue}
+                value={displayValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 className="edit-input"
+                onBlur={handleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    cancelEditing();
+                  }
+                }}
+                autoFocus
               >
                 {options.map(option => (
                   <option key={option.value} value={option.value}>
@@ -228,30 +286,24 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
             ) : (
               <input
                 type="text"
-                value={editValue}
+                value={displayValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 className="edit-input"
+                onBlur={handleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    cancelEditing();
+                  }
+                }}
+                autoFocus
               />
             )}
-            <div className="edit-actions">
-              <button 
-                onClick={handleSave}
-                disabled={loading}
-                className="btn-save"
-              >
-                {loading ? 'Saving...' : 'Save'}
-              </button>
-              <button 
-                onClick={cancelEditing}
-                disabled={loading}
-                className="btn-cancel"
-              >
-                Cancel
-              </button>
-            </div>
+            {loading && <div className="saving-indicator">Saving...</div>}
           </div>
         ) : (
-          <div className="display-field">
+          <div className="display-field" onClick={() => startEditing(field, value.toString())}>
             <span className="field-value">
               {field === 'price' ? formatCurrency(value as number) : 
                field === 'date' ? formatDateTime(value as string) :
@@ -265,13 +317,52 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
                ) : 
                value}
             </span>
-            <button 
-              onClick={() => startEditing(field, value.toString())}
-              className="edit-button"
-              title="Click to edit"
+            <div className="edit-hint">Click to edit</div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderPaymentTypeField = () => {
+    const isEditing = editingField === 'paymentType';
+    const currentPaymentTypeId = currentMeeting.paymentType?.id?.toString() || '';
+    const currentPaymentTypeName = currentMeeting.paymentType?.name || 'No payment type selected';
+
+    return (
+      <div className="detail-item">
+        <label><strong>💰 Payment Type:</strong></label>
+        {isEditing ? (
+          <div className="edit-field">
+            <select
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="edit-input"
+              onBlur={handleSave}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSave();
+                } else if (e.key === 'Escape') {
+                  cancelEditing();
+                }
+              }}
+              autoFocus
             >
-              ✏️
-            </button>
+              <option value="">Select a payment type...</option>
+              {paymentTypes.map(type => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+            {loading && <div className="saving-indicator">Saving...</div>}
+          </div>
+        ) : (
+          <div className="display-field" onClick={() => startEditing('paymentType', currentPaymentTypeId)}>
+            <span className="field-value">
+              {currentPaymentTypeName}
+            </span>
+            <div className="edit-hint">Click to edit</div>
           </div>
         )}
       </div>
@@ -354,23 +445,37 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
                 </div>
               </div>
               
-              {currentMeeting.paymentDate && (
-                <div className="detail-item">
+              {currentMeeting.isPaid && renderPaymentTypeField()}
+              
+              {currentMeeting.isPaid && currentMeeting.paymentDate && (
+                <div className="detail-item payment-date-item">
                   <label><strong>Payment Date:</strong></label>
-                  <p>{formatDateTime(currentMeeting.paymentDate)}</p>
+                  <div className="payment-date-display">
+                    <p className="payment-date-value">
+                      {new Date(currentMeeting.paymentDate).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="detail-section">
+          <div className="notes-section">
             <h3>Notes</h3>
             {renderEditableField('notes', 'Notes', currentMeeting.notes || '', 'textarea')}
           </div>
 
-          <div className="detail-section">
+          <div className="summary-section">
             <h3>Session Summary</h3>
-            {renderEditableField('summary', 'Summary', currentMeeting.summary || '', 'textarea')}
+            <div className="summary-textarea-container">
+              {renderEditableField('summary', 'Summary', currentMeeting.summary || '', 'textarea')}
+            </div>
+            {editingField === 'summary' && (
+              <div className="summary-char-counter">
+                <span className="char-count">{editValue.length} characters</span>
+                <span className="char-limit">Up to 2 A4 pages (~2000 characters)</span>
+              </div>
+            )}
           </div>
 
           <div className="detail-section">

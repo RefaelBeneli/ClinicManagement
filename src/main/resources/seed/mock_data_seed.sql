@@ -315,215 +315,232 @@ SET @daniel_patel_id := (SELECT id FROM clients WHERE full_name = 'Daniel Patel'
 -- ==============================================================================
 -- THERAPIST 1 - HIGH VOLUME PRACTICE (Multiple sessions per day with overlapping times)
 
+-- Get source IDs for meetings
+SET @private_source_id := (SELECT id FROM meeting_sources WHERE name = 'Private');
+SET @natal_source_id := (SELECT id FROM meeting_sources WHERE name = 'Natal');
+SET @clalit_source_id := (SELECT id FROM meeting_sources WHERE name = 'Clalit');
+
+-- Get payment type IDs
+SET @bank_transfer_id := (SELECT id FROM payment_types WHERE name = 'Bank Transfer');
+SET @bit_id := (SELECT id FROM payment_types WHERE name = 'Bit');
+SET @paybox_id := (SELECT id FROM payment_types WHERE name = 'Paybox');
+SET @cash_id := (SELECT id FROM payment_types WHERE name = 'Cash');
+
+-- Get personal meeting type IDs
+SET @personal_therapy_id := (SELECT id FROM personal_meeting_types WHERE name = 'Personal Therapy');
+SET @professional_development_id := (SELECT id FROM personal_meeting_types WHERE name = 'Professional Development');
+SET @supervision_id := (SELECT id FROM personal_meeting_types WHERE name = 'Supervision');
+SET @teaching_session_id := (SELECT id FROM personal_meeting_types WHERE name = 'Teaching Session');
+
 -- TODAY - Multiple sessions per day (Busy day scenario)
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, summary, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, summary, status, is_paid, payment_date, is_active, created_at)
 VALUES 
 -- Morning sessions (9:00-12:00)
-(@therapist1_id, @avi_id, CONCAT(CURDATE(), ' 09:00:00'), 60, 150.00, 'Anxiety management, morning session', 'Client showed significant progress in managing anxiety symptoms. Used breathing techniques and cognitive restructuring. Homework assigned for daily practice.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @maya_id, CONCAT(CURDATE(), ' 10:30:00'), 90, 200.00, 'Couples therapy, communication workshop', 'Intensive communication workshop focused on active listening and "I" statements. Both partners engaged well and practiced new techniques. Breakthrough in understanding each other\'s perspectives.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @avi_id, @private_source_id, CONCAT(CURDATE(), ' 09:00:00'), 60, 150.00, 'Anxiety management, morning session', 'Client showed significant progress in managing anxiety symptoms. Used breathing techniques and cognitive restructuring. Homework assigned for daily practice.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @maya_id, @private_source_id, CONCAT(CURDATE(), ' 10:30:00'), 90, 200.00, 'Couples therapy, communication workshop', 'Intensive communication workshop focused on active listening and "I" statements. Both partners engaged well and practiced new techniques. Breakthrough in understanding each other\'s perspectives.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- Afternoon sessions (13:00-17:00)
-(@therapist1_id, @yossi_id, CONCAT(CURDATE(), ' 13:00:00'), 60, 150.00, 'Depression treatment, medication review', 'Client reported improved mood and energy levels. Medication dosage adjusted based on symptoms. Discussed coping strategies for low periods.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @rina_id, CONCAT(CURDATE(), ' 14:30:00'), 90, 200.00, 'EMDR therapy, trauma processing', 'Intensive EMDR session focused on childhood trauma. Client experienced significant emotional breakthrough. Processing continued with bilateral stimulation techniques.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @dani_id, CONCAT(CURDATE(), ' 16:00:00'), 60, 150.00, 'ADHD coaching, organizational skills', 'Worked on time management strategies and organizational systems. Client implemented new planning techniques with positive results. Focus on executive function skills.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @yossi_id, @natal_source_id, CONCAT(CURDATE(), ' 13:00:00'), 60, 150.00, 'Depression treatment, medication review', 'Client reported improved mood and energy levels. Medication dosage adjusted based on symptoms. Discussed coping strategies for low periods.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @rina_id, @private_source_id, CONCAT(CURDATE(), ' 14:30:00'), 90, 200.00, 'EMDR therapy, trauma processing', 'Intensive EMDR session focused on childhood trauma. Client experienced significant emotional breakthrough. Processing continued with bilateral stimulation techniques.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @dani_id, @clalit_source_id, CONCAT(CURDATE(), ' 16:00:00'), 60, 150.00, 'ADHD coaching, organizational skills', 'Worked on time management strategies and organizational systems. Client implemented new planning techniques with positive results. Focus on executive function skills.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- Evening sessions (18:00-21:00)
-(@therapist1_id, @tamar_id, CONCAT(CURDATE(), ' 18:00:00'), 90, 200.00, 'PTSD treatment, military trauma', 'Military trauma processing session using exposure therapy. Client showed resilience in confronting traumatic memories. Grounding techniques practiced.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @oren_id, CONCAT(CURDATE(), ' 19:30:00'), 60, 150.00, 'OCD treatment, exposure therapy', 'ERP therapy session focusing on contamination fears. Client demonstrated courage in exposure exercises. Response prevention techniques reinforced.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @tamar_id, @natal_source_id, CONCAT(CURDATE(), ' 18:00:00'), 90, 200.00, 'PTSD treatment, military trauma', 'Military trauma processing session using exposure therapy. Client showed resilience in confronting traumatic memories. Grounding techniques practiced.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @oren_id, @private_source_id, CONCAT(CURDATE(), ' 19:30:00'), 60, 150.00, 'OCD treatment, exposure therapy', 'ERP therapy session focusing on contamination fears. Client demonstrated courage in exposure exercises. Response prevention techniques reinforced.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- Additional sessions for Therapist 1 today (overlapping schedule)
-(@therapist1_id, @yael_id, CONCAT(CURDATE(), ' 08:00:00'), 90, 200.00, 'Early morning eating disorder session', 'Early morning session focused on meal planning and body image work. Client showed progress in challenging negative thoughts about food and body.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @moshe_id, CONCAT(CURDATE(), ' 11:00:00'), 120, 250.00, 'Substance abuse intensive session', 'Intensive substance abuse counseling with relapse prevention focus. Client committed to 12-step program participation. Family support system strengthened.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @ruth_id, CONCAT(CURDATE(), ' 12:00:00'), 60, 150.00, 'Grief counseling, loss processing', 'Grief counseling session focusing on loss of child. Client expressed complex emotions including anger and guilt. Memorial planning discussed.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @eli_id, CONCAT(CURDATE(), ' 20:00:00'), 90, 200.00, 'Evening bipolar disorder session', 'Evening session for bipolar disorder management. Mood stabilization techniques reviewed. Medication compliance and side effects discussed.', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist1_id, @yael_id, @private_source_id, CONCAT(CURDATE(), ' 08:00:00'), 90, 200.00, 'Early morning eating disorder session', 'Early morning session focused on meal planning and body image work. Client showed progress in challenging negative thoughts about food and body.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @moshe_id, @natal_source_id, CONCAT(CURDATE(), ' 11:00:00'), 120, 250.00, 'Substance abuse intensive session', 'Intensive substance abuse counseling with relapse prevention focus. Client committed to 12-step program participation. Family support system strengthened.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @ruth_id, @clalit_source_id, CONCAT(CURDATE(), ' 12:00:00'), 60, 150.00, 'Grief counseling, loss processing', 'Grief counseling session focusing on loss of child. Client expressed complex emotions including anger and guilt. Memorial planning discussed.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @eli_id, @private_source_id, CONCAT(CURDATE(), ' 20:00:00'), 90, 200.00, 'Evening bipolar disorder session', 'Evening session for bipolar disorder management. Mood stabilization techniques reviewed. Medication compliance and side effects discussed.', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- TOMORROW - Another busy day
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, summary, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, summary, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist1_id, @shira_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 90, 200.00, 'DBT therapy, emotion regulation', 'DBT session focused on emotion regulation skills. Client practiced distress tolerance techniques and interpersonal effectiveness. Significant progress in managing intense emotions.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @avi_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 60, 150.00, 'Anxiety follow-up, progress check', 'Follow-up session to assess anxiety management progress. Client reported reduced panic attacks and improved coping strategies. Homework compliance was excellent.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @maya_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 120, 250.00, 'Couples intensive session', 'Intensive couples therapy session addressing deep-rooted communication patterns. Breakthrough in understanding attachment styles and relationship dynamics.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @yossi_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 16:00:00'), 60, 150.00, 'Depression treatment, CBT', 'CBT session focusing on cognitive restructuring and behavioral activation. Client identified negative thought patterns and practiced challenging them.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @rina_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:00:00'), 90, 200.00, 'EMDR therapy, trauma work', 'Continued EMDR therapy for trauma processing. Client showed increased resilience and reduced emotional reactivity to triggers.', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist1_id, @shira_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 90, 200.00, 'DBT therapy, emotion regulation', 'DBT session focused on emotion regulation skills. Client practiced distress tolerance techniques and interpersonal effectiveness. Significant progress in managing intense emotions.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @avi_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 60, 150.00, 'Anxiety follow-up, progress check', 'Follow-up session to assess anxiety management progress. Client reported reduced panic attacks and improved coping strategies. Homework compliance was excellent.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @maya_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 120, 250.00, 'Couples intensive session', 'Intensive couples therapy session addressing deep-rooted communication patterns. Breakthrough in understanding attachment styles and relationship dynamics.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @yossi_id, @natal_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 16:00:00'), 60, 150.00, 'Depression treatment, CBT', 'CBT session focusing on cognitive restructuring and behavioral activation. Client identified negative thought patterns and practiced challenging them.', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @rina_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:00:00'), 90, 200.00, 'EMDR therapy, trauma work', 'Continued EMDR therapy for trauma processing. Client showed increased resilience and reduced emotional reactivity to triggers.', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THIS WEEK - Multiple sessions per day for different clients
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
 -- Wednesday (3 days from now)
-(@therapist1_id, @dani_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 09:00:00'), 60, 150.00, 'ADHD coaching, time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @tamar_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 10:30:00'), 90, 200.00, 'PTSD treatment, grounding techniques', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @oren_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 14:00:00'), 60, 150.00, 'OCD treatment, ERP therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @shira_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 15:30:00'), 90, 200.00, 'DBT therapy, interpersonal skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @avi_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 17:00:00'), 60, 150.00, 'Anxiety management, evening session', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @dani_id, @clalit_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 09:00:00'), 60, 150.00, 'ADHD coaching, time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @tamar_id, @natal_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 10:30:00'), 90, 200.00, 'PTSD treatment, grounding techniques', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @oren_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 14:00:00'), 60, 150.00, 'OCD treatment, ERP therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @shira_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 15:30:00'), 90, 200.00, 'DBT therapy, interpersonal skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @avi_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 17:00:00'), 60, 150.00, 'Anxiety management, evening session', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- Friday (5 days from now)
-(@therapist1_id, @maya_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 09:00:00'), 120, 250.00, 'Couples therapy, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @yossi_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 11:30:00'), 60, 150.00, 'Depression treatment, medication check', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @rina_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 13:00:00'), 90, 200.00, 'EMDR therapy, trauma processing', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @dani_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 15:00:00'), 60, 150.00, 'ADHD coaching, executive function', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @tamar_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 16:30:00'), 90, 200.00, 'PTSD treatment, exposure therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist1_id, @oren_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 18:00:00'), 60, 150.00, 'OCD treatment, response prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist1_id, @maya_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 09:00:00'), 120, 250.00, 'Couples therapy, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @yossi_id, @natal_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 11:30:00'), 60, 150.00, 'Depression treatment, medication check', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @rina_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 13:00:00'), 90, 200.00, 'EMDR therapy, trauma processing', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @dani_id, @clalit_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 15:00:00'), 60, 150.00, 'ADHD coaching, executive function', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @tamar_id, @natal_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 16:30:00'), 90, 200.00, 'PTSD treatment, exposure therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist1_id, @oren_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 5 DAY), ' 18:00:00'), 60, 150.00, 'OCD treatment, response prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THERAPIST 2 - SPECIALIZED PRACTICE (Eating disorders, substance abuse)
 -- TODAY - Multiple sessions
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist2_id, @sara_id, CONCAT(CURDATE(), ' 09:00:00'), 90, 180.00, 'Eating disorder recovery, body image work', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @tom_id, CONCAT(CURDATE(), ' 11:00:00'), 120, 200.00, 'Substance abuse counseling, relapse prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @liora_id, CONCAT(CURDATE(), ' 14:00:00'), 60, 150.00, 'Grief counseling, loss processing', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @amir_id, CONCAT(CURDATE(), ' 15:30:00'), 90, 180.00, 'Cultural adjustment, immigrant support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @rachel_id, CONCAT(CURDATE(), ' 17:00:00'), 60, 150.00, 'Bipolar disorder, medication management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @david_id, CONCAT(CURDATE(), ' 18:30:00'), 90, 180.00, 'Schizophrenia, family therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist2_id, @sara_id, @private_source_id, CONCAT(CURDATE(), ' 09:00:00'), 90, 180.00, 'Eating disorder recovery, body image work', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @tom_id, @private_source_id, CONCAT(CURDATE(), ' 11:00:00'), 120, 200.00, 'Substance abuse counseling, relapse prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @liora_id, @private_source_id, CONCAT(CURDATE(), ' 14:00:00'), 60, 150.00, 'Grief counseling, loss processing', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @amir_id, @private_source_id, CONCAT(CURDATE(), ' 15:30:00'), 90, 180.00, 'Cultural adjustment, immigrant support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @rachel_id, @natal_source_id, CONCAT(CURDATE(), ' 17:00:00'), 60, 150.00, 'Bipolar disorder, medication management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @david_id, @private_source_id, CONCAT(CURDATE(), ' 18:30:00'), 90, 180.00, 'Schizophrenia, family therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- TOMORROW - Another busy day
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist2_id, @sara_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:00:00'), 90, 180.00, 'Eating disorder, nutrition counseling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @tom_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:00:00'), 120, 200.00, 'Substance abuse, 12-step integration', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @liora_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:00:00'), 60, 150.00, 'Grief counseling, memorial planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @amir_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 16:30:00'), 90, 180.00, 'Cultural adjustment, language barriers', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @rachel_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:00:00'), 60, 150.00, 'Bipolar disorder, mood stabilization', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @sara_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:00:00'), 90, 180.00, 'Eating disorder, nutrition counseling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @tom_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:00:00'), 120, 200.00, 'Substance abuse, 12-step integration', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @liora_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:00:00'), 60, 150.00, 'Grief counseling, memorial planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @amir_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 16:30:00'), 90, 180.00, 'Cultural adjustment, language barriers', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @rachel_id, @natal_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:00:00'), 60, 150.00, 'Bipolar disorder, mood stabilization', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- THIS WEEK - Multiple sessions per day
-(@therapist2_id, @sara_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 09:00:00'), 90, 180.00, 'Eating disorder, meal planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @tom_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 11:00:00'), 120, 200.00, 'Substance abuse, triggers identification', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @david_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 14:00:00'), 90, 180.00, 'Schizophrenia, medication compliance', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @liora_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 16:00:00'), 60, 150.00, 'Grief counseling, support group', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist2_id, @amir_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 17:30:00'), 90, 180.00, 'Cultural adjustment, community resources', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist2_id, @sara_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 09:00:00'), 90, 180.00, 'Eating disorder, meal planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @tom_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 11:00:00'), 120, 200.00, 'Substance abuse, triggers identification', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @david_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 14:00:00'), 90, 180.00, 'Schizophrenia, medication compliance', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @liora_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 16:00:00'), 60, 150.00, 'Grief counseling, support group', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist2_id, @amir_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 17:30:00'), 90, 180.00, 'Cultural adjustment, community resources', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THERAPIST 6 - ADDICTION SPECIALIST (Extensive Schedule)
 -- TODAY - Multiple addiction sessions
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist6_id, @mark_id, CONCAT(CURDATE(), ' 08:00:00'), 90, 200.00, 'Alcohol addiction, 12-step integration', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @lisa_rodriguez_id, CONCAT(CURDATE(), ' 09:30:00'), 120, 250.00, 'Drug addiction, intensive outpatient', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @james_miller_id, CONCAT(CURDATE(), ' 11:30:00'), 90, 200.00, 'Gambling addiction, cognitive therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @anna_id, CONCAT(CURDATE(), ' 13:00:00'), 60, 150.00, 'Sex addiction, group therapy prep', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @carlos_id, CONCAT(CURDATE(), ' 14:30:00'), 120, 250.00, 'Prescription drug abuse, detox support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @rachel_smith_id, CONCAT(CURDATE(), ' 16:30:00'), 90, 200.00, 'Internet addiction, digital detox', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @thomas_id, CONCAT(CURDATE(), ' 18:00:00'), 60, 150.00, 'Shopping addiction, financial counseling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @maria_lopez_id, CONCAT(CURDATE(), ' 19:30:00'), 90, 200.00, 'Food addiction, eating disorder', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @mark_id, @private_source_id, CONCAT(CURDATE(), ' 08:00:00'), 90, 200.00, 'Alcohol addiction, 12-step integration', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @lisa_rodriguez_id, @private_source_id, CONCAT(CURDATE(), ' 09:30:00'), 120, 250.00, 'Drug addiction, intensive outpatient', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @james_miller_id, @private_source_id, CONCAT(CURDATE(), ' 11:30:00'), 90, 200.00, 'Gambling addiction, cognitive therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @anna_id, @private_source_id, CONCAT(CURDATE(), ' 13:00:00'), 60, 150.00, 'Sex addiction, group therapy prep', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @carlos_id, @private_source_id, CONCAT(CURDATE(), ' 14:30:00'), 120, 250.00, 'Prescription drug abuse, detox support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @rachel_smith_id, @private_source_id, CONCAT(CURDATE(), ' 16:30:00'), 90, 200.00, 'Internet addiction, digital detox', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @thomas_id, @private_source_id, CONCAT(CURDATE(), ' 18:00:00'), 60, 150.00, 'Shopping addiction, financial counseling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @maria_lopez_id, @private_source_id, CONCAT(CURDATE(), ' 19:30:00'), 90, 200.00, 'Food addiction, eating disorder', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- TOMORROW - Another intensive day
-(@therapist6_id, @mark_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:00:00'), 120, 250.00, 'Alcohol addiction, relapse prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @lisa_rodriguez_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 90, 200.00, 'Drug addiction, triggers identification', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @james_miller_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:30:00'), 60, 150.00, 'Gambling addiction, financial planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @anna_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 90, 200.00, 'Sex addiction, relationship skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @carlos_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 120, 250.00, 'Prescription drug abuse, medication management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @rachel_smith_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:30:00'), 90, 200.00, 'Internet addiction, screen time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @thomas_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 19:00:00'), 60, 150.00, 'Shopping addiction, budget planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist6_id, @maria_lopez_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 20:30:00'), 90, 200.00, 'Food addiction, meal planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist6_id, @mark_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:00:00'), 120, 250.00, 'Alcohol addiction, relapse prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @lisa_rodriguez_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 90, 200.00, 'Drug addiction, triggers identification', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @james_miller_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:30:00'), 60, 150.00, 'Gambling addiction, financial planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @anna_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 90, 200.00, 'Sex addiction, relationship skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @carlos_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 120, 250.00, 'Prescription drug abuse, medication management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @rachel_smith_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:30:00'), 90, 200.00, 'Internet addiction, screen time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @thomas_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 19:00:00'), 60, 150.00, 'Shopping addiction, budget planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist6_id, @maria_lopez_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 20:30:00'), 90, 200.00, 'Food addiction, meal planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THERAPIST 7 - CHILD PSYCHOLOGY SPECIALIST (Multiple child sessions)
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist7_id, @emma_johnson_id, CONCAT(CURDATE(), ' 09:00:00'), 60, 120.00, 'Child therapy, anxiety disorders', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @noah_id, CONCAT(CURDATE(), ' 10:00:00'), 90, 150.00, 'ADHD child, behavioral therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @olivia_id, CONCAT(CURDATE(), ' 11:30:00'), 60, 120.00, 'Autism spectrum, early intervention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @liam_id, CONCAT(CURDATE(), ' 12:30:00'), 90, 150.00, 'Child trauma, play therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @ava_id, CONCAT(CURDATE(), ' 14:00:00'), 60, 120.00, 'Learning disabilities, academic support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @ethan_id, CONCAT(CURDATE(), ' 15:00:00'), 90, 150.00, 'Social skills, peer relationships', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @sophia_id, CONCAT(CURDATE(), ' 16:30:00'), 60, 120.00, 'Depression in children, art therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @mason_id, CONCAT(CURDATE(), ' 17:30:00'), 90, 150.00, 'Behavioral issues, parent training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @isabella_id, CONCAT(CURDATE(), ' 18:30:00'), 60, 120.00, 'Grief in children, loss of parent', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @william_id, CONCAT(CURDATE(), ' 19:30:00'), 90, 150.00, 'Divorce impact, family adjustment', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @emma_johnson_id, @private_source_id, CONCAT(CURDATE(), ' 09:00:00'), 60, 120.00, 'Child therapy, anxiety disorders', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @noah_id, @private_source_id, CONCAT(CURDATE(), ' 10:00:00'), 90, 150.00, 'ADHD child, behavioral therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @olivia_id, @private_source_id, CONCAT(CURDATE(), ' 11:30:00'), 60, 120.00, 'Autism spectrum, early intervention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @liam_id, @private_source_id, CONCAT(CURDATE(), ' 12:30:00'), 90, 150.00, 'Child trauma, play therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @ava_id, @private_source_id, CONCAT(CURDATE(), ' 14:00:00'), 60, 120.00, 'Learning disabilities, academic support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @ethan_id, @private_source_id, CONCAT(CURDATE(), ' 15:00:00'), 90, 150.00, 'Social skills, peer relationships', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @sophia_id, @private_source_id, CONCAT(CURDATE(), ' 16:30:00'), 60, 120.00, 'Depression in children, art therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @mason_id, @private_source_id, CONCAT(CURDATE(), ' 17:30:00'), 90, 150.00, 'Behavioral issues, parent training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @isabella_id, @private_source_id, CONCAT(CURDATE(), ' 18:30:00'), 60, 120.00, 'Grief in children, loss of parent', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @william_id, @private_source_id, CONCAT(CURDATE(), ' 19:30:00'), 90, 150.00, 'Divorce impact, family adjustment', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- TOMORROW - Another busy day
-(@therapist7_id, @emma_johnson_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:00:00'), 60, 120.00, 'Child therapy, anxiety management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @noah_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 90, 150.00, 'ADHD child, focus training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @olivia_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 60, 120.00, 'Autism spectrum, communication skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @liam_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 11:30:00'), 90, 150.00, 'Child trauma, emotional regulation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @ava_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 13:00:00'), 60, 120.00, 'Learning disabilities, study skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @ethan_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 90, 150.00, 'Social skills, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @sophia_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 60, 120.00, 'Depression in children, self-esteem', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @mason_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 16:30:00'), 90, 150.00, 'Behavioral issues, positive reinforcement', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @isabella_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:30:00'), 60, 120.00, 'Grief in children, memory work', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist7_id, @william_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:30:00'), 90, 150.00, 'Divorce impact, co-parenting support', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist7_id, @emma_johnson_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:00:00'), 60, 120.00, 'Child therapy, anxiety management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @noah_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 90, 150.00, 'ADHD child, focus training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @olivia_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 60, 120.00, 'Autism spectrum, communication skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @liam_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 11:30:00'), 90, 150.00, 'Child trauma, emotional regulation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @ava_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 13:00:00'), 60, 120.00, 'Learning disabilities, study skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @ethan_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 90, 150.00, 'Social skills, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @sophia_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 60, 120.00, 'Depression in children, self-esteem', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @mason_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 16:30:00'), 90, 150.00, 'Behavioral issues, positive reinforcement', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @isabella_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:30:00'), 60, 120.00, 'Grief in children, memory work', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist7_id, @william_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:30:00'), 90, 150.00, 'Divorce impact, co-parenting support', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THERAPIST 8 - GERIATRIC PSYCHOLOGY (Elderly clients)
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist8_id, @harold_id, CONCAT(CURDATE(), ' 10:00:00'), 60, 130.00, 'Elderly depression, life transition', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @dorothy_id, CONCAT(CURDATE(), ' 11:00:00'), 90, 160.00, 'Grief counseling, loss of spouse', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @robert_wilson_id, CONCAT(CURDATE(), ' 12:30:00'), 60, 130.00, 'Dementia support, family counseling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @margaret_id, CONCAT(CURDATE(), ' 13:30:00'), 90, 160.00, 'Anxiety in elderly, medication management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @charles_id, CONCAT(CURDATE(), ' 15:00:00'), 60, 130.00, 'Retirement adjustment, purpose finding', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @helen_id, CONCAT(CURDATE(), ' 16:00:00'), 90, 160.00, 'Chronic pain, coping strategies', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @harold_id, @private_source_id, CONCAT(CURDATE(), ' 10:00:00'), 60, 130.00, 'Elderly depression, life transition', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @dorothy_id, @private_source_id, CONCAT(CURDATE(), ' 11:00:00'), 90, 160.00, 'Grief counseling, loss of spouse', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @robert_wilson_id, @private_source_id, CONCAT(CURDATE(), ' 12:30:00'), 60, 130.00, 'Dementia support, family counseling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @margaret_id, @private_source_id, CONCAT(CURDATE(), ' 13:30:00'), 90, 160.00, 'Anxiety in elderly, medication management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @charles_id, @private_source_id, CONCAT(CURDATE(), ' 15:00:00'), 60, 130.00, 'Retirement adjustment, purpose finding', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @helen_id, @private_source_id, CONCAT(CURDATE(), ' 16:00:00'), 90, 160.00, 'Chronic pain, coping strategies', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- TOMORROW - Another day
-(@therapist8_id, @harold_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 60, 130.00, 'Elderly depression, social connection', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @dorothy_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:00:00'), 90, 160.00, 'Grief counseling, memorial planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @robert_wilson_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 11:30:00'), 60, 130.00, 'Dementia support, caregiver stress', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @margaret_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:30:00'), 90, 160.00, 'Anxiety in elderly, relaxation techniques', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @charles_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 60, 130.00, 'Retirement adjustment, new hobbies', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist8_id, @helen_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:00:00'), 90, 160.00, 'Chronic pain, mindfulness techniques', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist8_id, @harold_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 60, 130.00, 'Elderly depression, social connection', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @dorothy_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:00:00'), 90, 160.00, 'Grief counseling, memorial planning', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @robert_wilson_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 11:30:00'), 60, 130.00, 'Dementia support, caregiver stress', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @margaret_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:30:00'), 90, 160.00, 'Anxiety in elderly, relaxation techniques', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @charles_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 60, 130.00, 'Retirement adjustment, new hobbies', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist8_id, @helen_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:00:00'), 90, 160.00, 'Chronic pain, mindfulness techniques', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THERAPIST 9 - SPORTS PSYCHOLOGY (Athlete clients)
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist9_id, @alex_rodriguez_id, CONCAT(CURDATE(), ' 07:00:00'), 60, 180.00, 'Performance anxiety, sports psychology', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @jordan_id, CONCAT(CURDATE(), ' 08:00:00'), 90, 220.00, 'Injury recovery, mental preparation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @casey_id, CONCAT(CURDATE(), ' 09:30:00'), 60, 180.00, 'Team dynamics, leadership skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @taylor_id, CONCAT(CURDATE(), ' 10:30:00'), 90, 220.00, 'Competition stress, focus training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @morgan_id, CONCAT(CURDATE(), ' 12:00:00'), 60, 180.00, 'Career transition, post-sports life', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @riley_id, CONCAT(CURDATE(), ' 13:00:00'), 90, 220.00, 'Motivation issues, goal setting', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @quinn_id, CONCAT(CURDATE(), ' 14:30:00'), 60, 180.00, 'Confidence building, mental toughness', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @avery_id, CONCAT(CURDATE(), ' 15:30:00'), 90, 220.00, 'Burnout prevention, work-life balance', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @alex_rodriguez_id, @private_source_id, CONCAT(CURDATE(), ' 07:00:00'), 60, 180.00, 'Performance anxiety, sports psychology', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @jordan_id, @private_source_id, CONCAT(CURDATE(), ' 08:00:00'), 90, 220.00, 'Injury recovery, mental preparation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @casey_id, @private_source_id, CONCAT(CURDATE(), ' 09:30:00'), 60, 180.00, 'Team dynamics, leadership skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @taylor_id, @private_source_id, CONCAT(CURDATE(), ' 10:30:00'), 90, 220.00, 'Competition stress, focus training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @morgan_id, @private_source_id, CONCAT(CURDATE(), ' 12:00:00'), 60, 180.00, 'Career transition, post-sports life', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @riley_id, @private_source_id, CONCAT(CURDATE(), ' 13:00:00'), 90, 220.00, 'Motivation issues, goal setting', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @quinn_id, @private_source_id, CONCAT(CURDATE(), ' 14:30:00'), 60, 180.00, 'Confidence building, mental toughness', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @avery_id, @private_source_id, CONCAT(CURDATE(), ' 15:30:00'), 90, 220.00, 'Burnout prevention, work-life balance', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- TOMORROW - Another day
-(@therapist9_id, @alex_rodriguez_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 06:00:00'), 60, 180.00, 'Performance anxiety, visualization', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @jordan_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 07:00:00'), 90, 220.00, 'Injury recovery, return to play', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @casey_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:30:00'), 60, 180.00, 'Team dynamics, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @taylor_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:30:00'), 90, 220.00, 'Competition stress, pressure management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @morgan_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 11:00:00'), 60, 180.00, 'Career transition, identity work', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @riley_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:00:00'), 90, 220.00, 'Motivation issues, intrinsic motivation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @quinn_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 13:30:00'), 60, 180.00, 'Confidence building, self-talk', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist9_id, @avery_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:30:00'), 90, 220.00, 'Burnout prevention, recovery strategies', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist9_id, @alex_rodriguez_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 06:00:00'), 60, 180.00, 'Performance anxiety, visualization', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @jordan_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 07:00:00'), 90, 220.00, 'Injury recovery, return to play', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @casey_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:30:00'), 60, 180.00, 'Team dynamics, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @taylor_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:30:00'), 90, 220.00, 'Competition stress, pressure management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @morgan_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 11:00:00'), 60, 180.00, 'Career transition, identity work', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @riley_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:00:00'), 90, 220.00, 'Motivation issues, intrinsic motivation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @quinn_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 13:30:00'), 60, 180.00, 'Confidence building, self-talk', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist9_id, @avery_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:30:00'), 90, 220.00, 'Burnout prevention, recovery strategies', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THERAPIST 10 - CORPORATE PSYCHOLOGY (Business clients)
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist10_id, @sarah_chen_id, CONCAT(CURDATE(), ' 08:00:00'), 60, 200.00, 'Work stress, burnout management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @michael_oconnor_id, CONCAT(CURDATE(), ' 09:00:00'), 90, 250.00, 'Leadership development, executive coaching', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @jennifer_park_id, CONCAT(CURDATE(), ' 10:30:00'), 60, 200.00, 'Workplace conflict, communication skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @david_kim_id, CONCAT(CURDATE(), ' 11:30:00'), 90, 250.00, 'Career transition, job search support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @lisa_thompson_id, CONCAT(CURDATE(), ' 13:00:00'), 60, 200.00, 'Imposter syndrome, confidence building', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @robert_martinez_id, CONCAT(CURDATE(), ' 14:00:00'), 90, 250.00, 'Work-life balance, time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @amanda_lee_id, CONCAT(CURDATE(), ' 15:30:00'), 60, 200.00, 'Team dynamics, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @christopher_wong_id, CONCAT(CURDATE(), ' 16:30:00'), 90, 250.00, 'Performance anxiety, public speaking', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @rachel_martinez_id, CONCAT(CURDATE(), ' 18:00:00'), 60, 200.00, 'Organizational change, adaptation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @daniel_patel_id, CONCAT(CURDATE(), ' 19:00:00'), 90, 250.00, 'Remote work challenges, isolation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @sarah_chen_id, @private_source_id, CONCAT(CURDATE(), ' 08:00:00'), 60, 200.00, 'Work stress, burnout management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @michael_oconnor_id, @private_source_id, CONCAT(CURDATE(), ' 09:00:00'), 90, 250.00, 'Leadership development, executive coaching', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @jennifer_park_id, @private_source_id, CONCAT(CURDATE(), ' 10:30:00'), 60, 200.00, 'Workplace conflict, communication skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @david_kim_id, @private_source_id, CONCAT(CURDATE(), ' 11:30:00'), 90, 250.00, 'Career transition, job search support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @lisa_thompson_id, @private_source_id, CONCAT(CURDATE(), ' 13:00:00'), 60, 200.00, 'Imposter syndrome, confidence building', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @robert_martinez_id, @private_source_id, CONCAT(CURDATE(), ' 14:00:00'), 90, 250.00, 'Work-life balance, time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @amanda_lee_id, @private_source_id, CONCAT(CURDATE(), ' 15:30:00'), 60, 200.00, 'Team dynamics, conflict resolution', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @christopher_wong_id, @private_source_id, CONCAT(CURDATE(), ' 16:30:00'), 90, 250.00, 'Performance anxiety, public speaking', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @rachel_martinez_id, @private_source_id, CONCAT(CURDATE(), ' 18:00:00'), 60, 200.00, 'Organizational change, adaptation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @daniel_patel_id, @private_source_id, CONCAT(CURDATE(), ' 19:00:00'), 90, 250.00, 'Remote work challenges, isolation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- TOMORROW - Another busy day
-(@therapist10_id, @sarah_chen_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 07:00:00'), 60, 200.00, 'Work stress, boundary setting', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @michael_oconnor_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:00:00'), 90, 250.00, 'Leadership development, strategic thinking', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @jennifer_park_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:30:00'), 60, 200.00, 'Workplace conflict, negotiation skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @david_kim_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 90, 250.00, 'Career transition, networking skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @lisa_thompson_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:00:00'), 60, 200.00, 'Imposter syndrome, self-validation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @robert_martinez_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 13:00:00'), 90, 250.00, 'Work-life balance, priority setting', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @amanda_lee_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:30:00'), 60, 200.00, 'Team dynamics, collaboration skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @christopher_wong_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 90, 250.00, 'Performance anxiety, presentation skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @rachel_martinez_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:00:00'), 60, 200.00, 'Organizational change, resilience', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist10_id, @daniel_patel_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:00:00'), 90, 250.00, 'Remote work challenges, connection building', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
+(@therapist10_id, @sarah_chen_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 07:00:00'), 60, 200.00, 'Work stress, boundary setting', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @michael_oconnor_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 08:00:00'), 90, 250.00, 'Leadership development, strategic thinking', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @jennifer_park_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:30:00'), 60, 200.00, 'Workplace conflict, negotiation skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @david_kim_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 90, 250.00, 'Career transition, networking skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @lisa_thompson_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 12:00:00'), 60, 200.00, 'Imposter syndrome, self-validation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @robert_martinez_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 13:00:00'), 90, 250.00, 'Work-life balance, priority setting', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @amanda_lee_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:30:00'), 60, 200.00, 'Team dynamics, collaboration skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @christopher_wong_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 90, 250.00, 'Performance anxiety, presentation skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @rachel_martinez_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:00:00'), 60, 200.00, 'Organizational change, resilience', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist10_id, @daniel_patel_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:00:00'), 90, 250.00, 'Remote work challenges, connection building', 'SCHEDULED', FALSE, NULL, TRUE, NOW());
 
 -- THERAPIST 3 - CHILD & FAMILY PRACTICE
 -- TODAY - Multiple child and family sessions
-INSERT INTO meetings (user_id, client_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
+INSERT INTO meetings (user_id, client_id, source_id, meeting_date, duration, price, notes, status, is_paid, payment_date, is_active, created_at)
 VALUES 
-(@therapist3_id, @ella_id, CONCAT(CURDATE(), ' 09:00:00'), 60, 120.00, 'Teen therapy, school anxiety management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @rafi_id, CONCAT(CURDATE(), ' 10:30:00'), 60, 120.00, 'Work stress, burnout prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @nina_id, CONCAT(CURDATE(), ' 14:00:00'), 90, 150.00, 'Pregnancy counseling, postpartum support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @ben_id, CONCAT(CURDATE(), ' 15:30:00'), 60, 120.00, 'Child therapy, ADHD, play therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @lily_id, CONCAT(CURDATE(), ' 17:00:00'), 90, 150.00, 'Family therapy, divorce adjustment', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @max_id, CONCAT(CURDATE(), ' 18:30:00'), 60, 120.00, 'Autism spectrum, social skills training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @ella_id, @private_source_id, CONCAT(CURDATE(), ' 09:00:00'), 60, 120.00, 'Teen therapy, school anxiety management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @rafi_id, @private_source_id, CONCAT(CURDATE(), ' 10:30:00'), 60, 120.00, 'Work stress, burnout prevention', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @nina_id, @private_source_id, CONCAT(CURDATE(), ' 14:00:00'), 90, 150.00, 'Pregnancy counseling, postpartum support', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @ben_id, @private_source_id, CONCAT(CURDATE(), ' 15:30:00'), 60, 120.00, 'Child therapy, ADHD, play therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @lily_id, @private_source_id, CONCAT(CURDATE(), ' 17:00:00'), 90, 150.00, 'Family therapy, divorce adjustment', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @max_id, @private_source_id, CONCAT(CURDATE(), ' 18:30:00'), 60, 120.00, 'Autism spectrum, social skills training', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- TOMORROW - Another busy day
-(@therapist3_id, @sophie_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 60, 120.00, 'Adolescent depression, CBT therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @ella_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 60, 120.00, 'Teen therapy, peer pressure handling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @rafi_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 60, 120.00, 'Work stress, time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @nina_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 90, 150.00, 'Pregnancy counseling, birth preparation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @ben_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:00:00'), 60, 120.00, 'Child therapy, emotional regulation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
-(@therapist3_id, @lily_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:30:00'), 90, 150.00, 'Family therapy, communication skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @sophie_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 09:00:00'), 60, 120.00, 'Adolescent depression, CBT therapy', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @ella_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 10:30:00'), 60, 120.00, 'Teen therapy, peer pressure handling', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @rafi_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 14:00:00'), 60, 120.00, 'Work stress, time management', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @nina_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 15:30:00'), 90, 150.00, 'Pregnancy counseling, birth preparation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @ben_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 17:00:00'), 60, 120.00, 'Child therapy, emotional regulation', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
+(@therapist3_id, @lily_id, @private_source_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), ' 18:30:00'), 90, 150.00, 'Family therapy, communication skills', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
 
 -- THIS WEEK - Multiple sessions per day
 (@therapist3_id, @max_id, CONCAT(DATE_ADD(CURDATE(), INTERVAL 3 DAY), ' 09:00:00'), 60, 120.00, 'Autism spectrum, sensory integration', 'SCHEDULED', FALSE, NULL, TRUE, NOW()),
@@ -565,40 +582,47 @@ VALUES
 (@therapist2_id, @tom_id, NOW() - INTERVAL 40 DAY, 150, 250.00, 'Intensive therapy session', 'COMPLETED', TRUE, NOW() - INTERVAL 40 DAY, TRUE, NOW() - INTERVAL 40 DAY);
 
 -- 5. Diverse Personal Meetings for all therapists
+
+-- Get personal meeting type IDs
+SET @personal_therapy_id := (SELECT id FROM personal_meeting_types WHERE name = 'Personal Therapy');
+SET @professional_development_id := (SELECT id FROM personal_meeting_types WHERE name = 'Professional Development');
+SET @supervision_id := (SELECT id FROM personal_meeting_types WHERE name = 'Supervision');
+SET @teaching_session_id := (SELECT id FROM personal_meeting_types WHERE name = 'Teaching Session');
+
 -- Therapist 1 - Personal Development Sessions
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist1_id, 'Dr. Sarah Cohen', 'PERSONAL_THERAPY', 'Therapist', 'Licensed Clinical Psychologist',
+(@therapist1_id, 'Dr. Sarah Cohen', @personal_therapy_id, 'Therapist', 'Licensed Clinical Psychologist',
  NOW() - INTERVAL 7 DAY, 60, 150.00, 'Personal therapy session focusing on work-life balance', 'Personal therapy session focused on therapist self-care and professional development. Discussed work-life balance, stress management techniques, and maintaining professional boundaries. Explored strategies for preventing burnout and maintaining personal well-being while supporting clients effectively.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 7 DAY),
 
-(@therapist1_id, 'Dr. Michael Rosen', 'SUPERVISION', 'Supervisor', 'Senior Clinical Supervisor',
+(@therapist1_id, 'Dr. Michael Rosen', @supervision_id, 'Supervisor', 'Senior Clinical Supervisor',
  NOW() - INTERVAL 14 DAY, 90, 200.00, 'Weekly supervision covering complex cases', 'Supervision session covering complex case management and ethical considerations. Reviewed treatment plans for trauma clients, discussed professional boundaries, and explored countertransference issues. Enhanced clinical decision-making skills and professional development.', 'COMPLETED', TRUE, TRUE, 'WEEKLY', NOW() + INTERVAL 7 DAY, TRUE, NOW() - INTERVAL 14 DAY),
 
-(@therapist1_id, 'Dr. Rachel Green', 'PROFESSIONAL_DEVELOPMENT', 'Mentor', 'Trauma Therapy Specialist',
+(@therapist1_id, 'Dr. Rachel Green', @professional_development_id, 'Mentor', 'Trauma Therapy Specialist',
  NOW() - INTERVAL 21 DAY, 120, 250.00, 'Advanced trauma therapy training', 'Professional development workshop on advanced therapeutic techniques for trauma treatment. Learned new intervention strategies, assessment tools, and evidence-based practices. Enhanced skills in trauma-informed care and specialized therapeutic approaches.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 21 DAY),
 
-(@therapist1_id, 'Dr. Michael Rosen', 'SUPERVISION', 'Supervisor', 'Senior Clinical Supervisor',
+(@therapist1_id, 'Dr. Michael Rosen', @supervision_id, 'Supervisor', 'Senior Clinical Supervisor',
  NOW() + INTERVAL 7 DAY, 90, 200.00, 'Upcoming supervision session', 'Scheduled supervision session to review ongoing cases and professional development goals. Will discuss recent client progress, ethical dilemmas, and continuing education opportunities.', 'SCHEDULED', FALSE, TRUE, 'WEEKLY', NOW() + INTERVAL 14 DAY, TRUE, NOW());
 
 -- Therapist 2 - Professional Growth Sessions
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist2_id, 'Dr. David Levy', 'PERSONAL_THERAPY', 'Therapist', 'Licensed Clinical Social Worker',
+(@therapist2_id, 'Dr. David Levy', @personal_therapy_id, 'Therapist', 'Licensed Clinical Social Worker',
  NOW() - INTERVAL 5 DAY, 60, 140.00, 'Personal therapy for professional development', 'Personal therapy session focusing on therapist self-care and professional development. Discussed work-life balance, stress management techniques, and maintaining professional boundaries. Explored strategies for preventing burnout and maintaining personal well-being while supporting clients effectively.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 5 DAY),
 
-(@therapist2_id, 'Dr. Lisa Chen', 'TEACHING_SESSION', 'Teacher', 'EMDR Certified Trainer',
+(@therapist2_id, 'Dr. Lisa Chen', @teaching_session_id, 'Teacher', 'EMDR Certified Trainer',
  NOW() - INTERVAL 12 DAY, 180, 300.00, 'EMDR certification training session', 'Teaching session on specialized therapeutic approaches for EMDR therapy. Enhanced skills in trauma-informed care and evidence-based practices. Learned advanced EMDR techniques and case conceptualization strategies for complex trauma cases.', 'COMPLETED', TRUE, TRUE, 'MONTHLY', NOW() + INTERVAL 18 DAY, TRUE, NOW() - INTERVAL 12 DAY),
 
-(@therapist2_id, 'Dr. James Wilson', 'SUPERVISION', 'Supervisor', 'Addiction Treatment Specialist',
+(@therapist2_id, 'Dr. James Wilson', @supervision_id, 'Supervisor', 'Addiction Treatment Specialist',
  NOW() - INTERVAL 19 DAY, 90, 180.00, 'Addiction treatment supervision', 'Supervision session covering addiction treatment cases and ethical considerations. Reviewed treatment plans for substance abuse clients, discussed relapse prevention strategies, and explored family therapy approaches in addiction treatment.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 19 DAY),
 
-(@therapist2_id, 'Dr. Lisa Chen', 'TEACHING_SESSION', 'Teacher', 'EMDR Certified Trainer',
+(@therapist2_id, 'Dr. Lisa Chen', @teaching_session_id, 'Teacher', 'EMDR Certified Trainer',
  NOW() + INTERVAL 18 DAY, 180, 300.00, 'Advanced EMDR techniques workshop', 'Scheduled teaching session on advanced EMDR techniques and case conceptualization. Will cover complex trauma cases, group EMDR protocols, and integration with other therapeutic modalities.', 'SCHEDULED', FALSE, TRUE, 'MONTHLY', NOW() + INTERVAL 36 DAY, TRUE, NOW());
 
 -- Therapist 3 - Skill Development Sessions

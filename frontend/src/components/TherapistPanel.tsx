@@ -8,8 +8,8 @@ import ClientPanel from './ClientPanel';
 import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
 import AnalyticsPanel from './AnalyticsPanel';
-import { clients, meetings, personalMeetings, expenses } from '../services/api';
-import { Client, Meeting, PersonalMeeting, Expense, MeetingStatus, PersonalMeetingStatus, PersonalMeetingType } from '../types';
+import { clients, meetings, personalMeetings, expenses, paymentTypes as paymentTypesApi } from '../services/api';
+import { Client, Meeting, PersonalMeeting, Expense, MeetingStatus, PersonalMeetingStatus, PersonalMeetingType, MeetingSource, PaymentType } from '../types';
 import ViewClientModal from './ui/ViewClientModal';
 import ViewMeetingModal from './ui/ViewMeetingModal';
 import ViewPersonalMeetingModal from './ui/ViewPersonalMeetingModal';
@@ -30,6 +30,7 @@ const TherapistPanel: React.FC = () => {
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [personalMeetingList, setPersonalMeetingList] = useState<PersonalMeeting[]>([]);
   const [expenseList, setExpenseList] = useState<Expense[]>([]);
+  const [meetingSources, setMeetingSources] = useState<MeetingSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'meetings' | 'personal-meetings' | 'expenses' | 'analytics' | 'calendar'>('dashboard');
   const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
@@ -139,6 +140,15 @@ const TherapistPanel: React.FC = () => {
     }
   }, []);
 
+  const fetchMeetingSources = async () => {
+    try {
+      const sources = await meetings.getActiveSources();
+      setMeetingSources(sources);
+    } catch (error) {
+      console.error('❌ Failed to fetch meeting sources:', error);
+    }
+  };
+
   const fetchDashboardStats = useCallback(async () => {
     try {
       const statsData = await meetings.getDashboardStats();
@@ -245,8 +255,25 @@ const TherapistPanel: React.FC = () => {
   }, [fetchClients, fetchMeetings, fetchPersonalMeetings, fetchExpenses]);
 
   useEffect(() => {
-    loadTherapistData();
-  }, [loadTherapistData]);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchClients(),
+          fetchMeetings(),
+          fetchPersonalMeetings(),
+          fetchExpenses(),
+          fetchMeetingSources()
+        ]);
+      } catch (error) {
+        console.error('❌ Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (!loading) {
@@ -286,11 +313,69 @@ const TherapistPanel: React.FC = () => {
     }).format(amount);
   };
 
+  const formatPaymentDate = (meeting: Meeting) => {
+    if (meeting.isPaid && meeting.paymentDate) {
+      return new Date(meeting.paymentDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } else if (meeting.isPaid) {
+      return 'Paid (No date)';
+    } else {
+      return '-';
+    }
+  };
+
+  const getPaymentDateStyle = (meeting: Meeting) => {
+    if (meeting.isPaid && meeting.paymentDate) {
+      return { fontSize: '0.75rem', color: '#059669', fontWeight: '500' };
+    } else if (meeting.isPaid) {
+      return { fontSize: '0.75rem', color: '#f59e0b', fontStyle: 'italic' };
+    } else {
+      return { fontSize: '0.75rem', color: '#6b7280', fontStyle: 'italic' };
+    }
+  };
+
+  const getSourceName = (meeting: Meeting) => {
+    return meeting.source?.name || 'Unknown Source';
+  };
+
   // Payment toggle functions
   const handleMeetingPaymentToggle = async (meetingId: number, currentPaidStatus: boolean) => {
     try {
-      console.log('🔄 Updating meeting payment status:', { meetingId, currentPaidStatus, newStatus: !currentPaidStatus });
-      await meetings.updatePayment(meetingId, !currentPaidStatus);
+      console.log('🎯 Payment button clicked for meeting:', meetingId, 'Current status:', currentPaidStatus);
+      if (currentPaidStatus) {
+        // Mark as unpaid - use updatePayment for simplicity
+        console.log('💰 Marking as unpaid - direct update');
+        await meetings.updatePayment(meetingId, false);
+      } else {
+        // Mark as paid - show payment type selection modal
+        console.log('💰 Marking as paid - showing payment type modal');
+        try {
+          const paymentTypes = await paymentTypesApi.getAll();
+          console.log('✅ Payment types fetched:', paymentTypes);
+          setPaymentTypes(paymentTypes);
+        } catch (error) {
+          console.log('⚠️ Failed to fetch payment types from API, using fallback:', error);
+          // Fallback payment types if API fails
+          const fallbackPaymentTypes: PaymentType[] = [
+            { id: 1, name: 'Bank Transfer', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { id: 2, name: 'Bit', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { id: 3, name: 'Paybox', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { id: 4, name: 'Cash', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+          ];
+          console.log('✅ Using fallback payment types:', fallbackPaymentTypes);
+          setPaymentTypes(fallbackPaymentTypes);
+        }
+        setSelectedPaymentType(null);
+        setShowPaymentTypeModal(true);
+        const session = meetingList.find(m => m.id === meetingId);
+        setSessionToPay(session || null);
+        console.log('✅ Session found:', session?.client?.fullName);
+      }
       console.log('✅ Meeting payment status updated successfully');
       await fetchMeetings();
     } catch (error) {
@@ -734,6 +819,135 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
+  // Meeting update handlers for inline editing
+  const handleMeetingClientUpdate = async (meetingId: number, clientId: number) => {
+    try {
+      console.log('🔄 Updating meeting client:', { meetingId, clientId });
+      await meetings.update(meetingId, { clientId });
+      console.log('✅ Meeting client updated successfully');
+      await fetchMeetings();
+    } catch (error) {
+      console.error('❌ Failed to update meeting client:', error);
+      alert('Failed to update client. Please try again.');
+    }
+  };
+
+  const handleMeetingDateUpdate = async (meetingId: number, meetingDate: string) => {
+    try {
+      console.log('🔄 Updating meeting date:', { meetingId, meetingDate });
+      await meetings.update(meetingId, { meetingDate });
+      console.log('✅ Meeting date updated successfully');
+      await fetchMeetings();
+    } catch (error) {
+      console.error('❌ Failed to update meeting date:', error);
+      alert('Failed to update date. Please try again.');
+    }
+  };
+
+  const handleMeetingDurationUpdate = async (meetingId: number, duration: number) => {
+    try {
+      console.log('🔄 Updating meeting duration:', { meetingId, duration });
+      await meetings.update(meetingId, { duration });
+      console.log('✅ Meeting duration updated successfully');
+      await fetchMeetings();
+    } catch (error) {
+      console.error('❌ Failed to update meeting duration:', error);
+      alert('Failed to update duration. Please try again.');
+    }
+  };
+
+  const handleMeetingPriceUpdate = async (meetingId: number, price: number) => {
+    try {
+      console.log('🔄 Updating meeting price:', { meetingId, price });
+      await meetings.update(meetingId, { price });
+      console.log('✅ Meeting price updated successfully');
+      await fetchMeetings();
+    } catch (error) {
+      console.error('❌ Failed to update meeting price:', error);
+      alert('Failed to update price. Please try again.');
+    }
+  };
+
+  const handleMeetingSourceUpdate = async (meetingId: number, sourceId: number) => {
+    try {
+      console.log('🔄 Updating meeting source:', { meetingId, sourceId });
+      await meetings.update(meetingId, { sourceId });
+      console.log('✅ Meeting source updated successfully');
+      await fetchMeetings();
+    } catch (error) {
+      console.error('❌ Failed to update meeting source:', error);
+      alert('Failed to update source. Please try again.');
+    }
+  };
+
+  const formatPaymentType = (meeting: Meeting) => {
+    if (meeting.isPaid && meeting.paymentType) {
+      return meeting.paymentType.name;
+    } else if (meeting.isPaid) {
+      return 'Paid (No type)';
+    } else {
+      return 'Unpaid';
+    }
+  };
+
+  const getPaymentTypeStyle = (meeting: Meeting) => {
+    if (meeting.isPaid && meeting.paymentType) {
+      return 'paid';
+    } else if (meeting.isPaid) {
+      return 'paid-no-type';
+    } else {
+      return 'unpaid';
+    }
+  };
+
+  // Payment type selection modal state
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
+  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType | null>(null);
+  const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
+  const [sessionToPay, setSessionToPay] = useState<Meeting | null>(null);
+
+  const handlePaymentTypeSelect = (type: PaymentType) => {
+    setSelectedPaymentType(type);
+  };
+
+  const handleConfirmPaymentType = async () => {
+    if (selectedPaymentType && sessionToPay) {
+      try {
+        console.log('💰 Confirming payment type:', selectedPaymentType.name, 'for session:', sessionToPay.id);
+        const updateData = {
+          isPaid: true,
+          paymentTypeId: selectedPaymentType.id
+        };
+        console.log('🔧 Update data:', updateData);
+        await meetings.update(sessionToPay.id, updateData);
+        console.log('✅ Meeting payment type updated successfully');
+        await fetchMeetings();
+        setShowPaymentTypeModal(false);
+        setSelectedPaymentType(null);
+        setSessionToPay(null);
+      } catch (error) {
+        console.error('❌ Failed to update meeting payment type:', error);
+        alert('Failed to update payment type. Please try again.');
+      }
+    }
+  };
+
+  const handleCancelPaymentType = () => {
+    console.log('❌ Payment type selection cancelled');
+    setShowPaymentTypeModal(false);
+    setSelectedPaymentType(null);
+    setSessionToPay(null);
+  };
+
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('🔍 Modal state changed:', {
+      showPaymentTypeModal,
+      sessionToPay: sessionToPay?.client?.fullName,
+      paymentTypesCount: paymentTypes.length
+    });
+  }, [showPaymentTypeModal, sessionToPay, paymentTypes.length]);
+
   if (loading) {
     return (
       <div className="therapist-panel">
@@ -1030,6 +1244,8 @@ const TherapistPanel: React.FC = () => {
                     <th>Price</th>
                     <th>Status</th>
                     <th>Payment</th>
+                    <th>Payment Type</th>
+                    <th>Source</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1037,10 +1253,50 @@ const TherapistPanel: React.FC = () => {
                   {meetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{meeting.id}</td>
-                      <td>{meeting.client.fullName}</td>
-                      <td>{new Date(meeting.meetingDate).toLocaleString()}</td>
-                      <td>{meeting.duration} min</td>
-                      <td>{formatCurrency(meeting.price)}</td>
+                      <td>
+                        <select
+                          value={meeting.client.id}
+                          onChange={(e) => handleMeetingClientUpdate(meeting.id, parseInt(e.target.value) || 0)}
+                          className="inline-select"
+                          disabled={meeting.active === false}
+                        >
+                          {clientList.map(client => (
+                            <option key={client.id} value={client.id}>{client.fullName}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="datetime-local"
+                          value={meeting.meetingDate.split('T')[0] + 'T' + meeting.meetingDate.split('T')[1]?.substring(0, 5) || ''}
+                          onChange={(e) => handleMeetingDateUpdate(meeting.id, e.target.value)}
+                          className="inline-input"
+                          disabled={meeting.active === false}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="15"
+                          max="300"
+                          value={meeting.duration}
+                          onChange={(e) => handleMeetingDurationUpdate(meeting.id, parseInt(e.target.value) || 60)}
+                          className="inline-input"
+                          disabled={meeting.active === false}
+                        />
+                        <span>min</span>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={meeting.price}
+                          onChange={(e) => handleMeetingPriceUpdate(meeting.id, parseFloat(e.target.value) || 0)}
+                          className="inline-input"
+                          disabled={meeting.active === false}
+                        />
+                      </td>
                       <td style={{ position: 'relative' }}>
                         <button
                           className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}
@@ -1132,6 +1388,26 @@ const TherapistPanel: React.FC = () => {
                         >
                           {meeting.isPaid ? 'Paid' : 'Unpaid'}
                         </button>
+                      </td>
+                      <td>
+                        <span className={`payment-date-cell ${
+                          meeting.isPaid && meeting.paymentType ? 'paid' : 
+                          meeting.isPaid ? 'paid-no-type' : 'unpaid'
+                        }`}>
+                          {formatPaymentType(meeting)}
+                        </span>
+                      </td>
+                      <td>
+                        <select
+                          value={meeting.source?.id || ''}
+                          onChange={(e) => handleMeetingSourceUpdate(meeting.id, parseInt(e.target.value) || 0)}
+                          className="inline-select"
+                          disabled={meeting.active === false}
+                        >
+                          {meetingSources.map(source => (
+                            <option key={source.id} value={source.id}>{source.name}</option>
+                          ))}
+                        </select>
                       </td>
                       <td>
                         <button 
@@ -1720,6 +1996,46 @@ const TherapistPanel: React.FC = () => {
         onClose={closeAddModals}
         onSuccess={handleRefreshData}
       />
+
+             {/* Payment Type Selection Modal */}
+       {showPaymentTypeModal && sessionToPay && (
+         <div className="modal-overlay">
+           <div className="modal-content">
+             <div className="modal-header">
+               <h3>Select Payment Type</h3>
+               <button className="modal-close-button" onClick={handleCancelPaymentType}>×</button>
+             </div>
+             <div className="modal-body">
+               <p>Select payment type for <strong>{sessionToPay.client?.fullName}</strong>:</p>
+               <div className="payment-type-selection">
+                 <select
+                   className="payment-type-select"
+                   value={selectedPaymentType?.id || ''}
+                   onChange={(e) => {
+                     const type = paymentTypes.find(t => t.id === parseInt(e.target.value));
+                     setSelectedPaymentType(type || null);
+                   }}
+                 >
+                   <option value="">Select a payment type...</option>
+                   {paymentTypes.map(type => (
+                     <option key={type.id} value={type.id}>{type.name}</option>
+                   ))}
+                 </select>
+               </div>
+             </div>
+             <div className="modal-actions">
+               <button className="btn-secondary" onClick={handleCancelPaymentType}>Cancel</button>
+               <button 
+                 className="btn-primary" 
+                 onClick={handleConfirmPaymentType}
+                 disabled={!selectedPaymentType}
+               >
+                 Mark as Paid
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
     </div>
   );
 };

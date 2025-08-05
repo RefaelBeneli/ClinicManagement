@@ -17,6 +17,7 @@ const EditMeetingModal: React.FC<EditMeetingModalProps> = ({ meeting, isOpen, on
     duration: 0,
     price: 0,
     isPaid: false,
+    paymentDate: '',
     notes: '',
     summary: '',
     status: MeetingStatus.SCHEDULED
@@ -33,6 +34,7 @@ const EditMeetingModal: React.FC<EditMeetingModalProps> = ({ meeting, isOpen, on
         duration: meeting.duration,
         price: meeting.price,
         isPaid: meeting.isPaid,
+        paymentDate: meeting.paymentDate ? meeting.paymentDate.split('T')[0] : '',
         notes: meeting.notes || '',
         summary: meeting.summary || '',
         status: meeting.status

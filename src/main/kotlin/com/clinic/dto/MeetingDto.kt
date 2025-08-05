@@ -11,14 +11,15 @@ data class MeetingRequest(
     @field:NotNull(message = "Client ID is required")
     val clientId: Long,
     
+    @field:NotNull(message = "Source ID is required")
+    val sourceId: Long,
+    
     @field:NotNull(message = "Meeting date is required")
     val meetingDate: LocalDateTime,
     
     val duration: Int = 60,
     
-    @field:NotNull(message = "Price is required")
-    @field:Positive(message = "Price must be positive")
-    val price: BigDecimal,
+    val price: BigDecimal? = null, // Optional, will use source default if not provided
     
     val notes: String? = null,
     
@@ -28,12 +29,14 @@ data class MeetingRequest(
 data class MeetingResponse(
     val id: Long,
     val client: ClientResponse,
+    val source: MeetingSourceResponse,
     val meetingDate: LocalDateTime,
     val duration: Int,
     val price: BigDecimal,
     @JsonProperty("isPaid")
     val isPaid: Boolean,
     val paymentDate: LocalDateTime?,
+    val paymentType: PaymentTypeResponse?,
     val notes: String?,
     val summary: String?,
     val status: MeetingStatus,
@@ -44,11 +47,14 @@ data class MeetingResponse(
 
 data class UpdateMeetingRequest(
     val clientId: Long?,
+    val sourceId: Long?,
     val meetingDate: LocalDateTime?,
     val duration: Int?,
     val price: BigDecimal?,
     @JsonProperty("isPaid")
     val isPaid: Boolean?,
+    val paymentDate: LocalDateTime?,
+    val paymentTypeId: Long?,
     val notes: String?,
     val summary: String?,
     val status: MeetingStatus?

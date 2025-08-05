@@ -278,4 +278,36 @@
   font-size: var(--text-sm);
   color: var(--text-muted);
   line-height: var(--line-height-relaxed);
+}
+
+/* Payment Section Styles */
+.payment-section {
+  background: var(--secondary-50);
+  border: 2px solid var(--secondary-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.section-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--secondary-200);
+  padding-bottom: var(--space-2);
+}
+
+.payment-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .payment-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
 } 

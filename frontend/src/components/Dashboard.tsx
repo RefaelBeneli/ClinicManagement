@@ -286,6 +286,7 @@ const Dashboard: React.FC = () => {
       
       const meetingRequest = {
         clientId: parseInt(newMeetingData.clientId),
+        sourceId: 1, // Default to first source (Private)
         meetingDate: meetingDateTime.toISOString(),
         duration: newMeetingData.duration,
         price: newMeetingData.price,

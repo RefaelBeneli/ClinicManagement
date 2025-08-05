@@ -93,14 +93,62 @@ export interface ClientRequest {
   notes?: string;
 }
 
+export interface PaymentType {
+  id: number;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MeetingSource {
+  id: number;
+  name: string;
+  duration: number;
+  price: number;
+  noShowPrice: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersonalMeetingTypeEntity {
+  id: number;
+  name: string;
+  duration: number;
+  price: number;
+  isRecurring: boolean;
+  recurrenceFrequency?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MeetingSourceRequest {
+  name: string;
+  duration: number;
+  price: number;
+  noShowPrice: number;
+}
+
+export interface UpdateMeetingSourceRequest {
+  name?: string;
+  duration?: number;
+  price?: number;
+  noShowPrice?: number;
+  isActive?: boolean;
+}
+
 export interface Meeting {
   id: number;
   client: Client;
+  source: MeetingSource;
   meetingDate: string;
   duration: number;
   price: number;
   isPaid: boolean;
   paymentDate?: string;
+  paymentType?: PaymentType;
   notes?: string;
   summary?: string;
   status: MeetingStatus;
@@ -110,19 +158,23 @@ export interface Meeting {
 
 export interface MeetingRequest {
   clientId: number;
+  sourceId: number;
   meetingDate: string;
   duration?: number;
-  price: number;
+  price?: number;
   notes?: string;
   summary?: string;
 }
 
 export interface UpdateMeetingRequest {
   clientId?: number;
+  sourceId?: number;
   meetingDate?: string;
   duration?: number;
   price?: number;
   isPaid?: boolean;
+  paymentDate?: string;
+  paymentTypeId?: number;
   notes?: string;
   summary?: string;
   status?: MeetingStatus;
@@ -162,6 +214,9 @@ export interface PersonalMeetingRequest {
   isRecurring?: boolean;
   recurrenceFrequency?: string;
   nextDueDate?: string;
+  // Payment tracking fields
+  isPaid?: boolean;
+  paymentDate?: string;
 }
 
 export interface UpdatePersonalMeetingRequest {

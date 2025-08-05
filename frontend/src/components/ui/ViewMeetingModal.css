@@ -25,6 +25,124 @@
   z-index: 1001;
 }
 
+/* Enhanced modal for better textarea experience */
+.view-modal {
+  max-width: 90vw;
+  width: 1200px;
+  max-height: 90vh;
+}
+
+/* Special layout for summary section */
+.summary-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.summary-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-section h3::before {
+  content: "📝";
+  font-size: 1.2rem;
+}
+
+/* Full-width textarea for summary */
+.summary-textarea-container {
+  width: 100%;
+}
+
+.summary-textarea-container .edit-field {
+  width: 100%;
+}
+
+.summary-textarea-container textarea.edit-input {
+  min-height: 300px;
+  height: auto;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+  padding: 1.25rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 600px;
+}
+
+.summary-textarea-container textarea.edit-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.summary-textarea-container textarea.edit-input:hover {
+  border-color: #cbd5e0;
+}
+
+/* Notes section styling */
+.notes-section {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.notes-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notes-section h3::before {
+  content: "📋";
+  font-size: 1.1rem;
+}
+
+.notes-section .edit-field textarea.edit-input {
+  min-height: 120px;
+  height: auto;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: 1rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 300px;
+}
+
+.notes-section .edit-field textarea.edit-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.notes-section .edit-field textarea.edit-input:hover {
+  border-color: #cbd5e0;
+}
+
 .modal__header {
   display: flex;
   align-items: center;
@@ -78,14 +196,14 @@
 }
 
 .modal .btn-secondary {
-  background-color: #6b7280 !important;
+  background-color: #6c757d !important;
   color: white !important;
-  border-color: #6b7280 !important;
+  border-color: #6c757d !important;
 }
 
 .modal .btn-secondary:hover {
-  background-color: #4b5563 !important;
-  border-color: #4b5563 !important;
+  background-color: #5a6268 !important;
+  border-color: #5a6268 !important;
 }
 
 .modal .btn-primary {
@@ -102,100 +220,175 @@
 .modal .btn-primary:disabled {
   background-color: #9ca3af !important;
   border-color: #9ca3af !important;
-  cursor: not-allowed !important;
+  cursor: not-allowed;
 }
 
-/* View Meeting Modal Styles */
-.view-modal {
-  max-width: 800px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal__header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1.5rem;
-  border-radius: 12px 12px 0 0;
+/* Display field styling for inline editing */
+.display-field {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-}
-
-.modal__title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
+  padding: 0.75rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
   cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.close-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.1);
-}
-
-.modal__body {
-  padding: 2rem;
+  transition: all 0.2s ease;
   background: #f8f9fa;
+  position: relative;
 }
 
-.detail-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+.display-field:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 }
 
-.detail-section h3 {
-  margin: 0 0 1rem 0;
+.field-value {
+  flex: 1;
   color: #2d3748;
-  font-size: 1.125rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+.edit-hint {
+  font-size: 0.75rem;
+  color: #667eea;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin-left: 0.5rem;
 }
 
-.detail-item {
+.display-field:hover .edit-hint {
+  opacity: 1;
+}
+
+/* Edit field styling */
+.edit-field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  position: relative;
 }
 
-.detail-item label {
-  font-weight: 600;
-  color: #4a5568;
+.edit-input {
+  padding: 0.75rem;
+  border: 2px solid #667eea;
+  border-radius: 8px;
   font-size: 0.875rem;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.detail-item p {
-  margin: 0;
-  color: #2d3748;
-  font-size: 0.875rem;
+.edit-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.edit-input[type="number"] {
+  width: 120px;
+}
+
+/* Saving indicator */
+.saving-indicator {
+  position: absolute;
+  top: -30px;
+  right: 0;
+  background: #667eea;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Enhanced textarea styles for summary and notes */
+.edit-input[type="textarea"],
+.edit-input[rows] {
+  min-height: 120px;
+  height: auto;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Specific styles for textarea elements */
+.edit-field textarea.edit-input {
+  min-height: 150px;
+  height: auto;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.edit-field textarea.edit-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.edit-field textarea.edit-input:hover {
+  border-color: #cbd5e0;
+}
+
+/* Larger textarea for better user experience */
+.edit-field textarea.edit-input[rows="3"] {
+  min-height: 120px;
+}
+
+.edit-field textarea.edit-input[rows="5"] {
+  min-height: 180px;
+}
+
+.edit-field textarea.edit-input[rows="8"] {
+  min-height: 250px;
+}
+
+.edit-field textarea.edit-input[rows="12"] {
+  min-height: 350px;
+}
+
+.edit-field textarea.edit-input[rows="15"] {
+  min-height: 450px;
+}
+
+/* Character counter for summary */
+.summary-char-counter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.summary-char-counter .char-count {
+  font-weight: 500;
+}
+
+.summary-char-counter .char-limit {
+  color: #9ca3af;
 }
 
 /* Status Badges */
@@ -280,229 +473,44 @@
   font-weight: 500;
 }
 
-/* Inline Editing Styles */
-.display-field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
+/* Responsive design for larger screens */
+@media (min-width: 1400px) {
+  .view-modal {
+    max-width: 95vw;
+    width: 1400px;
+  }
 }
 
-.display-field:hover {
-  background: #edf2f7;
-  border-color: #cbd5e0;
+@media (min-width: 1600px) {
+  .view-modal {
+    max-width: 95vw;
+    width: 1600px;
+  }
 }
 
-.field-value {
-  flex: 1;
-  color: #2d3748;
-  font-size: 0.875rem;
-}
-
-.edit-button {
-  background: none;
-  border: none;
-  color: #667eea;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  opacity: 0.7;
-}
-
-.edit-button:hover {
-  opacity: 1;
-  background: rgba(102, 126, 234, 0.1);
-  transform: scale(1.1);
-}
-
-.edit-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.edit-input {
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  background: white;
-}
-
-.edit-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.edit-input[type="number"] {
-  width: 120px;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-save {
-  background: #38a169;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-save:hover {
-  background: #2f855a;
-  transform: translateY(-1px);
-}
-
-.btn-save:disabled {
-  background: #a0aec0;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-cancel {
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-cancel:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-.btn-cancel:disabled {
-  background: #a0aec0;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Modal Footer */
-.modal__footer {
-  padding: 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  background: white;
-  border-radius: 0 0 12px 12px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-.btn-danger {
-  background: #e53e3e;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #c53030;
-  transform: translateY(-1px);
-}
-
-.btn-danger:disabled {
-  background: #a0aec0;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-success {
-  background: #38a169;
-  color: white;
-}
-
-.btn-success:hover {
-  background: #2f855a;
-  transform: translateY(-1px);
-}
-
-.btn-success:disabled {
-  background: #a0aec0;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Notes Section */
-.notes-content {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.notes-content p {
-  margin: 0;
-  color: #4a5568;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-/* Responsive Design */
+/* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .view-modal {
-    width: 95%;
-    margin: 1rem;
+    max-width: 95vw;
+    width: 95vw;
+    max-height: 95vh;
   }
   
-  .modal__body {
-    padding: 1rem;
+  .summary-textarea-container textarea.edit-input {
+    min-height: 200px;
+    max-height: 400px;
   }
   
-  .detail-section {
-    padding: 1rem;
+  .notes-section .edit-field textarea.edit-input {
+    min-height: 100px;
+    max-height: 200px;
   }
   
-  .detail-grid {
-    grid-template-columns: 1fr;
+  .display-field {
+    padding: 0.5rem;
   }
   
-  .action-buttons {
-    flex-direction: column;
-  }
-  
-  .payment-controls {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
+  .edit-hint {
+    font-size: 0.7rem;
   }
 } 

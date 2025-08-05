@@ -301,9 +301,23 @@ class ResourceOwnershipIntegrationTest {
             id = id,
             client = createClient(1L, user),
             user = user,
+            source = createMeetingSource(1L),
             meetingDate = LocalDateTime.now(),
             duration = 60,
             price = BigDecimal("100.00")
+        )
+    }
+
+    private fun createMeetingSource(id: Long): MeetingSource {
+        return MeetingSource(
+            id = id,
+            name = "Test Source",
+            duration = 60,
+            price = BigDecimal("100.00"),
+            noShowPrice = BigDecimal("50.00"),
+            isActive = true,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
     }
 
@@ -334,9 +348,24 @@ class ResourceOwnershipIntegrationTest {
             id = id,
             user = user,
             therapistName = "Therapist $id",
+            meetingType = createPersonalMeetingType(1L),
             meetingDate = LocalDateTime.now(),
             duration = 30,
             price = BigDecimal("75.00")
+        )
+    }
+
+    private fun createPersonalMeetingType(id: Long): PersonalMeetingType {
+        return PersonalMeetingType(
+            id = id,
+            name = "Test Meeting Type",
+            duration = 60,
+            price = BigDecimal("100.00"),
+            isRecurring = false,
+            recurrenceFrequency = null,
+            isActive = true,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
     }
 } 

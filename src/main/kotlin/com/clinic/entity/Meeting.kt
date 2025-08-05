@@ -19,6 +19,10 @@ data class Meeting(
     @JoinColumn(name = "user_id", nullable = false)
     val user: User,
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_id", nullable = false)
+    val source: MeetingSource,
+    
     @Column(name = "meeting_date", nullable = false)
     val meetingDate: LocalDateTime,
     
@@ -37,6 +41,10 @@ data class Meeting(
     
     @Column(name = "payment_date", nullable = true)
     val paymentDate: LocalDateTime? = null,
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_type_id", nullable = true)
+    val paymentType: PaymentType? = null,
     
     @Column(nullable = true, length = 1000)
     val notes: String? = null,

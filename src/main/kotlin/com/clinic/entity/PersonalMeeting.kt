@@ -19,9 +19,9 @@ data class PersonalMeeting(
     @Column(name = "therapist_name", nullable = false)
     val therapistName: String,
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "meeting_type", nullable = false)
-    val meetingType: PersonalMeetingType = PersonalMeetingType.PERSONAL_THERAPY,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "meeting_type_id", nullable = false)
+    val meetingType: PersonalMeetingType,
     
     @Column(name = "provider_type", nullable = false)
     val providerType: String = "Therapist", // "Therapist", "Guide", "Supervisor", "Teacher", etc.
@@ -72,13 +72,6 @@ data class PersonalMeeting(
     @Column(name = "is_active", nullable = false)
     val isActive: Boolean = true
 )
-
-enum class PersonalMeetingType {
-    PERSONAL_THERAPY,
-    PROFESSIONAL_DEVELOPMENT,
-    SUPERVISION,
-    TEACHING_SESSION
-}
 
 enum class PersonalMeetingStatus {
     SCHEDULED,

@@ -2,6 +2,7 @@ package com.clinic.controller
 
 import com.clinic.dto.*
 import com.clinic.service.MeetingService
+import com.clinic.service.MeetingSourceService
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
@@ -14,6 +15,9 @@ class MeetingController {
 
     @Autowired
     private lateinit var meetingService: MeetingService
+
+    @Autowired
+    private lateinit var meetingSourceService: MeetingSourceService
 
     @GetMapping
     fun getAllMeetings(): ResponseEntity<List<MeetingResponse>> {
@@ -145,6 +149,16 @@ class MeetingController {
         return try {
             val meeting = meetingService.deactivateMeeting(id)
             ResponseEntity.ok(meeting)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @GetMapping("/sources")
+    fun getActiveSources(): ResponseEntity<List<MeetingSourceResponse>> {
+        return try {
+            val sources = meetingSourceService.getActiveSources()
+            ResponseEntity.ok(sources)
         } catch (e: Exception) {
             ResponseEntity.badRequest().build()
         }

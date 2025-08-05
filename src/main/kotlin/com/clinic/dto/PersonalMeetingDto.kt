@@ -1,7 +1,6 @@
 package com.clinic.dto
 
 import com.clinic.entity.PersonalMeetingStatus
-import com.clinic.entity.PersonalMeetingType
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
@@ -14,8 +13,8 @@ data class PersonalMeetingRequest(
     @field:NotBlank(message = "Therapist name is required")
     val therapistName: String,
     
-    @field:NotNull(message = "Meeting type is required")
-    val meetingType: PersonalMeetingType = PersonalMeetingType.PERSONAL_THERAPY,
+    @field:NotNull(message = "Meeting type ID is required")
+    val meetingTypeId: Long,
     
     @field:NotBlank(message = "Provider type is required")
     val providerType: String = "Therapist",
@@ -46,7 +45,7 @@ data class PersonalMeetingRequest(
 data class PersonalMeetingResponse(
     val id: Long,
     val therapistName: String,
-    val meetingType: PersonalMeetingType,
+    val meetingType: PersonalMeetingTypeResponse,
     val providerType: String,
     val providerCredentials: String?,
     val meetingDate: LocalDateTime,
@@ -69,7 +68,7 @@ data class PersonalMeetingResponse(
 
 data class UpdatePersonalMeetingRequest(
     val therapistName: String?,
-    val meetingType: PersonalMeetingType?,
+    val meetingTypeId: Long?,
     val providerType: String?,
     val providerCredentials: String?,
     val meetingDate: LocalDateTime?,

@@ -64,11 +64,13 @@ data class AdminMeetingResponse(
 data class AdminMeetingRequest(
     val clientId: Long,
     val userId: Long,
+    val sourceId: Long,
     val meetingDate: LocalDateTime,
     val duration: Int,
     val price: BigDecimal,
     val isPaid: Boolean = false,
     val paymentDate: LocalDateTime? = null,
+    val paymentTypeId: Long? = null,
     val status: String = "SCHEDULED",
     val notes: String? = null
 )
@@ -95,7 +97,7 @@ data class AdminPersonalMeetingResponse(
 data class AdminPersonalMeetingRequest(
     val userId: Long,
     val therapistName: String,
-    val meetingType: String = "PERSONAL_THERAPY",
+    val meetingTypeId: Long,
     val providerType: String = "Therapist",
     val providerCredentials: String? = null,
     val meetingDate: LocalDateTime,

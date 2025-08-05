@@ -6,6 +6,7 @@ import UserEditModal from './UserEditModal';
 import MeetingPanel from './MeetingPanel';
 import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
+import SourceManagementTab from './SourceManagementTab';
 import { userApproval, clients, meetings, expenses } from '../services/api';
 import { Client, Meeting, Expense } from '../types';
 import './AdminPanel.css';
@@ -29,7 +30,7 @@ const AdminPanel: React.FC = () => {
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [expenseList, setExpenseList] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'clients' | 'meetings' | 'expenses' | 'calendar'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'clients' | 'meetings' | 'expenses' | 'calendar' | 'sources'>('dashboard');
   
   // User approval states
   const [showUserApprovalPanel, setShowUserApprovalPanel] = useState(false);
@@ -240,6 +241,12 @@ const AdminPanel: React.FC = () => {
           onClick={() => setActiveTab('calendar')}
         >
           📆 Calendar
+        </button>
+        <button 
+          className={activeTab === 'sources' ? 'tab-active' : ''}
+          onClick={() => setActiveTab('sources')}
+        >
+          🏷️ Sources
         </button>
       </div>
 
@@ -511,6 +518,17 @@ const AdminPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Sources Tab */}
+        {activeTab === 'sources' && (
+          <div className="admin-sources">
+            <div className="section-header">
+              <h3>🏷️ Meeting Sources</h3>
+              <p>Manage meeting sources and their default values</p>
+            </div>
+            <SourceManagementTab />
           </div>
         )}
 

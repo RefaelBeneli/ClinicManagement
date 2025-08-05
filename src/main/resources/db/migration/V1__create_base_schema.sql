@@ -33,11 +33,47 @@ CREATE TABLE clients (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Create meeting_sources table
+CREATE TABLE meeting_sources (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    duration INTEGER NOT NULL DEFAULT 60,
+    price DECIMAL(10,2) NOT NULL,
+    no_show_price DECIMAL(10,2) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create payment_types table
+CREATE TABLE payment_types (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create personal_meeting_types table
+CREATE TABLE personal_meeting_types (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    duration INTEGER NOT NULL DEFAULT 60,
+    price DECIMAL(10,2) NOT NULL,
+    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+    recurrence_frequency VARCHAR(50),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- Create meetings table (client sessions)
 CREATE TABLE meetings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     client_id BIGINT NOT NULL,
+    source_id BIGINT NOT NULL,
+    payment_type_id BIGINT NULL,
     meeting_date TIMESTAMP NOT NULL,
     duration INTEGER NOT NULL DEFAULT 60,
     price DECIMAL(10,2) NOT NULL,
@@ -51,7 +87,9 @@ CREATE TABLE meetings (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+    FOREIGN KEY (source_id) REFERENCES meeting_sources(id),
+    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
 );
 
 -- Create personal_meetings table (therapist's own sessions)
@@ -59,7 +97,7 @@ CREATE TABLE personal_meetings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     therapist_name VARCHAR(255) NOT NULL,
-    meeting_type VARCHAR(100) NOT NULL DEFAULT 'PERSONAL_THERAPY',
+    meeting_type_id BIGINT NOT NULL,
     provider_type VARCHAR(100) NOT NULL DEFAULT 'Therapist',
     provider_credentials VARCHAR(255),
     meeting_date TIMESTAMP NOT NULL,
@@ -77,7 +115,8 @@ CREATE TABLE personal_meetings (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (meeting_type_id) REFERENCES personal_meeting_types(id)
 );
 
 -- Create expenses table
@@ -119,17 +158,49 @@ CREATE TABLE calendar_integration (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Insert default meeting sources
+INSERT INTO meeting_sources (name, duration, price, no_show_price) VALUES
+('Private', 60, 350.00, 350.00),
+('Natal', 60, 300.00, 150.00),
+('Clalit', 60, 280.00, 280.00);
+
+-- Insert default payment types
+INSERT INTO payment_types (name) VALUES
+('Bank Transfer'),
+('Bit'),
+('Paybox'),
+('Cash');
+
+-- Insert default personal meeting types
+INSERT INTO personal_meeting_types (name, duration, price, is_recurring, recurrence_frequency) VALUES
+('Personal Therapy', 60, 400.00, false, null),
+('Professional Development', 90, 500.00, true, 'monthly'),
+('Supervision', 60, 350.00, true, 'weekly'),
+('Teaching Session', 120, 600.00, false, null);
+
 -- Create indexes for better performance
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_approval_status ON users(approval_status);
 CREATE INDEX idx_clients_user_id ON clients(user_id);
+CREATE INDEX idx_meeting_sources_active ON meeting_sources(is_active);
+CREATE INDEX idx_payment_types_active ON payment_types(is_active);
+CREATE INDEX idx_personal_meeting_types_active ON personal_meeting_types(is_active);
 CREATE INDEX idx_meetings_user_id ON meetings(user_id);
 CREATE INDEX idx_meetings_client_id ON meetings(client_id);
+CREATE INDEX idx_meetings_source_id ON meetings(source_id);
+CREATE INDEX idx_meetings_payment_type_id ON meetings(payment_type_id);
 CREATE INDEX idx_meetings_date ON meetings(meeting_date);
 CREATE INDEX idx_personal_meetings_user_id ON personal_meetings(user_id);
+CREATE INDEX idx_personal_meetings_meeting_type_id ON personal_meetings(meeting_type_id);
 CREATE INDEX idx_personal_meetings_date ON personal_meetings(meeting_date);
 CREATE INDEX idx_expenses_user_id ON expenses(user_id);
 CREATE INDEX idx_expenses_category ON expenses(category);
 CREATE INDEX idx_expenses_date ON expenses(expense_date);
-CREATE INDEX idx_calendar_integration_user_id ON calendar_integration(user_id); 
+CREATE INDEX idx_calendar_integration_user_id ON calendar_integration(user_id);
+
+-- Update existing clients to have is_active field set
+-- This ensures all existing clients have the is_active field properly set
+UPDATE clients 
+SET is_active = TRUE 
+WHERE is_active IS NULL; 

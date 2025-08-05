@@ -4,12 +4,17 @@ import com.clinic.dto.MeetingRequest
 import com.clinic.dto.MeetingResponse
 import com.clinic.dto.UpdateMeetingRequest
 import com.clinic.dto.ClientResponse
+import com.clinic.dto.MeetingSourceResponse
+import com.clinic.dto.PaymentTypeResponse
 import com.clinic.entity.Meeting
 import com.clinic.entity.MeetingStatus
 import com.clinic.repository.MeetingRepository
 import com.clinic.repository.ClientRepository
+import com.clinic.repository.MeetingSourceRepository
+import com.clinic.repository.PaymentTypeRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Service
@@ -24,17 +29,31 @@ class MeetingService {
     @Autowired
     private lateinit var authService: AuthService
 
+    @Autowired
+    private lateinit var meetingSourceRepository: MeetingSourceRepository
+    
+    @Autowired
+    private lateinit var paymentTypeRepository: PaymentTypeRepository
+
     fun createMeeting(meetingRequest: MeetingRequest): MeetingResponse {
         val currentUser = authService.getCurrentUser()
         val client = clientRepository.findByIdAndUser(meetingRequest.clientId, currentUser)
             ?: throw RuntimeException("Client not found")
 
+        val source = meetingSourceRepository.findById(meetingRequest.sourceId)
+            .orElseThrow { RuntimeException("Meeting source not found") }
+
+        // Use source defaults if not provided
+        val finalDuration = meetingRequest.duration ?: source.duration
+        val finalPrice = meetingRequest.price ?: source.price
+
         val meeting = Meeting(
             client = client,
             user = currentUser,
+            source = source,
             meetingDate = meetingRequest.meetingDate,
-            duration = meetingRequest.duration ?: 60,
-            price = meetingRequest.price,
+            duration = finalDuration,
+            price = finalPrice,
             notes = meetingRequest.notes,
             summary = meetingRequest.summary
         )
@@ -78,22 +97,53 @@ class MeetingService {
             meeting.client
         }
 
+        // Handle source change if sourceId is provided
+        val newSource = if (updateRequest.sourceId != null && updateRequest.sourceId != meeting.source.id) {
+            meetingSourceRepository.findById(updateRequest.sourceId)
+                .orElseThrow { RuntimeException("Meeting source not found") }
+        } else {
+            meeting.source
+        }
+
+        // Handle payment type change if paymentTypeId is provided
+        val newPaymentType = if (updateRequest.paymentTypeId != null) {
+            if (updateRequest.paymentTypeId == 0L) {
+                null // Clear payment type
+            } else {
+                paymentTypeRepository.findById(updateRequest.paymentTypeId)
+                    .orElseThrow { RuntimeException("Payment type not found") }
+            }
+        } else {
+            meeting.paymentType
+        }
+
+        // Apply no-show pricing if status is being changed to NO_SHOW
+        val finalPrice = if (updateRequest.status == MeetingStatus.NO_SHOW && meeting.status != MeetingStatus.NO_SHOW) {
+            newSource.noShowPrice
+        } else if (updateRequest.price != null) {
+            updateRequest.price
+        } else {
+            meeting.price
+        }
+
         val updatedMeeting = meeting.copy(
             client = newClient,
+            source = newSource,
             meetingDate = updateRequest.meetingDate ?: meeting.meetingDate,
             duration = updateRequest.duration ?: meeting.duration,
-            price = updateRequest.price ?: meeting.price,
+            price = finalPrice,
             isPaid = updateRequest.isPaid ?: meeting.isPaid,
-            notes = updateRequest.notes ?: meeting.notes,
-            summary = updateRequest.summary ?: meeting.summary,
-            status = updateRequest.status ?: meeting.status,
-            paymentDate = if (updateRequest.isPaid == true && meeting.paymentDate == null) {
+            paymentDate = updateRequest.paymentDate ?: if (updateRequest.isPaid == true && meeting.paymentDate == null) {
                 LocalDateTime.now()
             } else if (updateRequest.isPaid == false) {
                 null
             } else {
                 meeting.paymentDate
-            }
+            },
+            paymentType = newPaymentType,
+            notes = updateRequest.notes ?: meeting.notes,
+            summary = updateRequest.summary ?: meeting.summary,
+            status = updateRequest.status ?: meeting.status
         )
 
         val savedMeeting = meetingRepository.save(updatedMeeting)
@@ -261,11 +311,30 @@ class MeetingService {
                 createdAt = meeting.client.createdAt,
                 isActive = meeting.client.isActive
             ),
+            source = MeetingSourceResponse(
+                id = meeting.source.id,
+                name = meeting.source.name,
+                duration = meeting.source.duration,
+                price = meeting.source.price,
+                noShowPrice = meeting.source.noShowPrice,
+                isActive = meeting.source.isActive,
+                createdAt = meeting.source.createdAt,
+                updatedAt = meeting.source.updatedAt
+            ),
             meetingDate = meeting.meetingDate,
             duration = meeting.duration,
             price = meeting.price,
             isPaid = meeting.isPaid,
             paymentDate = meeting.paymentDate,
+            paymentType = meeting.paymentType?.let { paymentType ->
+                PaymentTypeResponse(
+                    id = paymentType.id,
+                    name = paymentType.name,
+                    isActive = paymentType.isActive,
+                    createdAt = paymentType.createdAt,
+                    updatedAt = paymentType.updatedAt
+                )
+            },
             notes = meeting.notes,
             summary = meeting.summary,
             status = meeting.status,

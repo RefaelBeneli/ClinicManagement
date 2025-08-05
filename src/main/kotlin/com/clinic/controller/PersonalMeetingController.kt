@@ -116,7 +116,7 @@ class PersonalMeetingController {
     }
 
     @GetMapping("/types")
-    fun getMeetingTypes(): ResponseEntity<List<PersonalMeetingType>> {
+    fun getMeetingTypes(): ResponseEntity<List<PersonalMeetingTypeResponse>> {
         return try {
             val types = personalMeetingService.getMeetingTypes()
             ResponseEntity.ok(types)
