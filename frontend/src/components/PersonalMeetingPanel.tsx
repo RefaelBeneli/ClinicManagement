@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingType, PersonalMeetingRequest, UpdatePersonalMeetingRequest, PersonalMeetingTypeEntity } from '../types';
+import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingType, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
 import { personalMeetings as personalMeetingsApi } from '../services/api';
 import './PersonalMeetingPanel.css';
 
@@ -40,7 +40,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
 
   const [personalMeetings, setPersonalMeetings] = useState<PersonalMeeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<PersonalMeeting[]>([]);
-  const [personalMeetingTypes, setPersonalMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,7 +76,6 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   useEffect(() => {
     fetchPersonalMeetings();
     fetchStats();
-    fetchPersonalMeetingTypes();
   }, []);
 
   // Handle ESC key
@@ -117,14 +116,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     }
   };
 
-  const fetchPersonalMeetingTypes = async () => {
-    try {
-      const typesData = await personalMeetingsApi.getActiveMeetingTypes();
-      setPersonalMeetingTypes(typesData);
-    } catch (error) {
-      console.warn('Failed to fetch personal meeting types:', error);
-    }
-  };
+
 
   const filterAndSortMeetings = useCallback(() => {
     let filtered = [...personalMeetings];
@@ -218,41 +210,50 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const handleTherapistUpdate = async (meetingId: number, therapistName: string) => {
     try {
       await personalMeetingsApi.update(meetingId, { therapistName });
-      await fetchPersonalMeetings();
-      onRefresh?.();
+      // Update local state instead of refetching to prevent scroll
+      setPersonalMeetings(prevMeetings =>
+        prevMeetings.map(meeting =>
+          meeting.id === meetingId
+            ? { ...meeting, therapistName }
+            : meeting
+        )
+      );
     } catch (error: any) {
       console.error('Error updating therapist name:', error);
       setError('Failed to update therapist name');
     }
   };
 
-  const handleProviderTypeUpdate = async (meetingId: number, providerType: string) => {
-    try {
-      await personalMeetingsApi.update(meetingId, { providerType });
-      await fetchPersonalMeetings();
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating provider type:', error);
-      setError('Failed to update provider type');
-    }
-  };
 
-  const handleMeetingTypeUpdate = async (meetingId: number, meetingType: PersonalMeetingType) => {
+
+  const handleMeetingTypeUpdate = useCallback(async (meetingId: number, meetingType: PersonalMeetingType) => {
     try {
       await personalMeetingsApi.update(meetingId, { meetingType });
-      await fetchPersonalMeetings();
-      onRefresh?.();
+      // Update local state instead of refetching to prevent scroll
+      setPersonalMeetings(prevMeetings =>
+        prevMeetings.map(meeting =>
+          meeting.id === meetingId
+            ? { ...meeting, meetingType }
+            : meeting
+        )
+      );
     } catch (error: any) {
       console.error('Error updating meeting type:', error);
       setError('Failed to update meeting type');
     }
-  };
+  }, []);
 
   const handleDateUpdate = async (meetingId: number, meetingDate: string) => {
     try {
       await personalMeetingsApi.update(meetingId, { meetingDate });
-      await fetchPersonalMeetings();
-      onRefresh?.();
+      // Update local state instead of refetching to prevent scroll
+      setPersonalMeetings(prevMeetings =>
+        prevMeetings.map(meeting =>
+          meeting.id === meetingId
+            ? { ...meeting, meetingDate }
+            : meeting
+        )
+      );
     } catch (error: any) {
       console.error('Error updating meeting date:', error);
       setError('Failed to update meeting date');
@@ -262,8 +263,14 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const handleDurationUpdate = async (meetingId: number, duration: number) => {
     try {
       await personalMeetingsApi.update(meetingId, { duration });
-      await fetchPersonalMeetings();
-      onRefresh?.();
+      // Update local state instead of refetching to prevent scroll
+      setPersonalMeetings(prevMeetings =>
+        prevMeetings.map(meeting =>
+          meeting.id === meetingId
+            ? { ...meeting, duration }
+            : meeting
+        )
+      );
     } catch (error: any) {
       console.error('Error updating duration:', error);
       setError('Failed to update duration');
@@ -273,8 +280,14 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const handlePriceUpdate = async (meetingId: number, price: number) => {
     try {
       await personalMeetingsApi.update(meetingId, { price });
-      await fetchPersonalMeetings();
-      onRefresh?.();
+      // Update local state instead of refetching to prevent scroll
+      setPersonalMeetings(prevMeetings =>
+        prevMeetings.map(meeting =>
+          meeting.id === meetingId
+            ? { ...meeting, price }
+            : meeting
+        )
+      );
     } catch (error: any) {
       console.error('Error updating price:', error);
       setError('Failed to update price');
@@ -284,8 +297,14 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const handleNotesUpdate = async (meetingId: number, notes: string) => {
     try {
       await personalMeetingsApi.update(meetingId, { notes });
-      await fetchPersonalMeetings();
-      onRefresh?.();
+      // Update local state instead of refetching to prevent scroll
+      setPersonalMeetings(prevMeetings =>
+        prevMeetings.map(meeting =>
+          meeting.id === meetingId
+            ? { ...meeting, notes }
+            : meeting
+        )
+      );
     } catch (error: any) {
       console.error('Error updating notes:', error);
       setError('Failed to update notes');
@@ -549,75 +568,61 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
         {/* Add/Edit Form */}
         {showAddForm && (
           <div className="personal-meeting-form-section">
-            <form onSubmit={editingMeeting ? handleEditMeeting : handleAddMeeting} className="personal-meeting-form">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (editingMeeting) {
+                handleEditMeeting(e);
+              } else {
+                handleAddMeeting(e);
+              }
+            }} className="personal-meeting-form">
               <h3>{editingMeeting ? 'Edit Personal Session' : 'Add New Personal Session'}</h3>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Therapist/Guide Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.therapistName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, therapistName: e.target.value }))}
-                    placeholder="Dr. Jane Smith"
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Provider Type *</label>
-                  <select
-                    required
-                    value={formData.providerType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, providerType: e.target.value }))}
-                  >
-                    <option value="Therapist">Therapist</option>
-                    <option value="Guide">Guide</option>
-                    <option value="Supervisor">Supervisor</option>
-                    <option value="Teacher">Teacher</option>
-                  </select>
-                </div>
+              {/* Session Type - First Option */}
+              <div className="form-group">
+                <label>Session Type *</label>
+                <select
+                  value={formData.meetingType}
+                  onChange={(e) => {
+                    const selectedType = e.target.value as PersonalMeetingType;
+                    setFormData(prev => ({
+                      ...prev,
+                      meetingType: selectedType,
+                      duration: getDefaultDuration(selectedType),
+                      price: getDefaultPrice(selectedType)
+                    }));
+                  }}
+                  className="meeting-type-select"
+                >
+                  <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
+                  <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
+                  <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
+                  <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                </select>
+                <small className="form-help">
+                  Duration and price will be automatically set based on the session type
+                </small>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Session Type *</label>
-                  <select
-                    required
-                    name="meetingType"
-                    value={formData.meetingType}
-                    onChange={(e) => {
-                      const selectedType = e.target.value as PersonalMeetingType;
-                      const selectedTypeEntity = personalMeetingTypes.find(t => t.name === selectedType);
-                      setFormData(prev => ({
-                        ...prev,
-                        meetingType: selectedType,
-                        duration: selectedTypeEntity?.duration || 60,
-                        price: selectedTypeEntity?.price || 0
-                      }));
-                    }}
-                    className="meeting-type-select"
-                  >
-                    {personalMeetingTypes.map(type => (
-                      <option key={type.id} value={type.name}>
-                        {type.name} ({type.duration}min - {formatCurrency(type.price)})
-                      </option>
-                    ))}
-                  </select>
-                  <small className="form-help">
-                    Duration and price will be automatically set based on the session type
-                  </small>
-                </div>
+              <div className="form-group">
+                <label>Therapist/Guide Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.therapistName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, therapistName: e.target.value }))}
+                  placeholder="Dr. Jane Smith"
+                />
+              </div>
                 
-                <div className="form-group">
-                  <label>Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.meetingDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, meetingDate: e.target.value }))}
-                  />
-                </div>
+              <div className="form-group">
+                <label>Date & Time *</label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={formData.meetingDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, meetingDate: e.target.value }))}
+                />
               </div>
 
               <div className="form-row">
@@ -819,30 +824,27 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                   </div>
 
                   <div className="meeting-details">
-                    <div className="detail-item">
-                      <span className="label">Provider:</span>
-                      <input
-                        type="text"
-                        value={meeting.providerType}
-                        onChange={(e) => handleProviderTypeUpdate(meeting.id, e.target.value)}
-                        className="inline-input"
-                        disabled={meeting.active === false}
-                        placeholder="Provider type"
-                      />
-                    </div>
+
                     <div className="detail-item">
                       <span className="label">Type:</span>
                       <select
                         value={meeting.meetingType}
-                        onChange={(e) => handleMeetingTypeUpdate(meeting.id, e.target.value as PersonalMeetingType)}
+                        onChange={(e) => {
+                          e.preventDefault();
+                          handleMeetingTypeUpdate(meeting.id, e.target.value as PersonalMeetingType);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                          }
+                        }}
                         className="inline-select"
                         disabled={meeting.active === false}
                       >
-                        {personalMeetingTypes.map(type => (
-                          <option key={type.id} value={type.name}>
-                            {type.name}
-                          </option>
-                        ))}
+                        <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
+                        <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
+                        <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
+                        <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
                       </select>
                     </div>
                     <div className="detail-item">
@@ -874,7 +876,15 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                       <span className="label">Status:</span>
                       <select
                         value={meeting.status}
-                        onChange={(e) => handleStatusUpdate(meeting.id, e.target.value as PersonalMeetingStatus)}
+                        onChange={(e) => {
+                          e.preventDefault();
+                          handleStatusUpdate(meeting.id, e.target.value as PersonalMeetingStatus);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                          }
+                        }}
                         className="status-select"
                         style={{ color: getStatusColor(meeting.status) }}
                         disabled={meeting.active === false}

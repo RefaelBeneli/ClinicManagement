@@ -99,6 +99,7 @@ EDGE_CASES = {
         "050-123-4567 ext. 123",
         "050-123-4567 ext. 123",
         "050-123-4567 ext. 123",
+        "050-123-4567 ext. 123",
     ]
 }
 
@@ -212,7 +213,7 @@ class TestDataGenerator:
                 email = self.get_edge_case_or_random(EDGE_CASES['emails'], lambda: email)
                 full_name = self.get_edge_case_or_random(EDGE_CASES['names'], lambda: full_name)
             
-            password = self.random_string(20)
+            password = "$2a$10$PD5iyqOP/2BOgETgrMrC8uRjEu.P17cuArZESURXbE7aoAwz.U1Ri"
             
             # Generate created_at with realistic distribution
             created_at = self.random_date(
@@ -563,50 +564,50 @@ class TestDataGenerator:
         
         # Realistic personal meeting notes
         personal_meeting_notes = [
-            "Professional supervision session",
             "Personal therapy session",
-            "Professional development consultation",
-            "Clinical supervision",
-            "Therapeutic technique training",
-            "Case consultation",
-            "Professional burnout prevention",
-            "Clinical skills enhancement",
-            "Therapeutic approach discussion",
-            "Professional boundary setting",
-            "Clinical documentation review",
-            "Therapeutic intervention planning",
-            "Professional ethics consultation",
-            "Clinical assessment training",
-            "Therapeutic relationship building",
-            "Professional self-care session",
-            "Clinical decision-making support",
-            "Therapeutic technique refinement",
-            "Professional growth planning",
-            "Clinical supervision group"
+            "Guidance and counseling session",
+            "Therapeutic intervention",
+            "Personal development session",
+            "Mental health guidance",
+            "Therapeutic support session",
+            "Personal growth counseling",
+            "Therapeutic guidance session",
+            "Personal wellness session",
+            "Guidance and support session",
+            "Personal therapy intervention",
+            "Life guidance session",
+            "Therapeutic counseling",
+            "Personal development guidance",
+            "Mental health therapy",
+            "Guidance and therapy session",
+            "Personal therapeutic support",
+            "Life counseling session",
+            "Therapeutic guidance intervention",
+            "Personal wellness guidance"
         ]
         
         # Realistic personal meeting summaries
         personal_meeting_summaries = [
-            "Explored countertransference issues in client relationship. Developed strategies for maintaining professional boundaries.",
-            "Reviewed challenging case and discussed therapeutic interventions. Supervisor provided valuable insights.",
-            "Focused on professional development goals and career advancement opportunities.",
-            "Addressed personal stress and burnout prevention strategies. Implemented self-care techniques.",
-            "Discussed new therapeutic approaches and their application to current cases.",
-            "Reviewed clinical documentation and improved record-keeping practices.",
-            "Explored ethical dilemmas and professional decision-making frameworks.",
-            "Practiced new therapeutic techniques and received feedback on implementation.",
-            "Discussed professional boundaries and maintaining therapeutic relationships.",
-            "Focused on professional growth and continuing education opportunities.",
-            "Reviewed challenging client cases and developed intervention strategies.",
-            "Explored personal reactions to client material and countertransference management.",
-            "Discussed professional development and career planning.",
-            "Practiced clinical assessment techniques and diagnostic skills.",
-            "Explored therapeutic relationship dynamics and client engagement strategies.",
-            "Addressed professional stress and implemented self-care strategies.",
-            "Reviewed clinical decision-making processes and ethical considerations.",
-            "Discussed therapeutic technique refinement and skill development.",
-            "Explored professional growth opportunities and continuing education.",
-            "Focused on clinical supervision and professional development."
+            "Explored personal challenges and developed coping strategies. Made significant progress in self-awareness.",
+            "Received guidance on professional development and career advancement opportunities.",
+            "Addressed personal stress and implemented self-care techniques for better work-life balance.",
+            "Discussed therapeutic approaches and their application to personal growth.",
+            "Explored personal boundaries and relationship dynamics in therapeutic context.",
+            "Focused on personal growth and continuing development opportunities.",
+            "Reviewed personal challenges and developed intervention strategies.",
+            "Explored personal reactions and emotional management techniques.",
+            "Discussed personal development and life planning strategies.",
+            "Practiced personal assessment techniques and self-reflection skills.",
+            "Explored personal relationship dynamics and communication strategies.",
+            "Addressed personal stress and implemented self-care strategies.",
+            "Reviewed personal decision-making processes and life choices.",
+            "Discussed personal growth and skill development opportunities.",
+            "Explored personal development opportunities and continuing education.",
+            "Focused on personal guidance and development support.",
+            "Explored personal challenges and developed therapeutic interventions.",
+            "Received valuable guidance on personal and professional development.",
+            "Addressed personal wellness and implemented therapeutic strategies.",
+            "Discussed personal growth and therapeutic guidance approaches."
         ]
         
         for user_id in self.user_ids:
@@ -631,9 +632,9 @@ class TestDataGenerator:
                 
                 for i, meeting_date in enumerate(meeting_dates):
                     therapist_name = random.choice(therapist_names)
-                    meeting_type_id = random.choice(self.personal_meeting_type_ids)
-                    provider_type = random.choice(['Therapist', 'Psychologist', 'Psychiatrist', 'Social Worker', 'Supervisor'])
-                    provider_credentials = random.choice(['Licensed Clinical Social Worker', 'Licensed Psychologist', 'Licensed Psychiatrist', 'Clinical Supervisor', ''])
+                    meeting_type_id = random.choice([1, 2]) if len(self.personal_meeting_type_ids) >= 2 else random.choice(self.personal_meeting_type_ids)
+                    provider_type = random.choice(['Therapist', 'Guide', 'Counselor', 'Mentor', 'Life Coach'])
+                    provider_credentials = random.choice(['Licensed Therapist', 'Professional Guide', 'Certified Counselor', 'Life Coach', 'Personal Development Specialist', ''])
                     
                     # Generate realistic time slots
                     hour = random.choice([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19])
@@ -644,15 +645,9 @@ class TestDataGenerator:
                     if meeting_type_id == 1:  # Personal Therapy
                         duration = 60
                         price = 400.00
-                    elif meeting_type_id == 2:  # Professional Development
+                    else:  # Guidance
                         duration = 90
                         price = 500.00
-                    elif meeting_type_id == 3:  # Supervision
-                        duration = 60
-                        price = 350.00
-                    else:  # Teaching Session
-                        duration = 120
-                        price = 600.00
                     
                     notes = random.choice(personal_meeting_notes)
                     summary = random.choice(personal_meeting_summaries)
