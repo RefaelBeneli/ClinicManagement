@@ -2,8 +2,12 @@ package com.clinic.service
 
 import com.clinic.dto.*
 import com.clinic.entity.Expense
+import com.clinic.entity.ExpenseCategory
+import com.clinic.entity.PaymentType
 import com.clinic.entity.User
 import com.clinic.repository.ExpenseRepository
+import com.clinic.repository.ExpenseCategoryRepository
+import com.clinic.repository.PaymentTypeRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -17,10 +21,24 @@ class ExpenseService {
     private lateinit var expenseRepository: ExpenseRepository
 
     @Autowired
+    private lateinit var expenseCategoryRepository: ExpenseCategoryRepository
+
+    @Autowired
+    private lateinit var paymentTypeRepository: PaymentTypeRepository
+
+    @Autowired
     private lateinit var authService: AuthService
 
     fun createExpense(expenseRequest: ExpenseRequest): ExpenseResponse {
         val currentUser = authService.getCurrentUser()
+        
+        val category = expenseCategoryRepository.findById(expenseRequest.categoryId)
+            .orElseThrow { RuntimeException("Expense category not found with id: ${expenseRequest.categoryId}") }
+        
+        val paymentType = expenseRequest.paymentTypeId?.let { paymentTypeId ->
+            paymentTypeRepository.findById(paymentTypeId)
+                .orElseThrow { RuntimeException("Payment type not found with id: $paymentTypeId") }
+        }
         
         val expense = Expense(
             user = currentUser,
@@ -28,14 +46,14 @@ class ExpenseService {
             description = expenseRequest.description,
             amount = expenseRequest.amount,
             currency = expenseRequest.currency,
-            category = expenseRequest.category,
+            category = category,
             notes = expenseRequest.notes,
             expenseDate = expenseRequest.expenseDate,
             isRecurring = expenseRequest.isRecurring,
             recurrenceFrequency = expenseRequest.recurrenceFrequency,
             nextDueDate = expenseRequest.nextDueDate,
             isPaid = expenseRequest.isPaid,
-            paymentMethod = expenseRequest.paymentMethod,
+            paymentType = paymentType,
             receiptUrl = expenseRequest.receiptUrl
         )
         
@@ -64,19 +82,29 @@ class ExpenseService {
             .filter { it.user.id == currentUser.id }
             .orElseThrow { RuntimeException("Expense not found") }
 
+        val category = updateRequest.categoryId?.let { categoryId ->
+            expenseCategoryRepository.findById(categoryId)
+                .orElseThrow { RuntimeException("Expense category not found with id: $categoryId") }
+        } ?: expense.category
+
+        val paymentType = updateRequest.paymentTypeId?.let { paymentTypeId ->
+            paymentTypeRepository.findById(paymentTypeId)
+                .orElseThrow { RuntimeException("Payment type not found with id: $paymentTypeId") }
+        } ?: expense.paymentType
+
         val updatedExpense = expense.copy(
             name = updateRequest.name ?: expense.name,
             description = updateRequest.description,
             amount = updateRequest.amount ?: expense.amount,
             currency = updateRequest.currency ?: expense.currency,
-            category = updateRequest.category ?: expense.category,
+            category = category,
             notes = updateRequest.notes,
             expenseDate = updateRequest.expenseDate ?: expense.expenseDate,
             isRecurring = updateRequest.isRecurring ?: expense.isRecurring,
             recurrenceFrequency = updateRequest.recurrenceFrequency,
             nextDueDate = updateRequest.nextDueDate,
             isPaid = updateRequest.isPaid ?: expense.isPaid,
-            paymentMethod = updateRequest.paymentMethod,
+            paymentType = paymentType,
             receiptUrl = updateRequest.receiptUrl,
             updatedAt = LocalDateTime.now()
         )
@@ -118,8 +146,10 @@ class ExpenseService {
         return mapToResponse(savedExpense)
     }
 
-    fun getExpensesByCategory(category: String): List<ExpenseResponse> {
+    fun getExpensesByCategory(categoryId: Long): List<ExpenseResponse> {
         val currentUser = authService.getCurrentUser()
+        val category = expenseCategoryRepository.findById(categoryId)
+            .orElseThrow { RuntimeException("Expense category not found with id: $categoryId") }
         return expenseRepository.findByUserAndCategory(currentUser, category)
             .map { mapToResponse(it) }
     }
@@ -159,7 +189,7 @@ class ExpenseService {
         // Get category breakdown
         val categoryBreakdown = expenseRepository.getCategoryBreakdown(currentUser)
             .associate { (category, amount) -> 
-                category.toString() to (amount as BigDecimal)
+                category.name to (amount as BigDecimal)
             }
         
         return ExpenseSummaryResponse(
@@ -209,14 +239,14 @@ class ExpenseService {
             description = expense.description,
             amount = expense.amount,
             currency = expense.currency,
-            category = expense.category,
+            category = ExpenseCategoryResponse.fromEntity(expense.category),
             notes = expense.notes,
             expenseDate = expense.expenseDate,
             isRecurring = expense.isRecurring,
             recurrenceFrequency = expense.recurrenceFrequency,
             nextDueDate = expense.nextDueDate,
             isPaid = expense.isPaid,
-            paymentMethod = expense.paymentMethod,
+            paymentType = expense.paymentType?.let { PaymentTypeResponse.fromEntity(it) },
             receiptUrl = expense.receiptUrl,
             createdAt = expense.createdAt,
             updatedAt = expense.updatedAt,

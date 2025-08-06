@@ -1,50 +1,22 @@
 -- V1 Migration: Create base schema with all core tables
 -- This migration establishes the foundation schema for the clinic management system
 
--- Create users table with approval system
+-- Create users table
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role ENUM('USER','ADMIN') NOT NULL,
-    enabled BOOLEAN NOT NULL DEFAULT FALSE,
-    approval_status ENUM('PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'PENDING',
-    approved_by BIGINT,
-    approved_date TIMESTAMP NULL,
-    rejection_reason VARCHAR(1000),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
--- Create client_sources table
-CREATE TABLE client_sources (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    duration INTEGER NOT NULL DEFAULT 60,
-    price DECIMAL(10,2) NOT NULL,
-    no_show_price DECIMAL(10,2) NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Create clients table
-CREATE TABLE clients (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    source_id BIGINT NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    phone VARCHAR(255),
-    notes VARCHAR(1000),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    role VARCHAR(50) NOT NULL DEFAULT 'USER',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    approval_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    approved_by BIGINT NULL,
+    approved_date TIMESTAMP NULL,
+    rejection_reason VARCHAR(1000) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (source_id) REFERENCES client_sources(id)
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (approved_by) REFERENCES users(id)
 );
 
 -- Create payment_types table
@@ -56,11 +28,69 @@ CREATE TABLE payment_types (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Create expense_categories table
+CREATE TABLE expense_categories (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create client_sources table
+CREATE TABLE client_sources (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    price DECIMAL(10,2) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create clients table
+CREATE TABLE clients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    notes TEXT,
+    source_id BIGINT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (source_id) REFERENCES client_sources(id)
+);
+
+-- Create meetings table
+CREATE TABLE meetings (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    client_id BIGINT NOT NULL,
+    meeting_date DATETIME NOT NULL,
+    duration INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    is_paid BOOLEAN NOT NULL DEFAULT FALSE,
+    payment_date DATETIME,
+    payment_type_id BIGINT,
+    notes TEXT,
+    summary TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'SCHEDULED',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (client_id) REFERENCES clients(id),
+    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
+);
+
 -- Create personal_meeting_types table
 CREATE TABLE personal_meeting_types (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
-    duration INTEGER NOT NULL DEFAULT 60,
+    duration INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     recurrence_frequency VARCHAR(50),
@@ -69,53 +99,29 @@ CREATE TABLE personal_meeting_types (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create meetings table (client sessions)
-CREATE TABLE meetings (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    client_id BIGINT NOT NULL,
-    payment_type_id BIGINT NULL,
-    meeting_date TIMESTAMP NOT NULL,
-    duration INTEGER NOT NULL DEFAULT 60,
-    price DECIMAL(10,2) NOT NULL,
-    notes VARCHAR(1000),
-    summary TEXT,
-    status ENUM('SCHEDULED','COMPLETED','CANCELLED','NO_SHOW') NOT NULL DEFAULT 'SCHEDULED',
-    is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_date TIMESTAMP NULL,
-    google_event_id VARCHAR(255),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
-);
-
--- Create personal_meetings table (therapist's own sessions)
+-- Create personal_meetings table
 CREATE TABLE personal_meetings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     therapist_name VARCHAR(255) NOT NULL,
-    meeting_type_id BIGINT NOT NULL,
-    provider_type VARCHAR(100) NOT NULL DEFAULT 'Therapist',
-    provider_credentials VARCHAR(255),
-    meeting_date TIMESTAMP NOT NULL,
-    duration INTEGER NOT NULL DEFAULT 60,
+    meeting_type_id BIGINT,
+    provider_type VARCHAR(100),
+    provider_credentials TEXT,
+    meeting_date DATETIME NOT NULL,
+    duration INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    notes VARCHAR(1000),
-    summary TEXT,
-    status ENUM('SCHEDULED','COMPLETED','CANCELLED','NO_SHOW') NOT NULL DEFAULT 'SCHEDULED',
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_date TIMESTAMP NULL,
-    google_event_id VARCHAR(255),
+    payment_date DATETIME,
+    notes TEXT,
+    summary TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'SCHEDULED',
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     recurrence_frequency VARCHAR(50),
     next_due_date DATE,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (meeting_type_id) REFERENCES personal_meeting_types(id)
 );
 
@@ -124,64 +130,85 @@ CREATE TABLE expenses (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
-    description VARCHAR(1000),
+    description TEXT,
     amount DECIMAL(10,2) NOT NULL,
-    currency VARCHAR(10) NOT NULL DEFAULT 'ILS',
-    category VARCHAR(100) NOT NULL,
-    notes VARCHAR(1000),
+    currency VARCHAR(3) NOT NULL DEFAULT 'ILS',
+    category_id BIGINT NOT NULL,
+    notes TEXT,
     expense_date DATE NOT NULL,
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     recurrence_frequency VARCHAR(50),
     next_due_date DATE,
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_method VARCHAR(100),
+    payment_type_id BIGINT,
     receipt_url VARCHAR(500),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (category_id) REFERENCES expense_categories(id),
+    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
 );
 
--- Create calendar_integration table
-CREATE TABLE calendar_integration (
+-- Create calendar_integrations table
+CREATE TABLE calendar_integrations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     google_calendar_id VARCHAR(255),
-    access_token TEXT,
-    refresh_token TEXT,
-    token_expiry TIMESTAMP NULL,
-    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    client_session_calendar VARCHAR(255),
+    personal_meeting_calendar VARCHAR(255),
+    sync_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    sync_client_sessions BOOLEAN NOT NULL DEFAULT FALSE,
+    sync_personal_meetings BOOLEAN NOT NULL DEFAULT FALSE,
+    last_sync_date DATETIME,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Insert default client sources
-INSERT INTO client_sources (name, duration, price, no_show_price) VALUES
-('Private', 60, 350.00, 350.00),
-('Natal', 60, 300.00, 150.00),
-('Clalit', 60, 280.00, 280.00);
-
 -- Insert default payment types
-INSERT INTO payment_types (name) VALUES
+INSERT INTO payment_types (name) VALUES 
+('Cash'),
 ('Bank Transfer'),
-('Bit'),
-('Paybox'),
-('Cash');
+('Credit Card'),
+('Check'),
+('Other');
+
+-- Insert default expense categories
+INSERT INTO expense_categories (name, description) VALUES
+('Office Supplies', 'Office supplies and stationery'),
+('Rent', 'Office rent and utilities'),
+('Equipment', 'Office equipment and furniture'),
+('Marketing', 'Marketing and advertising expenses'),
+('Travel', 'Travel and transportation expenses'),
+('Insurance', 'Business insurance premiums'),
+('Software', 'Software licenses and subscriptions'),
+('Professional Services', 'Legal, accounting, and consulting fees'),
+('Maintenance', 'Office maintenance and repairs'),
+('Other', 'Miscellaneous expenses');
+
+-- Insert default client sources
+INSERT INTO client_sources (name, price) VALUES
+('Private', 200.00),
+('Natal', 150.00),
+('Clalit', 120.00);
 
 -- Insert default personal meeting types
-INSERT INTO personal_meeting_types (name, duration, price, is_recurring, recurrence_frequency) VALUES
-('Personal Therapy', 60, 400.00, false, null),
-('Professional Development', 90, 500.00, true, 'monthly'),
-('Supervision', 60, 350.00, true, 'weekly'),
-('Teaching Session', 120, 600.00, false, null);
+INSERT INTO personal_meeting_types (name, duration, price) VALUES
+('Personal Therapy', 60, 300.00),
+('Professional Development', 90, 400.00),
+('Supervision', 60, 250.00),
+('Teaching Session', 120, 500.00);
+
+-- Insert default admin user
+INSERT INTO users (username, password, email, full_name, role, enabled, approval_status) VALUES
+('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDa', 'admin@clinic.com', 'Administrator', 'ADMIN', TRUE, 'APPROVED');
 
 -- Create indexes for better performance
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_approval_status ON users(approval_status);
+CREATE INDEX idx_users_approved_by ON users(approved_by);
 CREATE INDEX idx_client_sources_active ON client_sources(is_active);
 CREATE INDEX idx_clients_user_id ON clients(user_id);
 CREATE INDEX idx_clients_source_id ON clients(source_id);
@@ -195,9 +222,9 @@ CREATE INDEX idx_personal_meetings_user_id ON personal_meetings(user_id);
 CREATE INDEX idx_personal_meetings_meeting_type_id ON personal_meetings(meeting_type_id);
 CREATE INDEX idx_personal_meetings_date ON personal_meetings(meeting_date);
 CREATE INDEX idx_expenses_user_id ON expenses(user_id);
-CREATE INDEX idx_expenses_category ON expenses(category);
+CREATE INDEX idx_expenses_category ON expenses(category_id);
 CREATE INDEX idx_expenses_date ON expenses(expense_date);
-CREATE INDEX idx_calendar_integration_user_id ON calendar_integration(user_id);
+CREATE INDEX idx_calendar_integration_user_id ON calendar_integrations(user_id);
 
 -- Update existing clients to have is_active field set
 -- This ensures all existing clients have the is_active field properly set

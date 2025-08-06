@@ -502,11 +502,11 @@ const AdminPanel: React.FC = () => {
                       <td>{expense.id}</td>
                       <td>{expense.description}</td>
                       <td>₪{expense.amount}</td>
-                      <td>{expense.category}</td>
+                      <td>{expense.category.name}</td>
                       <td>{new Date(expense.expenseDate).toLocaleDateString()}</td>
                       <td>
-                        <span className={`payment-badge ${expense.paid ? 'paid' : 'unpaid'}`}>
-                          {expense.paid ? 'Paid' : 'Unpaid'}
+                        <span className={`payment-badge ${expense.isPaid ? 'paid' : 'unpaid'}`}>
+                          {expense.isPaid ? 'Paid' : 'Unpaid'}
                         </span>
                       </td>
                       <td>

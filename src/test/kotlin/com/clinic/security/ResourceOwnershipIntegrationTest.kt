@@ -338,8 +338,19 @@ class ResourceOwnershipIntegrationTest {
             name = "Expense $id",
             description = "Test expense",
             amount = BigDecimal("50.00"),
-            category = "Test",
+            category = createExpenseCategory(1L),
             expenseDate = LocalDate.now()
+        )
+    }
+
+    private fun createExpenseCategory(id: Long): ExpenseCategory {
+        return ExpenseCategory(
+            id = id,
+            name = "Test Category",
+            description = "Test expense category",
+            isActive = true,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
     }
 

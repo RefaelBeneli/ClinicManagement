@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Expense, ExpenseRequest } from '../types';
 import { expenses as expensesApi } from '../services/api';
 import './ExpensePanel.css';
@@ -36,14 +36,14 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     description: '',
     amount: 0,
     currency: 'USD',
-    category: '',
+    categoryId: 1,
     notes: '',
     expenseDate: '',
-    recurring: false,
+    isRecurring: false,
     recurrenceFrequency: '',
     nextDueDate: '',
-    paid: false,
-    paymentMethod: '',
+    isPaid: false,
+    paymentTypeId: undefined,
     receiptUrl: ''
   });
 
@@ -70,11 +70,11 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   const fetchStats = useCallback(async (expenseData?: Expense[]) => {
     try {
       const expensesToUse = expenseData || expenses;
-      const paidExpenses = expensesToUse.filter(e => e.paid).length;
-      const unpaidExpenses = expensesToUse.filter(e => !e.paid).length;
+      const paidExpenses = expensesToUse.filter(e => e.isPaid).length;
+      const unpaidExpenses = expensesToUse.filter(e => !e.isPaid).length;
       const totalAmount = expensesToUse.reduce((sum, e) => sum + e.amount, 0);
-      const paidAmount = expensesToUse.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
-      const unpaidAmount = expensesToUse.filter(e => !e.paid).reduce((sum, e) => sum + e.amount, 0);
+      const paidAmount = expensesToUse.filter(e => e.isPaid).reduce((sum, e) => sum + e.amount, 0);
+      const unpaidAmount = expensesToUse.filter(e => !e.isPaid).reduce((sum, e) => sum + e.amount, 0);
 
       setStats({
         totalExpenses: expensesToUse.length,
@@ -85,7 +85,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
         unpaidAmount
       });
     } catch (error) {
-      console.warn('Failed to fetch expense stats:', error);
+      console.error('Error fetching stats:', error);
     }
   }, [expenses]);
 
@@ -117,7 +117,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       filtered = filtered.filter(expense =>
         expense.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         expense.notes?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -125,13 +125,13 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     // Apply status filter
     if (statusFilter !== 'ALL') {
       filtered = filtered.filter(expense => 
-        statusFilter === 'PAID' ? expense.paid : !expense.paid
+        statusFilter === 'PAID' ? expense.isPaid : !expense.isPaid
       );
     }
 
     // Apply category filter
     if (categoryFilter !== 'ALL') {
-      filtered = filtered.filter(expense => expense.category === categoryFilter);
+      filtered = filtered.filter(expense => expense.category.name === categoryFilter);
     }
 
     // Apply sorting
@@ -143,16 +143,16 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
           comparison = a.name.localeCompare(b.name);
           break;
         case 'amount':
-          comparison = a.amount - b.amount;
+          comparison = b.amount - a.amount;
           break;
         case 'date':
-          comparison = new Date(a.expenseDate).getTime() - new Date(b.expenseDate).getTime();
+          comparison = new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime();
           break;
         case 'category':
-          comparison = a.category.localeCompare(b.category);
+          comparison = a.category.name.localeCompare(b.category.name);
           break;
         case 'status':
-          comparison = (a.paid ? 1 : 0) - (b.paid ? 1 : 0);
+          comparison = (a.isPaid ? 1 : 0) - (b.isPaid ? 1 : 0);
           break;
       }
       
@@ -176,7 +176,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       
       const updatedExpenses = expenses.map(expense =>
         expense.id === expenseId
-          ? { ...expense, paid: !currentPaidStatus }
+          ? { ...expense, isPaid: !currentPaidStatus }
           : expense
       );
       
@@ -212,14 +212,19 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
-  const handleCategoryUpdate = async (expenseId: number, category: string) => {
+  const handleCategoryUpdate = async (expenseId: number, newCategory: string) => {
     try {
-      await expensesApi.update(expenseId, { category });
+      // Find the category by name
+      const category = expenses.find(c => c.category.name === newCategory);
+      if (!category) {
+        console.error('Category not found:', newCategory);
+        return;
+      }
+      
+      await expensesApi.update(expenseId, { categoryId: category.category.id });
       await fetchExpenses();
-      onRefresh?.();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating expense category:', error);
-      setError('Failed to update expense category');
     }
   };
 
@@ -264,22 +269,24 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
-  const handleEditExpense = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingExpense) return;
-
-    try {
-      const updatedExpense = await expensesApi.update(editingExpense.id, formData);
-      setExpenses(prev =>
-        prev.map(expense => expense.id === editingExpense.id ? updatedExpense : expense)
-      );
-      setEditingExpense(null);
-      resetForm();
-      await fetchStats();
-    } catch (error: any) {
-      console.error('Error updating expense:', error);
-      setError('Failed to update expense');
-    }
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setFormData({
+      name: expense.name,
+      description: expense.description || '',
+      amount: expense.amount,
+      currency: expense.currency,
+      categoryId: expense.category.id,
+      notes: expense.notes || '',
+      expenseDate: expense.expenseDate.split('T')[0],
+      isRecurring: expense.isRecurring,
+      recurrenceFrequency: expense.recurrenceFrequency || '',
+      nextDueDate: expense.nextDueDate || '',
+      isPaid: expense.isPaid,
+      paymentTypeId: expense.paymentType?.id,
+      receiptUrl: expense.receiptUrl || ''
+    });
+    setShowAddForm(true);
   };
 
   const handleDeleteExpense = async (expenseId: number) => {
@@ -287,7 +294,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       try {
         await expensesApi.disable(expenseId);
         const updatedExpenses = expenses.map(expense => 
-          expense.id === expenseId ? { ...expense, active: false } : expense
+          expense.id === expenseId ? { ...expense, isActive: false } : expense
         );
         setExpenses(updatedExpenses);
         
@@ -306,7 +313,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     try {
       await expensesApi.activate(expenseId);
       const updatedExpenses = expenses.map(expense => 
-        expense.id === expenseId ? { ...expense, active: true } : expense
+        expense.id === expenseId ? { ...expense, isActive: true } : expense
       );
       setExpenses(updatedExpenses);
       
@@ -326,36 +333,39 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       description: '',
       amount: 0,
       currency: 'USD',
-      category: '',
+      categoryId: 1,
       notes: '',
       expenseDate: '',
-      recurring: false,
+      isRecurring: false,
       recurrenceFrequency: '',
       nextDueDate: '',
-      paid: false,
-      paymentMethod: '',
+      isPaid: false,
+      paymentTypeId: undefined,
       receiptUrl: ''
     });
   };
 
-  const startEditing = (expense: Expense) => {
-    setEditingExpense(expense);
-    setFormData({
-      name: expense.name,
-      description: expense.description || '',
-      amount: expense.amount,
-      currency: expense.currency,
-      category: expense.category,
-      notes: expense.notes || '',
-      expenseDate: expense.expenseDate.split('T')[0],
-      recurring: expense.recurring,
-      recurrenceFrequency: expense.recurrenceFrequency || '',
-      nextDueDate: expense.nextDueDate || '',
-      paid: expense.paid,
-      paymentMethod: expense.paymentMethod || '',
-      receiptUrl: expense.receiptUrl || ''
-    });
-    setShowAddForm(true);
+  const handleCloseForm = () => {
+    setShowAddForm(false);
+    setEditingExpense(null);
+    resetForm();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingExpense) {
+        await expensesApi.update(editingExpense.id, formData);
+      } else {
+        await expensesApi.create(formData);
+      }
+      await fetchExpenses();
+      onRefresh?.();
+      handleCloseForm();
+    } catch (error: any) {
+      console.error('Error submitting form:', error);
+      setError('Failed to save expense');
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -374,9 +384,17 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   };
 
   const getCategories = () => {
-    const categories = Array.from(new Set(expenses.map(e => e.category)));
+    const categories = Array.from(new Set(expenses.map(expense => expense.category.name)));
     return categories.sort();
   };
+
+  const paymentTypes = [
+    { id: 1, name: 'Cash' },
+    { id: 2, name: 'Bank Transfer' },
+    { id: 3, name: 'Credit Card' },
+    { id: 4, name: 'Check' },
+    { id: 5, name: 'Other' }
+  ];
 
   return (
     <>
@@ -519,7 +537,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
             ) : (
               <div className="expenses-list">
                 {filteredExpenses.map((expense) => (
-                  <div key={expense.id} className={`expense-card ${expense.active === false ? 'disabled-card' : ''}`}>
+                  <div key={expense.id} className={`expense-card ${expense.isActive === false ? 'disabled-card' : ''}`}>
                     <div className="expense-header">
                       <div className="expense-info">
                         <input
@@ -527,100 +545,98 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
                           value={expense.name}
                           onChange={(e) => handleNameUpdate(expense.id, e.target.value)}
                           className="inline-input expense-name"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                           placeholder="Expense name"
                         />
                         <div className="expense-meta">
-                          <span>ID: {expense.id}</span>
-                          <span>Date: {formatDate(expense.expenseDate)}</span>
+                          <span className="expense-id">#{expense.id}</span>
+                          <span className="expense-date">{new Date(expense.expenseDate).toLocaleDateString()}</span>
                         </div>
                       </div>
                       <div className="expense-actions">
-                        {expense.active !== false ? (
+                        {expense.isActive !== false ? (
                           <>
                             <button
                               className="edit-button"
-                              onClick={() => startEditing(expense)}
-                              title="Edit expense"
+                              onClick={() => handleEditExpense(expense)}
                             >
-                              ✏️
+                              Edit
                             </button>
                             <button
                               className="delete-button"
                               onClick={() => handleDeleteExpense(expense.id)}
-                              title="Delete expense"
                             >
-                              🗑️
+                              Delete
                             </button>
                           </>
                         ) : (
                           <button
                             className="restore-button"
                             onClick={() => handleRestoreExpense(expense.id)}
-                            title="Restore expense"
                           >
-                            🔄
+                            Restore
                           </button>
                         )}
                       </div>
                     </div>
                     
                     <div className="expense-details">
-                      <div className="detail-item">
+                      <div className="detail-row">
                         <span className="label">Category:</span>
                         <input
                           type="text"
-                          value={expense.category}
+                          value={expense.category.name}
                           onChange={(e) => handleCategoryUpdate(expense.id, e.target.value)}
                           className="inline-input"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                           placeholder="Category"
                         />
                       </div>
                       
-                      <div className="detail-item">
+                      <div className="detail-row">
                         <span className="label">Amount:</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={expense.amount}
-                          onChange={(e) => handleAmountUpdate(expense.id, parseFloat(e.target.value) || 0)}
-                          className="inline-input"
-                          disabled={expense.active === false}
-                          placeholder="0.00"
-                        />
-                        <span className="currency-display">USD</span>
+                        <div className="amount-input-group">
+                          <input
+                            type="number"
+                            value={expense.amount}
+                            onChange={(e) => handleAmountUpdate(expense.id, parseFloat(e.target.value) || 0)}
+                            className="inline-input"
+                            disabled={expense.isActive === false}
+                            placeholder="0.00"
+                          />
+                          <span className="currency-display">USD</span>
+                        </div>
                       </div>
                       
-                      <div className="detail-item">
+                      <div className="detail-row">
                         <span className="label">Date:</span>
                         <input
                           type="date"
                           value={expense.expenseDate.split('T')[0]}
                           onChange={(e) => handleDateUpdate(expense.id, e.target.value)}
                           className="inline-input"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                         />
                       </div>
                       
-                      <div className="detail-item">
+                      <div className="detail-row">
                         <span className="label">Payment Status:</span>
                         <button
-                          className={`payment-toggle ${expense.paid ? 'paid' : 'unpaid'}`}
-                          onClick={() => handlePaymentToggle(expense.id, expense.paid)}
-                          disabled={expense.active === false}
+                          className={`payment-toggle ${expense.isPaid ? 'paid' : 'unpaid'}`}
+                          onClick={() => handlePaymentToggle(expense.id, expense.isPaid)}
+                          disabled={expense.isActive === false}
                         >
-                          {expense.paid ? '✅ Paid' : '❌ Unpaid'}
+                          {expense.isPaid ? '✅ Paid' : '❌ Unpaid'}
                         </button>
                       </div>
                       
-                      <div className="detail-item">
+                      <div className="detail-row">
                         <span className="label">Notes:</span>
                         <textarea
                           value={expense.notes || ''}
                           onChange={(e) => handleNotesUpdate(expense.id, e.target.value)}
                           className="inline-textarea"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                           placeholder="Add notes..."
                           rows={2}
                         />
@@ -636,111 +652,101 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
 
       {/* Add/Edit Form - Rendered outside the expense panel */}
       {showAddForm && (
-        <div 
-          className="expense-form-overlay" 
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowAddForm(false);
-              setEditingExpense(null);
-              resetForm();
-            }
-          }}
-        >
-          <div className="expense-form-modal">
+        <div className="expense-form-overlay" onClick={handleCloseForm}>
+          <div className="expense-form-modal" onClick={(e) => e.stopPropagation()}>
             <div className="expense-form-header">
               <h3>{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h3>
-              <button 
-                className="form-close-button"
-                onClick={() => {
-                  setShowAddForm(false);
-                  setEditingExpense(null);
-                  resetForm();
-                }}
-              >
-                ×
-              </button>
+              <button className="form-close-button" onClick={handleCloseForm}>&times;</button>
             </div>
-
-            <form onSubmit={editingExpense ? handleEditExpense : handleAddExpense} className="expense-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Expense Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Office supplies"
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Category *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    placeholder="Office, Marketing, etc."
-                  />
-                </div>
+            
+            <form onSubmit={handleSubmit} className="expense-form">
+              <div className="form-group">
+                <label>Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Expense name"
+                />
               </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Amount *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    value={formData.amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0.00"
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.expenseDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, expenseDate: e.target.value }))}
-                  />
-                </div>
+              
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Description"
+                  rows={3}
+                />
               </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={formData.recurring}
-                      onChange={(e) => setFormData(prev => ({ ...prev, recurring: e.target.checked }))}
-                    />
-                    Recurring Expense
-                  </label>
-                </div>
-                
-                {formData.recurring && (
-                  <div className="form-group">
-                    <label>Recurrence Frequency</label>
-                    <select
-                      value={formData.recurrenceFrequency}
-                      onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value }))}
-                    >
-                      <option value="">Select frequency</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="yearly">Yearly</option>
-                    </select>
-                  </div>
-                )}
+              
+              <div className="form-group">
+                <label>Amount *</label>
+                <input
+                  type="number"
+                  required
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0.00"
+                  step="0.01"
+                />
               </div>
-
-              {formData.recurring && formData.recurrenceFrequency && (
+              
+              <div className="form-group">
+                <label>Category *</label>
+                <select
+                  required
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, categoryId: parseInt(e.target.value) }))}
+                >
+                  <option value="">Select a category</option>
+                  {expenses.map(expense => (
+                    <option key={expense.category.id} value={expense.category.id}>
+                      {expense.category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label>Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.expenseDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, expenseDate: e.target.value }))}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.isRecurring}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                  />
+                  Recurring Expense
+                </label>
+              </div>
+              
+              {formData.isRecurring && (
+                <div className="form-group">
+                  <label>Recurrence Frequency</label>
+                  <select
+                    value={formData.recurrenceFrequency}
+                    onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value }))}
+                  >
+                    <option value="">Select frequency</option>
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="QUARTERLY">Quarterly</option>
+                    <option value="YEARLY">Yearly</option>
+                  </select>
+                </div>
+              )}
+              
+              {formData.isRecurring && formData.recurrenceFrequency && (
                 <div className="form-group">
                   <label>Next Due Date</label>
                   <input
@@ -750,64 +756,59 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
                   />
                 </div>
               )}
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Payment Method</label>
-                  <input
-                    type="text"
-                    value={formData.paymentMethod}
-                    onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                    placeholder="Credit card, cash, etc."
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={formData.paid}
-                      onChange={(e) => setFormData(prev => ({ ...prev, paid: e.target.checked }))}
-                    />
-                    Mark as Paid
-                  </label>
-                </div>
-              </div>
-
+              
               <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Detailed description of the expense"
-                  rows={3}
+                <label>Payment Type</label>
+                <select
+                  value={formData.paymentTypeId || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, paymentTypeId: e.target.value ? parseInt(e.target.value) : undefined }))}
+                >
+                  <option value="">Select payment type</option>
+                  {paymentTypes.map(paymentType => (
+                    <option key={paymentType.id} value={paymentType.id}>
+                      {paymentType.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.isPaid}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isPaid: e.target.checked }))}
+                  />
+                  Mark as Paid
+                </label>
+              </div>
+              
+              <div className="form-group">
+                <label>Receipt URL</label>
+                <input
+                  type="url"
+                  value={formData.receiptUrl}
+                  onChange={(e) => setFormData(prev => ({ ...prev, receiptUrl: e.target.value }))}
+                  placeholder="https://example.com/receipt"
                 />
               </div>
-
+              
               <div className="form-group">
                 <label>Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Additional notes or comments"
-                  rows={2}
+                  placeholder="Additional notes..."
+                  rows={3}
                 />
               </div>
-
+              
               <div className="form-actions">
-                <button type="submit" className="save-button">
-                  {editingExpense ? 'Update Expense' : 'Add Expense'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingExpense(null);
-                    resetForm();
-                  }}
-                  className="cancel-button"
-                >
+                <button type="button" onClick={handleCloseForm} className="btn-secondary">
                   Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  {editingExpense ? 'Update Expense' : 'Add Expense'}
                 </button>
               </div>
             </form>

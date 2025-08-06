@@ -153,6 +153,23 @@
   margin-bottom: 24px;
 }
 
+.stats-header {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.stats-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4a5568;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
 .stat-card {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 12px;
@@ -846,6 +863,11 @@
     grid-template-columns: repeat(2, 1fr);
   }
   
+  .stats-header h4 {
+    font-size: 1rem;
+    padding: 10px 16px;
+  }
+  
   .stat-card {
     padding: 16px;
   }
@@ -937,6 +959,11 @@
 @media (max-width: 480px) {
   .calendar-stats {
     grid-template-columns: 1fr;
+  }
+  
+  .stats-header h4 {
+    font-size: 0.9rem;
+    padding: 8px 12px;
   }
   
   .calendar-cell {

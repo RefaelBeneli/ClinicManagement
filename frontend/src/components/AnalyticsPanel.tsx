@@ -1,67 +1,60 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { clients, meetings, personalMeetings, expenses } from '../services/api';
-import { Client, Meeting, PersonalMeeting, Expense, MeetingStatus, PersonalMeetingStatus } from '../types';
+import { Client, Meeting, PersonalMeeting, Expense } from '../types';
 import SimpleChart from './SimpleChart';
 import './AnalyticsPanel.css';
-
-interface AnalyticsData {
-  revenue: {
-    total: number;
-    paid: number;
-    unpaid: number;
-    monthlyTrend: number[];
-    collectionRate: number;
-    averageSessionValue: number;
-  };
-  sessions: {
-    total: number;
-    completed: number;
-    scheduled: number;
-    cancelled: number;
-    completionRate: number;
-    averageDuration: number;
-    byStatus: Record<string, number>;
-  };
-  clients: {
-    total: number;
-    active: number;
-    newThisMonth: number;
-    retentionRate: number;
-    averageSessionsPerClient: number;
-    topClients: Array<{ client: Client; sessions: number; revenue: number }>;
-  };
-  expenses: {
-    total: number;
-    paid: number;
-    unpaid: number;
-    monthlyAverage: number;
-    byCategory: Record<string, number>;
-    topCategories: Array<{ category: string; amount: number; percentage: number }>;
-  };
-  personalDevelopment: {
-    total: number;
-    paid: number;
-    unpaid: number;
-    totalSpent: number;
-    byType: Record<string, number>;
-    byProvider: Record<string, number>;
-  };
-  insights: {
-    revenueGrowth: number;
-    clientGrowth: number;
-    sessionEfficiency: number;
-    expenseRatio: number;
-  };
-}
 
 interface AnalyticsPanelProps {
   onClose?: () => void;
 }
 
+type TimePeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
+
+interface FilteredData {
+  meetings: Meeting[];
+  personalMeetings: PersonalMeeting[];
+  expenses: Expense[];
+  clients: Client[];
+}
+
+interface AnalyticsMetrics {
+  revenue: {
+    gross: number;
+    net: number;
+    paid: number;
+    unpaid: number;
+    collectionRate: number;
+    averageSessionValue: number;
+    growth: number;
+    bySource: Record<string, number>;
+  };
+  sessions: {
+    total: number;
+    completed: number;
+    completionRate: number;
+    averageDuration: number;
+    growth: number;
+    bySource: Record<string, number>;
+  };
+  clients: {
+    active: number;
+    new: number;
+    retention: number;
+    averageValue: number;
+  };
+  expenses: {
+    total: number;
+    ratio: number; // expense to revenue ratio
+    byCategory: Record<string, number>;
+  };
+}
+
 const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
   const { user } = useAuth();
-  const [data, setData] = useState<{
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<TimePeriod>('month');
+  const [rawData, setRawData] = useState<{
     clients: Client[];
     meetings: Meeting[];
     personalMeetings: PersonalMeeting[];
@@ -72,10 +65,217 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
     personalMeetings: [],
     expenses: []
   });
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
-  const [view, setView] = useState<'overview' | 'revenue' | 'sessions' | 'clients' | 'expenses' | 'personal'>('overview');
+
+  // Get date range based on period
+  const getDateRange = useCallback((period: TimePeriod) => {
+    const now = new Date();
+    const startDate = new Date();
+    
+    switch (period) {
+      case 'day':
+        startDate.setHours(0, 0, 0, 0);
+        return { startDate, endDate: new Date(now.getTime()) };
+      case 'week':
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setDate(now.getDate() - 30);
+        break;
+      case 'quarter':
+        startDate.setDate(now.getDate() - 90);
+        break;
+      case 'year':
+        startDate.setDate(now.getDate() - 365);
+        break;
+      default:
+        startDate.setDate(now.getDate() - 7);
+    }
+    
+    return { startDate, endDate: now };
+  }, []);
+
+  // Get previous period range for growth calculations
+  const getPreviousDateRange = useCallback((period: TimePeriod) => {
+    const now = new Date();
+    const endDate = new Date();
+    const startDate = new Date();
+    
+    switch (period) {
+      case 'day':
+        // Previous day
+        endDate.setDate(now.getDate() - 1);
+        endDate.setHours(23, 59, 59, 999);
+        startDate.setDate(now.getDate() - 1);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        // Previous 7 days before current week
+        endDate.setDate(now.getDate() - 7);
+        startDate.setDate(now.getDate() - 14);
+        break;
+      case 'month':
+        // Previous 30 days before current month
+        endDate.setDate(now.getDate() - 30);
+        startDate.setDate(now.getDate() - 60);
+        break;
+      case 'quarter':
+        // Previous 90 days before current quarter
+        endDate.setDate(now.getDate() - 90);
+        startDate.setDate(now.getDate() - 180);
+        break;
+      case 'year':
+        // Previous 365 days before current year
+        endDate.setDate(now.getDate() - 365);
+        startDate.setDate(now.getDate() - 730);
+        break;
+      default:
+        endDate.setDate(now.getDate() - 7);
+        startDate.setDate(now.getDate() - 14);
+    }
+    
+    return { startDate, endDate };
+  }, []);
+
+  // Filter data by date range
+  const filterDataByPeriod = useCallback((data: any[], dateField: string, startDate: Date, endDate: Date) => {
+    return data.filter(item => {
+      const itemDate = new Date(item[dateField]);
+      return itemDate >= startDate && itemDate <= endDate;
+    });
+  }, []);
+
+  // Get filtered data based on selected period
+  const filteredData = useMemo((): FilteredData => {
+    const { startDate, endDate } = getDateRange(period);
+    
+    console.log(`Analytics Filter Debug - Period: ${period}`);
+    console.log(`Date Range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    console.log(`Raw data counts:`, {
+      meetings: rawData.meetings.length,
+      expenses: rawData.expenses.length,
+      clients: rawData.clients.length
+    });
+    
+    const filtered = {
+      meetings: filterDataByPeriod(rawData.meetings, 'meetingDate', startDate, endDate),
+      personalMeetings: filterDataByPeriod(rawData.personalMeetings, 'meetingDate', startDate, endDate),
+      expenses: filterDataByPeriod(rawData.expenses, 'expenseDate', startDate, endDate),
+      clients: filterDataByPeriod(rawData.clients, 'createdAt', startDate, endDate)
+    };
+    
+    console.log(`Filtered data counts:`, {
+      meetings: filtered.meetings.length,
+      expenses: filtered.expenses.length,
+      clients: filtered.clients.length
+    });
+    
+    if (rawData.meetings.length > 0) {
+      console.log('Sample meeting dates:', rawData.meetings.slice(0, 3).map(m => ({
+        id: m.id,
+        meetingDate: m.meetingDate,
+        parsed: new Date(m.meetingDate)
+      })));
+    }
+    
+    return filtered;
+  }, [rawData, period, getDateRange, filterDataByPeriod]);
+
+  // Check if there's any data to display
+  const hasData = useMemo(() => {
+    return rawData.meetings.length > 0 || rawData.clients.length > 0 || rawData.expenses.length > 0;
+  }, [rawData]);
+
+  // Calculate analytics metrics
+  const analytics = useMemo((): AnalyticsMetrics => {
+    const { meetings, personalMeetings, expenses, clients } = filteredData;
+    
+    // Previous period data for growth calculations
+    const { startDate: prevStart, endDate: prevEnd } = getPreviousDateRange(period);
+    const prevMeetings = filterDataByPeriod(rawData.meetings, 'meetingDate', prevStart, prevEnd);
+    const prevClients = filterDataByPeriod(rawData.clients, 'createdAt', prevStart, prevEnd);
+    
+    // Revenue calculations
+    const totalRevenue = meetings.reduce((sum, m) => sum + m.price, 0);
+    const paidRevenue = meetings.filter(m => m.isPaid).reduce((sum, m) => sum + m.price, 0);
+    const unpaidRevenue = totalRevenue - paidRevenue;
+    const collectionRate = totalRevenue > 0 ? (paidRevenue / totalRevenue) * 100 : 0;
+    const averageSessionValue = meetings.length > 0 ? totalRevenue / meetings.length : 0;
+    
+    const prevTotalRevenue = prevMeetings.reduce((sum, m) => sum + m.price, 0);
+    const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
+    
+    // Session calculations
+    const totalSessions = meetings.length;
+    const completedSessions = meetings.filter(m => m.status === 'COMPLETED').length;
+    const completionRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0;
+    const averageDuration = 60; // Default session duration
+    
+    const prevTotalSessions = prevMeetings.length;
+    const sessionGrowth = prevTotalSessions > 0 ? ((totalSessions - prevTotalSessions) / prevTotalSessions) * 100 : 0;
+    
+    // Sessions by source
+    const sessionsBySource: Record<string, number> = {};
+    meetings.forEach(m => {
+      const source = m.client.source?.name || 'Unknown Source';
+      sessionsBySource[source] = (sessionsBySource[source] || 0) + 1;
+    });
+
+    // Income by source
+    const incomeBySource: Record<string, number> = {};
+    meetings.forEach(m => {
+      const source = m.client.source?.name || 'Unknown Source';
+      incomeBySource[source] = (incomeBySource[source] || 0) + m.price;
+    });
+    
+    // Client calculations
+    const activeClients = clients.length;
+    const newClients = clients.length; // All clients in period are "new" for this period
+    const retention = 85; // Placeholder
+    const averageValue = activeClients > 0 ? totalRevenue / activeClients : 0;
+    
+    // Expense calculations
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const expenseRatio = totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0;
+    
+    // Expenses by category
+    const expensesByCategory: Record<string, number> = {};
+    expenses.forEach(e => {
+      const category = e.category?.name || 'Uncategorized';
+      expensesByCategory[category] = (expensesByCategory[category] || 0) + e.amount;
+    });
+    
+    return {
+      revenue: {
+        gross: totalRevenue,
+        net: totalRevenue - totalExpenses,
+        paid: paidRevenue,
+        unpaid: unpaidRevenue,
+        collectionRate,
+        averageSessionValue,
+        growth: revenueGrowth,
+        bySource: incomeBySource
+      },
+      sessions: {
+        total: totalSessions,
+        completed: completedSessions,
+        completionRate,
+        averageDuration,
+        growth: sessionGrowth,
+        bySource: sessionsBySource
+      },
+      clients: {
+        active: activeClients,
+        new: newClients,
+        retention,
+        averageValue
+      },
+      expenses: {
+        total: totalExpenses,
+        ratio: expenseRatio,
+        byCategory: expensesByCategory
+      }
+    };
+  }, [filteredData, period, getPreviousDateRange, filterDataByPeriod, rawData]);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -88,7 +288,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
         expenses.getAll()
       ]);
 
-      setData({
+      setRawData({
         clients: clientsData,
         meetings: meetingsData,
         personalMeetings: personalMeetingsData,
@@ -101,166 +301,9 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
     }
   }, []);
 
-  // Calculate analytics
-  const calculateAnalytics = useCallback(() => {
-    if (!data.clients.length && !data.meetings.length) return;
-
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    // Revenue calculations
-    const totalRevenue = data.meetings.reduce((sum, m) => sum + m.price, 0);
-    const paidRevenue = data.meetings.filter(m => m.isPaid).reduce((sum, m) => sum + m.price, 0);
-    const unpaidRevenue = totalRevenue - paidRevenue;
-    const collectionRate = totalRevenue > 0 ? (paidRevenue / totalRevenue) * 100 : 0;
-    const averageSessionValue = data.meetings.length > 0 ? totalRevenue / data.meetings.length : 0;
-
-    // Session calculations
-    const totalSessions = data.meetings.length;
-    const completedSessions = data.meetings.filter(m => m.status === 'COMPLETED').length;
-    const scheduledSessions = data.meetings.filter(m => m.status === 'SCHEDULED').length;
-    const cancelledSessions = data.meetings.filter(m => m.status === 'CANCELLED').length;
-    const completionRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0;
-    const averageDuration = data.meetings.length > 0 
-      ? data.meetings.reduce((sum, m) => sum + m.duration, 0) / data.meetings.length 
-      : 0;
-
-    const sessionsByStatus = data.meetings.reduce((acc, m) => {
-      acc[m.status] = (acc[m.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Client calculations
-    const totalClients = data.clients.length;
-    const activeClients = data.clients.filter(c => c.active).length;
-    const newThisMonth = data.clients.filter(c => {
-      const createdAt = new Date(c.createdAt);
-      return createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear;
-    }).length;
-    const retentionRate = totalClients > 0 ? (activeClients / totalClients) * 100 : 0;
-    const averageSessionsPerClient = totalClients > 0 ? totalSessions / totalClients : 0;
-
-    // Top clients by revenue
-    const clientRevenue = data.meetings.reduce((acc, m) => {
-      acc[m.client.id] = (acc[m.client.id] || 0) + m.price;
-      return acc;
-    }, {} as Record<number, number>);
-
-    const clientSessions = data.meetings.reduce((acc, m) => {
-      acc[m.client.id] = (acc[m.client.id] || 0) + 1;
-      return acc;
-    }, {} as Record<number, number>);
-
-    const topClients = data.clients
-      .map(client => ({
-        client,
-        sessions: clientSessions[client.id] || 0,
-        revenue: clientRevenue[client.id] || 0
-      }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
-
-    // Expense calculations
-    const totalExpenses = data.expenses.reduce((sum, e) => sum + e.amount, 0);
-    const paidExpenses = data.expenses.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0);
-    const unpaidExpenses = totalExpenses - paidExpenses;
-    const monthlyAverage = totalExpenses / 12; // Assuming 12 months
-
-    const expensesByCategory = data.expenses.reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + e.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const topCategories = Object.entries(expensesByCategory)
-      .map(([category, amount]) => ({
-        category,
-        amount,
-        percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
-      }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-
-    // Personal development calculations
-    const totalPersonalSessions = data.personalMeetings.length;
-    const paidPersonalSessions = data.personalMeetings.filter(m => m.isPaid).length;
-    const unpaidPersonalSessions = totalPersonalSessions - paidPersonalSessions;
-    const totalPersonalSpent = data.personalMeetings.reduce((sum, m) => sum + m.price, 0);
-
-    const personalByType = data.personalMeetings.reduce((acc, m) => {
-      acc[m.meetingType] = (acc[m.meetingType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const personalByProvider = data.personalMeetings.reduce((acc, m) => {
-      acc[m.providerType] = (acc[m.providerType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Insights calculations
-    const revenueGrowth = 0; // Would need historical data
-    const clientGrowth = 0; // Would need historical data
-    const sessionEfficiency = completionRate;
-    const expenseRatio = totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0;
-
-    setAnalytics({
-      revenue: {
-        total: totalRevenue,
-        paid: paidRevenue,
-        unpaid: unpaidRevenue,
-        monthlyTrend: [], // Would need historical data
-        collectionRate,
-        averageSessionValue
-      },
-      sessions: {
-        total: totalSessions,
-        completed: completedSessions,
-        scheduled: scheduledSessions,
-        cancelled: cancelledSessions,
-        completionRate,
-        averageDuration,
-        byStatus: sessionsByStatus
-      },
-      clients: {
-        total: totalClients,
-        active: activeClients,
-        newThisMonth,
-        retentionRate,
-        averageSessionsPerClient,
-        topClients
-      },
-      expenses: {
-        total: totalExpenses,
-        paid: paidExpenses,
-        unpaid: unpaidExpenses,
-        monthlyAverage,
-        byCategory: expensesByCategory,
-        topCategories
-      },
-      personalDevelopment: {
-        total: totalPersonalSessions,
-        paid: paidPersonalSessions,
-        unpaid: unpaidPersonalSessions,
-        totalSpent: totalPersonalSpent,
-        byType: personalByType,
-        byProvider: personalByProvider
-      },
-      insights: {
-        revenueGrowth,
-        clientGrowth,
-        sessionEfficiency,
-        expenseRatio
-      }
-    });
-  }, [data]);
-
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  useEffect(() => {
-    calculateAnalytics();
-  }, [calculateAnalytics]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('he-IL', {
@@ -273,19 +316,26 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
     return `${value.toFixed(1)}%`;
   };
 
-  const getGrowthColor = (value: number) => {
-    if (value > 0) return 'positive';
-    if (value < 0) return 'negative';
+  const getGrowthIcon = (growth: number) => {
+    if (growth > 0) return '📈';
+    if (growth < 0) return '📉';
+    return '➖';
+  };
+
+  const getGrowthColor = (growth: number) => {
+    if (growth > 0) return 'positive';
+    if (growth < 0) return 'negative';
     return 'neutral';
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return 'success';
-      case 'SCHEDULED': return 'info';
-      case 'CANCELLED': return 'warning';
-      case 'NO_SHOW': return 'error';
-      default: return 'neutral';
+  const getPeriodLabel = (period: TimePeriod) => {
+    switch (period) {
+      case 'day': return 'Today';
+      case 'week': return 'This Week';
+      case 'month': return 'This Month';
+      case 'quarter': return 'This Quarter';
+      case 'year': return 'This Year';
+      default: return 'This Week';
     }
   };
 
@@ -300,26 +350,89 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
     );
   }
 
+  // Show no data message
+  if (!hasData) {
+    return (
+      <div className="analytics-panel">
+        {/* Header */}
+        <div className="analytics-header">
+          <div className="analytics-header-left">
+            <h2>📊 Practice Analytics</h2>
+            <p>Performance insights for {getPeriodLabel(period).toLowerCase()}</p>
+          </div>
+          <div className="analytics-header-right">
+            <div className="period-selector">
+              <label htmlFor="period-select">Time Period:</label>
+              <select 
+                id="period-select"
+                value={period} 
+                onChange={(e) => setPeriod(e.target.value as TimePeriod)}
+                className="period-select-dropdown"
+                title="Select the time period for analytics data"
+              >
+                <option value="day" title="Today only">Today</option>
+                <option value="week" title="Last 7 days">This Week</option>
+                <option value="month" title="Last 30 days">This Month</option>
+                <option value="quarter" title="Last 90 days">This Quarter</option>
+                <option value="year" title="Last 365 days">This Year</option>
+              </select>
+            </div>
+            {onClose && (
+              <button className="btn-close" onClick={onClose}>
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* No Data Message */}
+        <div className="analytics-content">
+          <div className="no-data-message">
+            <div className="no-data-icon">📊</div>
+            <h3>No Data Available</h3>
+            <p>Start by adding clients, scheduling sessions, or recording expenses to see your practice analytics.</p>
+            <div className="no-data-suggestions">
+              <h4>Get started by:</h4>
+              <ul>
+                <li>Adding your first client</li>
+                <li>Scheduling meetings</li>
+                <li>Recording business expenses</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const chartColors = [
+    '#667eea', '#43e97b', '#fa709a', '#4facfe', '#feca57', 
+    '#ff6b6b', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd'
+  ];
+
   return (
     <div className="analytics-panel">
       {/* Header */}
       <div className="analytics-header">
         <div className="analytics-header-left">
           <h2>📊 Practice Analytics</h2>
-          <p>Comprehensive insights into your practice performance</p>
+          <p>Performance insights for {getPeriodLabel(period).toLowerCase()}</p>
         </div>
         <div className="analytics-header-right">
           <div className="period-selector">
-            <label>Time Period:</label>
+            <label htmlFor="period-select">Time Period:</label>
             <select 
+              id="period-select"
               value={period} 
-              onChange={(e) => setPeriod(e.target.value as any)}
-              className="period-select"
+              onChange={(e) => setPeriod(e.target.value as TimePeriod)}
+              className="period-select-dropdown"
+              title="Select the time period for analytics data"
             >
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="quarter">This Quarter</option>
-              <option value="year">This Year</option>
+              <option value="day" title="Today only">Today</option>
+              <option value="week" title="Last 7 days">This Week</option>
+              <option value="month" title="Last 30 days">This Month</option>
+              <option value="quarter" title="Last 90 days">This Quarter</option>
+              <option value="year" title="Last 365 days">This Year</option>
             </select>
           </div>
           {onClose && (
@@ -330,539 +443,261 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="analytics-nav">
-        <button 
-          className={`nav-item ${view === 'overview' ? 'active' : ''}`}
-          onClick={() => setView('overview')}
-        >
-          📈 Overview
-        </button>
-        <button 
-          className={`nav-item ${view === 'revenue' ? 'active' : ''}`}
-          onClick={() => setView('revenue')}
-        >
-          💰 Revenue
-        </button>
-        <button 
-          className={`nav-item ${view === 'sessions' ? 'active' : ''}`}
-          onClick={() => setView('sessions')}
-        >
-          📅 Sessions
-        </button>
-        <button 
-          className={`nav-item ${view === 'clients' ? 'active' : ''}`}
-          onClick={() => setView('clients')}
-        >
-          👥 Clients
-        </button>
-        <button 
-          className={`nav-item ${view === 'expenses' ? 'active' : ''}`}
-          onClick={() => setView('expenses')}
-        >
-          💸 Expenses
-        </button>
-        <button 
-          className={`nav-item ${view === 'personal' ? 'active' : ''}`}
-          onClick={() => setView('personal')}
-        >
-          🧘‍♀️ Personal Development
-        </button>
-      </div>
-
       {/* Content */}
       <div className="analytics-content">
-        {analytics && (
-          <>
-            {/* Overview Tab */}
-            {view === 'overview' && (
-              <div className="overview-section">
-                {/* Key Metrics */}
-                <div className="metrics-grid">
-                  <div className="metric-card primary">
-                    <div className="metric-icon">💰</div>
-                    <div className="metric-content">
-                      <h3>Total Revenue</h3>
-                      <div className="metric-value">{formatCurrency(analytics.revenue.total)}</div>
-                      <div className="metric-subtitle">
-                        {formatCurrency(analytics.revenue.paid)} collected
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="metric-card success">
-                    <div className="metric-icon">📅</div>
-                    <div className="metric-content">
-                      <h3>Sessions</h3>
-                      <div className="metric-value">{analytics.sessions.total}</div>
-                      <div className="metric-subtitle">
-                        {analytics.sessions.completed} completed
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="metric-card info">
-                    <div className="metric-icon">👥</div>
-                    <div className="metric-content">
-                      <h3>Active Clients</h3>
-                      <div className="metric-value">{analytics.clients.active}</div>
-                      <div className="metric-subtitle">
-                        {analytics.clients.newThisMonth} new this month
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="metric-card warning">
-                    <div className="metric-icon">💸</div>
-                    <div className="metric-content">
-                      <h3>Monthly Expenses</h3>
-                      <div className="metric-value">{formatCurrency(analytics.expenses.monthlyAverage)}</div>
-                      <div className="metric-subtitle">
-                        {formatCurrency(analytics.expenses.total)} total
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Insights */}
-                <div className="insights-section">
-                  <h3>🔍 Key Insights</h3>
-                  <div className="insights-grid">
-                    <div className="insight-card">
-                      <div className="insight-header">
-                        <span className="insight-icon">📈</span>
-                        <span className="insight-title">Collection Rate</span>
-                      </div>
-                      <div className="insight-value">{formatPercentage(analytics.revenue.collectionRate)}</div>
-                      <div className="insight-description">
-                        {analytics.revenue.collectionRate >= 80 ? 'Excellent' : 
-                         analytics.revenue.collectionRate >= 60 ? 'Good' : 'Needs attention'}
-                      </div>
-                    </div>
-
-                    <div className="insight-card">
-                      <div className="insight-header">
-                        <span className="insight-icon">✅</span>
-                        <span className="insight-title">Session Completion</span>
-                      </div>
-                      <div className="insight-value">{formatPercentage(analytics.sessions.completionRate)}</div>
-                      <div className="insight-description">
-                        {analytics.sessions.completionRate >= 90 ? 'Outstanding' : 
-                         analytics.sessions.completionRate >= 75 ? 'Good' : 'Room for improvement'}
-                      </div>
-                    </div>
-
-                    <div className="insight-card">
-                      <div className="insight-header">
-                        <span className="insight-icon">👥</span>
-                        <span className="insight-title">Client Retention</span>
-                      </div>
-                      <div className="insight-value">{formatPercentage(analytics.clients.retentionRate)}</div>
-                      <div className="insight-description">
-                        {analytics.clients.retentionRate >= 80 ? 'Excellent retention' : 
-                         analytics.clients.retentionRate >= 60 ? 'Good retention' : 'Focus on retention'}
-                      </div>
-                    </div>
-
-                    <div className="insight-card">
-                      <div className="insight-header">
-                        <span className="insight-icon">💰</span>
-                        <span className="insight-title">Average Session Value</span>
-                      </div>
-                      <div className="insight-value">{formatCurrency(analytics.revenue.averageSessionValue)}</div>
-                      <div className="insight-description">
-                        {analytics.revenue.averageSessionValue >= 300 ? 'High value sessions' : 
-                         analytics.revenue.averageSessionValue >= 200 ? 'Good value' : 'Consider pricing'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="quick-actions-section">
-                  <h3>⚡ Quick Actions</h3>
-                  <div className="actions-grid">
-                    <button className="action-btn">
-                      📊 Export Report
-                    </button>
-                    <button className="action-btn">
-                      📅 Schedule Review
-                    </button>
-                    <button className="action-btn">
-                      💰 Payment Reminders
-                    </button>
-                    <button className="action-btn">
-                      📈 Set Goals
-                    </button>
-                  </div>
-                </div>
-
-                {/* Performance Trends */}
-                <div className="trends-section">
-                  <h3>📈 Performance Trends</h3>
-                  <div className="trends-grid">
-                    <div className="trend-card positive">
-                      <div className="trend-icon">📈</div>
-                      <div className="trend-content">
-                        <h4>Revenue Growth</h4>
-                        <div className="trend-value">+12.5%</div>
-                        <div className="trend-description">vs last month</div>
-                      </div>
-                    </div>
-                    <div className="trend-card positive">
-                      <div className="trend-icon">👥</div>
-                      <div className="trend-content">
-                        <h4>Client Growth</h4>
-                        <div className="trend-value">+8.3%</div>
-                        <div className="trend-description">vs last month</div>
-                      </div>
-                    </div>
-                    <div className="trend-card neutral">
-                      <div className="trend-icon">📅</div>
-                      <div className="trend-content">
-                        <h4>Session Efficiency</h4>
-                        <div className="trend-value">+2.1%</div>
-                        <div className="trend-description">vs last month</div>
-                      </div>
-                    </div>
-                    <div className="trend-card negative">
-                      <div className="trend-icon">💸</div>
-                      <div className="trend-content">
-                        <h4>Expense Ratio</h4>
-                        <div className="trend-value">-5.2%</div>
-                        <div className="trend-description">vs last month</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recommendations */}
-                <div className="recommendations-section">
-                  <h3>💡 Smart Recommendations</h3>
-                  <div className="recommendations-grid">
-                    <div className="recommendation-card">
-                      <div className="recommendation-icon">💰</div>
-                      <div className="recommendation-content">
-                        <h4>Improve Collection Rate</h4>
-                        <p>Send payment reminders to clients with outstanding balances to increase your collection rate.</p>
-                        <button className="recommendation-btn">Take Action</button>
-                      </div>
-                    </div>
-                    <div className="recommendation-card">
-                      <div className="recommendation-icon">👥</div>
-                      <div className="recommendation-content">
-                        <h4>Client Retention</h4>
-                        <p>Focus on your top 5 clients who generate 60% of your revenue. Consider loyalty programs.</p>
-                        <button className="recommendation-btn">View Details</button>
-                      </div>
-                    </div>
-                    <div className="recommendation-card">
-                      <div className="recommendation-icon">📅</div>
-                      <div className="recommendation-content">
-                        <h4>Session Optimization</h4>
-                        <p>Your completion rate is good. Consider offering package deals to increase session frequency.</p>
-                        <button className="recommendation-btn">Learn More</button>
-                      </div>
-                    </div>
+        {/* Key Metrics */}
+        <div className="metrics-section">
+          <div className="metrics-grid">
+            {/* Revenue Card */}
+            <div className="metric-card revenue">
+              <div className="metric-header">
+                <div className="metric-icon">💰</div>
+                <div className="metric-info">
+                  <h3>Gross Revenue</h3>
+                  <div className="metric-growth">
+                    <span 
+                      className={`growth-indicator ${getGrowthColor(analytics.revenue.growth)}`}
+                      title={`Growth compared to previous ${period}: ${analytics.revenue.growth >= 0 ? 'increase' : 'decrease'} of ${formatPercentage(Math.abs(analytics.revenue.growth))}`}
+                    >
+                      {getGrowthIcon(analytics.revenue.growth)} {formatPercentage(Math.abs(analytics.revenue.growth))}
+                    </span>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Revenue Tab */}
-            {view === 'revenue' && (
-              <div className="revenue-section">
-                <div className="revenue-overview">
-                  <div className="revenue-card total">
-                    <h3>Total Revenue</h3>
-                    <div className="revenue-amount">{formatCurrency(analytics.revenue.total)}</div>
-                    <div className="revenue-breakdown">
-                      <span className="paid">{formatCurrency(analytics.revenue.paid)} paid</span>
-                      <span className="unpaid">{formatCurrency(analytics.revenue.unpaid)} pending</span>
-                    </div>
-                  </div>
-
-                  <div className="revenue-metrics">
-                    <div className="metric-item">
-                      <span className="metric-label">Collection Rate</span>
-                      <span className={`metric-value ${getGrowthColor(analytics.revenue.collectionRate)}`}>
-                        {formatPercentage(analytics.revenue.collectionRate)}
-                      </span>
-                    </div>
-                    <div className="metric-item">
-                      <span className="metric-label">Average Session Value</span>
-                      <span className="metric-value">{formatCurrency(analytics.revenue.averageSessionValue)}</span>
-                    </div>
-                  </div>
+              <div className="metric-value" title="Total income from all sessions in the selected time period">
+                {formatCurrency(analytics.revenue.gross)}
+              </div>
+              <div className="metric-details">
+                <div className="detail-item">
+                  <span title="Revenue remaining after subtracting all business expenses">Net Revenue:</span>
+                  <span 
+                    className={analytics.revenue.net >= 0 ? 'positive' : 'negative'}
+                    title="Gross revenue minus total expenses for the period"
+                  >
+                    {formatCurrency(analytics.revenue.net)}
+                  </span>
                 </div>
-
-                <div className="revenue-charts">
-                  <div className="charts-grid">
-                    <SimpleChart
-                      data={[
-                        { label: 'Paid', value: analytics.revenue.paid, color: '#43e97b' },
-                        { label: 'Pending', value: analytics.revenue.unpaid, color: '#fa709a' }
-                      ]}
-                      title="Revenue Distribution"
-                      type="pie"
-                      height={250}
-                    />
-                    <SimpleChart
-                      data={[
-                        { label: 'Collection Rate', value: analytics.revenue.collectionRate, color: '#667eea' }
-                      ]}
-                      title="Collection Performance"
-                      type="bar"
-                      height={250}
-                    />
-                  </div>
+                <div className="detail-item">
+                  <span title="Revenue that has been actually received from clients">Collected:</span>
+                  <span title="Amount of revenue that has been actually received (paid sessions)">
+                    {formatCurrency(analytics.revenue.paid)}
+                  </span>
                 </div>
+                <div className="detail-item">
+                  <span title="Percentage of total revenue that has been successfully collected">Collection Rate:</span>
+                  <span title="Percentage of gross revenue that has been collected">
+                    {formatPercentage(analytics.revenue.collectionRate)}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                <div className="revenue-details">
-                  <h3>Revenue Breakdown</h3>
-                  <div className="breakdown-grid">
-                    <div className="breakdown-item paid">
-                      <div className="breakdown-icon">✅</div>
-                      <div className="breakdown-content">
-                        <h4>Paid Revenue</h4>
-                        <div className="breakdown-amount">{formatCurrency(analytics.revenue.paid)}</div>
-                        <div className="breakdown-percentage">
-                          {formatPercentage((analytics.revenue.paid / analytics.revenue.total) * 100)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="breakdown-item unpaid">
-                      <div className="breakdown-icon">⏳</div>
-                      <div className="breakdown-content">
-                        <h4>Pending Revenue</h4>
-                        <div className="breakdown-amount">{formatCurrency(analytics.revenue.unpaid)}</div>
-                        <div className="breakdown-percentage">
-                          {formatPercentage((analytics.revenue.unpaid / analytics.revenue.total) * 100)}
-                        </div>
-                      </div>
-                    </div>
+            {/* Sessions Card */}
+            <div className="metric-card sessions">
+              <div className="metric-header">
+                <div className="metric-icon">📅</div>
+                <div className="metric-info">
+                  <h3>Sessions</h3>
+                  <div className="metric-growth">
+                    <span 
+                      className={`growth-indicator ${getGrowthColor(analytics.sessions.growth)}`}
+                      title={`Sessions growth compared to previous ${period}: ${analytics.sessions.growth >= 0 ? 'increase' : 'decrease'} of ${formatPercentage(Math.abs(analytics.sessions.growth))}`}
+                    >
+                      {getGrowthIcon(analytics.sessions.growth)} {formatPercentage(Math.abs(analytics.sessions.growth))}
+                    </span>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Sessions Tab */}
-            {view === 'sessions' && (
-              <div className="sessions-section">
-                <div className="sessions-overview">
-                  <div className="sessions-summary">
-                    <h3>Session Summary</h3>
-                    <div className="summary-grid">
-                      <div className="summary-item">
-                        <span className="summary-label">Total Sessions</span>
-                        <span className="summary-value">{analytics.sessions.total}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Completion Rate</span>
-                        <span className="summary-value">{formatPercentage(analytics.sessions.completionRate)}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Average Duration</span>
-                        <span className="summary-value">{analytics.sessions.averageDuration} min</span>
-                      </div>
-                    </div>
-                  </div>
+              <div className="metric-value" title="Total number of sessions scheduled in the selected time period">
+                {analytics.sessions.total}
+              </div>
+              <div className="metric-details">
+                <div className="detail-item">
+                  <span title="Sessions that have finished and been marked as completed">Completed:</span>
+                  <span title="Number of sessions that have been completed">
+                    {analytics.sessions.completed}
+                  </span>
                 </div>
-
-                <div className="sessions-charts">
-                  <div className="charts-grid">
-                    <SimpleChart
-                      data={Object.entries(analytics.sessions.byStatus).map(([status, count]) => ({
-                        label: status.replace('_', ' '),
-                        value: count,
-                        color: getStatusColor(status) === 'success' ? '#43e97b' :
-                               getStatusColor(status) === 'info' ? '#4facfe' :
-                               getStatusColor(status) === 'warning' ? '#fa709a' : '#6c757d'
-                      }))}
-                      title="Session Status Distribution"
-                      type="pie"
-                      height={250}
-                    />
-                    <SimpleChart
-                      data={[
-                        { label: 'Completion Rate', value: analytics.sessions.completionRate, color: '#667eea' }
-                      ]}
-                      title="Session Performance"
-                      type="bar"
-                      height={250}
-                    />
-                  </div>
+                <div className="detail-item">
+                  <span title="Percentage of scheduled sessions that were actually completed">Completion Rate:</span>
+                  <span title="Percentage of scheduled sessions that were completed">
+                    {formatPercentage(analytics.sessions.completionRate)}
+                  </span>
                 </div>
-
-                <div className="sessions-breakdown">
-                  <h3>Session Status Breakdown</h3>
-                  <div className="status-grid">
-                    {Object.entries(analytics.sessions.byStatus).map(([status, count]) => (
-                      <div key={status} className={`status-item ${getStatusColor(status)}`}>
-                        <div className="status-icon">
-                          {status === 'COMPLETED' ? '✅' : 
-                           status === 'SCHEDULED' ? '📅' : 
-                           status === 'CANCELLED' ? '❌' : '⏸️'}
-                        </div>
-                        <div className="status-content">
-                          <h4>{status.replace('_', ' ')}</h4>
-                          <div className="status-count">{count}</div>
-                          <div className="status-percentage">
-                            {formatPercentage((count / analytics.sessions.total) * 100)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="detail-item">
+                  <span title="Average length of time for each session">Avg Duration:</span>
+                  <span title="Average duration of sessions in minutes">
+                    {analytics.sessions.averageDuration} min
+                  </span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Clients Tab */}
-            {view === 'clients' && (
-              <div className="clients-section">
-                <div className="clients-overview">
-                  <div className="clients-summary">
-                    <h3>Client Overview</h3>
-                    <div className="summary-grid">
-                      <div className="summary-item">
-                        <span className="summary-label">Total Clients</span>
-                        <span className="summary-value">{analytics.clients.total}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Active Clients</span>
-                        <span className="summary-value">{analytics.clients.active}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Retention Rate</span>
-                        <span className="summary-value">{formatPercentage(analytics.clients.retentionRate)}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">New This Month</span>
-                        <span className="summary-value">{analytics.clients.newThisMonth}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="top-clients">
-                  <h3>Top Clients by Revenue</h3>
-                  <div className="clients-list">
-                    {analytics.clients.topClients.map((item, index) => (
-                      <div key={item.client.id} className="client-item">
-                        <div className="client-rank">#{index + 1}</div>
-                        <div className="client-info">
-                          <h4>{item.client.fullName}</h4>
-                          <div className="client-stats">
-                            <span>{item.sessions} sessions</span>
-                            <span>{formatCurrency(item.revenue)} revenue</span>
-                          </div>
-                        </div>
-                        <div className="client-revenue">
-                          {formatCurrency(item.revenue)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            {/* Clients Card */}
+            <div className="metric-card clients">
+              <div className="metric-header">
+                <div className="metric-icon">👥</div>
+                <div className="metric-info">
+                  <h3>Clients</h3>
                 </div>
               </div>
-            )}
-
-            {/* Expenses Tab */}
-            {view === 'expenses' && (
-              <div className="expenses-section">
-                <div className="expenses-overview">
-                  <div className="expenses-summary">
-                    <h3>Expense Overview</h3>
-                    <div className="summary-grid">
-                      <div className="summary-item">
-                        <span className="summary-label">Total Expenses</span>
-                        <span className="summary-value">{formatCurrency(analytics.expenses.total)}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Monthly Average</span>
-                        <span className="summary-value">{formatCurrency(analytics.expenses.monthlyAverage)}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Paid Expenses</span>
-                        <span className="summary-value">{formatCurrency(analytics.expenses.paid)}</span>
-                      </div>
-                    </div>
-                  </div>
+              <div className="metric-value" title="Number of active clients in the selected time period">
+                {analytics.clients.active}
+              </div>
+              <div className="metric-details">
+                <div className="detail-item">
+                  <span title="Clients who have joined during the selected time period">New Clients:</span>
+                  <span title="Number of new clients added in the selected time period">
+                    {analytics.clients.new}
+                  </span>
                 </div>
-
-                <div className="expense-categories">
-                  <h3>Top Expense Categories</h3>
-                  <div className="categories-list">
-                    {analytics.expenses.topCategories.map((category, index) => (
-                      <div key={category.category} className="category-item">
-                        <div className="category-rank">#{index + 1}</div>
-                        <div className="category-info">
-                          <h4>{category.category}</h4>
-                          <div className="category-amount">{formatCurrency(category.amount)}</div>
-                        </div>
-                        <div className="category-percentage">
-                          {formatPercentage(category.percentage)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="detail-item">
+                  <span title="Percentage of clients who continue booking sessions over time">Retention:</span>
+                  <span title="Percentage of clients who continue to book sessions">
+                    {formatPercentage(analytics.clients.retention)}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span title="Average revenue generated per client during the period">Avg Value:</span>
+                  <span title="Average revenue generated per client in the selected period">
+                    {formatCurrency(analytics.clients.averageValue)}
+                  </span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Personal Development Tab */}
-            {view === 'personal' && (
-              <div className="personal-section">
-                <div className="personal-overview">
-                  <div className="personal-summary">
-                    <h3>Personal Development Overview</h3>
-                    <div className="summary-grid">
-                      <div className="summary-item">
-                        <span className="summary-label">Total Sessions</span>
-                        <span className="summary-value">{analytics.personalDevelopment.total}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Total Spent</span>
-                        <span className="summary-value">{formatCurrency(analytics.personalDevelopment.totalSpent)}</span>
-                      </div>
-                      <div className="summary-item">
-                        <span className="summary-label">Paid Sessions</span>
-                        <span className="summary-value">{analytics.personalDevelopment.paid}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="personal-breakdown">
-                  <div className="breakdown-section">
-                    <h3>By Session Type</h3>
-                    <div className="type-grid">
-                      {Object.entries(analytics.personalDevelopment.byType).map(([type, count]) => (
-                        <div key={type} className="type-item">
-                          <div className="type-name">{type.replace('_', ' ')}</div>
-                          <div className="type-count">{count}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="breakdown-section">
-                    <h3>By Provider Type</h3>
-                    <div className="provider-grid">
-                      {Object.entries(analytics.personalDevelopment.byProvider).map(([provider, count]) => (
-                        <div key={provider} className="provider-item">
-                          <div className="provider-name">{provider}</div>
-                          <div className="provider-count">{count}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            {/* Expenses Card */}
+            <div className="metric-card expenses">
+              <div className="metric-header">
+                <div className="metric-icon">💸</div>
+                <div className="metric-info">
+                  <h3>Expenses</h3>
                 </div>
               </div>
-            )}
-          </>
+              <div className="metric-value" title="Total business expenses in the selected time period">
+                {formatCurrency(analytics.expenses.total)}
+              </div>
+              <div className="metric-details">
+                <div className="detail-item">
+                  <span title="What percentage of revenue is being spent on business expenses">Expense Ratio:</span>
+                  <span 
+                    className={analytics.expenses.ratio > 50 ? 'negative' : 'neutral'}
+                    title="Percentage of gross revenue spent on expenses (lower is better)"
+                  >
+                    {formatPercentage(analytics.expenses.ratio)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        {(analytics.revenue.gross > 0 || analytics.sessions.total > 0) && (
+          <div className="charts-section">
+            <div className="charts-grid">
+              {analytics.revenue.gross > 0 && (
+                <div className="chart-card">
+                  <h3 title="Shows the breakdown of revenue that has been collected vs pending collection">
+                    Revenue Distribution
+                  </h3>
+                  <SimpleChart
+                    data={[
+                      { label: 'Collected', value: analytics.revenue.paid, color: '#43e97b' },
+                      { label: 'Pending', value: analytics.revenue.unpaid, color: '#fa709a' }
+                    ]}
+                    title=""
+                    type="pie"
+                    height={200}
+                  />
+                </div>
+              )}
+
+              {analytics.sessions.total > 0 && Object.keys(analytics.sessions.bySource).length > 0 && (
+                <div className="chart-card">
+                  <h3 title="Shows the number of sessions from each client source (Private, Natal, Clalit, etc.)">
+                    Sessions by Client Source
+                  </h3>
+                  <SimpleChart
+                    data={Object.entries(analytics.sessions.bySource).map(([source, count], index) => ({
+                      label: source,
+                      value: count,
+                      color: chartColors[index % chartColors.length]
+                    }))}
+                    title=""
+                    type="pie"
+                    height={200}
+                  />
+                </div>
+              )}
+
+              {analytics.revenue.gross > 0 && Object.keys(analytics.revenue.bySource).length > 0 && (
+                <div className="chart-card">
+                  <h3 title="Shows the revenue amount generated from each client source">
+                    Income by Client Source
+                  </h3>
+                  <SimpleChart
+                    data={Object.entries(analytics.revenue.bySource).map(([source, income], index) => ({
+                      label: source,
+                      value: income,
+                      color: chartColors[index % chartColors.length]
+                    }))}
+                    title=""
+                    type="pie"
+                    height={250}
+                  />
+                </div>
+              )}
+
+              {analytics.expenses.total > 0 ? (
+                <div className="chart-card">
+                  <h3 title="Shows the breakdown of expenses by category">
+                    Expenses by Category
+                  </h3>
+                  <SimpleChart
+                    data={Object.entries(analytics.expenses.byCategory).map(([category, amount], index) => ({
+                      label: category,
+                      value: amount,
+                      color: chartColors[index % chartColors.length]
+                    }))}
+                    title=""
+                    type="pie"
+                    height={250}
+                  />
+                </div>
+              ) : (
+                <div className="chart-card">
+                  <h3 title="Shows the breakdown of expenses by category">
+                    Expenses by Category
+                  </h3>
+                  <div className="no-data-message">
+                    <div className="no-data-icon">📊</div>
+                    <div className="no-data-text">
+                      <h4>No Expenses Recorded</h4>
+                      <p>Add business expenses to see the breakdown by category</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(analytics.revenue.gross > 0 || analytics.expenses.total > 0) && (
+                <div className="chart-card">
+                  <h3 title="Compares total gross revenue with total expenses">
+                    Revenue vs Expenses
+                  </h3>
+                  <SimpleChart
+                    data={[
+                      { label: 'Gross Revenue', value: analytics.revenue.gross, color: '#43e97b' },
+                      { label: 'Total Expenses', value: analytics.expenses.total, color: '#fa709a' }
+                    ]}
+                    title=""
+                    type="pie"
+                    height={250}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

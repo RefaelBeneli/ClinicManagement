@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Expense, UpdateExpenseRequest } from '../../types';
-import { expenses } from '../../services/api';
+import { Expense, ExpenseRequest, UpdateExpenseRequest, ExpenseCategoryResponse, PaymentType } from '../../types';
+import { expenses, expenseCategories, paymentTypes } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import './ViewExpenseModal.css';
 
 interface EditExpenseModalProps {
@@ -10,37 +11,38 @@ interface EditExpenseModalProps {
   onSuccess: () => void;
 }
 
+// Helper function to get default payment types
+const getDefaultPaymentTypes = (): PaymentType[] => [
+  { id: 1, name: 'Cash', isActive: true, createdAt: '', updatedAt: '' },
+  { id: 2, name: 'Credit Card', isActive: true, createdAt: '', updatedAt: '' },
+  { id: 3, name: 'Bank Transfer', isActive: true, createdAt: '', updatedAt: '' },
+  { id: 4, name: 'Check', isActive: true, createdAt: '', updatedAt: '' }
+];
+
 const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState<UpdateExpenseRequest>({
+  const { user } = useAuth();
+  const [formData, setFormData] = useState<ExpenseRequest>({
     name: '',
     description: '',
     amount: 0,
     currency: 'ILS',
-    category: '',
+    categoryId: 1,
     notes: '',
-    expenseDate: '',
-    recurring: false,
+    expenseDate: new Date().toISOString().split('T')[0],
+    isRecurring: false,
     recurrenceFrequency: '',
     nextDueDate: '',
-    paid: false,
-    paymentMethod: '',
+    isPaid: false,
+    paymentTypeId: undefined,
     receiptUrl: ''
   });
+
+  const [categories, setCategories] = useState<ExpenseCategoryResponse[]>([]);
+  const [paymentTypesList, setPaymentTypesList] = useState<PaymentType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const CATEGORIES = [
-    'Office Supplies',
-    'Professional Development',
-    'Software & Tools',
-    'Travel & Transportation',
-    'Marketing & Advertising',
-    'Insurance',
-    'Utilities',
-    'Rent',
-    'Equipment',
-    'Other'
-  ];
+  const CURRENCY_OPTIONS = ['ILS', 'USD', 'EUR'];
 
   const RECURRENCE_OPTIONS = [
     { value: 'WEEKLY', label: 'Weekly' },
@@ -58,19 +60,51 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
         description: expense.description || '',
         amount: expense.amount,
         currency: expense.currency,
-        category: expense.category,
+        categoryId: expense.category.id,
         notes: expense.notes || '',
         expenseDate: expense.expenseDate,
-        recurring: expense.recurring,
+        isRecurring: expense.isRecurring,
         recurrenceFrequency: expense.recurrenceFrequency || '',
         nextDueDate: expense.nextDueDate || '',
-        paid: expense.paid,
-        paymentMethod: expense.paymentMethod || '',
+        isPaid: expense.isPaid,
+        paymentTypeId: expense.paymentType?.id,
         receiptUrl: expense.receiptUrl || ''
       });
       setError('');
     }
   }, [expense]);
+
+  // Load categories and payment types when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const loadData = async () => {
+        try {
+          // Load categories (critical)
+          const categoriesData = await expenseCategories.getActive();
+          setCategories(categoriesData);
+
+          // Load payment types based on user role
+          if (user?.role === 'ADMIN') {
+            try {
+              const paymentTypesData = await paymentTypes.getActive();
+              setPaymentTypesList(paymentTypesData);
+            } catch (paymentTypeError: any) {
+              console.warn('Failed to load payment types from API:', paymentTypeError);
+              setPaymentTypesList(getDefaultPaymentTypes());
+            }
+          } else {
+            // Non-admin users get default payment types without API call
+            console.log('Using default payment types for non-admin user');
+            setPaymentTypesList(getDefaultPaymentTypes());
+          }
+        } catch (error) {
+          console.error('Error loading categories:', error);
+          setError('Failed to load expense categories');
+        }
+      };
+      loadData();
+    }
+  }, [isOpen]);
 
   // Handle Escape key press
   useEffect(() => {
@@ -113,7 +147,7 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
     try {
       if (expense) {
         // Update existing expense
-        await expenses.update(expense.id, formData);
+        await expenses.update(expense.id, formData as UpdateExpenseRequest);
       } else {
         // Create new expense
         await expenses.create(formData);
@@ -203,26 +237,26 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
                 onChange={handleInputChange}
                 className="enhanced-select"
               >
-                <option value="ILS">ILS</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
+                {CURRENCY_OPTIONS.map(currency => (
+                  <option key={currency} value={currency}>{currency}</option>
+                ))}
               </select>
             </div>
 
             <div className="enhanced-group">
-              <label htmlFor="category">Category *</label>
+              <label htmlFor="categoryId">Category *</label>
               <select
-                id="category"
-                name="category"
-                value={formData.category}
+                id="categoryId"
+                name="categoryId"
+                value={formData.categoryId}
                 onChange={handleInputChange}
                 required
                 className="enhanced-select"
               >
                 <option value="">Select a category</option>
-                {CATEGORIES.map(category => (
-                  <option key={category} value={category}>
-                    {category}
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
@@ -242,24 +276,29 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
             </div>
 
             <div className="enhanced-group">
-              <label htmlFor="paymentMethod">Payment Method</label>
-              <input
-                type="text"
-                id="paymentMethod"
-                name="paymentMethod"
-                value={formData.paymentMethod}
+              <label htmlFor="paymentTypeId">Payment Type</label>
+              <select
+                id="paymentTypeId"
+                name="paymentTypeId"
+                value={formData.paymentTypeId || ''}
                 onChange={handleInputChange}
-                placeholder="e.g., Credit Card, Cash, Bank Transfer"
-                className="enhanced-input"
-              />
+                className="enhanced-select"
+              >
+                <option value="">Select a payment type</option>
+                {paymentTypesList.map(paymentType => (
+                  <option key={paymentType.id} value={paymentType.id}>
+                    {paymentType.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="enhanced-group">
               <label>
                 <input
                   type="checkbox"
-                  name="paid"
-                  checked={formData.paid}
+                  name="isPaid"
+                  checked={formData.isPaid}
                   onChange={handleCheckboxChange}
                 />
                 Mark as Paid
@@ -270,15 +309,15 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
               <label>
                 <input
                   type="checkbox"
-                  name="recurring"
-                  checked={formData.recurring}
+                  name="isRecurring"
+                  checked={formData.isRecurring}
                   onChange={handleCheckboxChange}
                 />
                 Recurring Expense
               </label>
             </div>
 
-            {formData.recurring && (
+            {formData.isRecurring && (
               <>
                 <div className="enhanced-group">
                   <label htmlFor="recurrenceFrequency">Recurrence Frequency</label>

@@ -67,14 +67,14 @@ class PersonalMeetingService {
             description = "Personal session with guide: ${personalMeeting.meetingType.name}",
             amount = personalMeeting.price,
             currency = "ILS",
-            category = "Professional Development",
+            categoryId = 1, // Default to "Other" category
             notes = "Auto-created from personal meeting with guide",
             expenseDate = personalMeeting.meetingDate.toLocalDate(),
             isRecurring = personalMeeting.isRecurring,
             recurrenceFrequency = personalMeeting.recurrenceFrequency,
             nextDueDate = personalMeeting.nextDueDate,
             isPaid = personalMeeting.isPaid,
-            paymentMethod = null,
+            paymentTypeId = null,
             receiptUrl = null
         )
 

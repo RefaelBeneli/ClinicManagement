@@ -539,12 +539,36 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const renderQuickStats = () => {
     const todayEvents = getTodayEvents();
-    const totalEvents = allEvents.length;
-    const completedEvents = allEvents.filter(e => e.status === 'COMPLETED').length;
-    const pendingEvents = allEvents.filter(e => e.status === 'SCHEDULED').length;
+    
+    // Filter events based on current view date range
+    const dateRange = getDateRange();
+    const viewEvents = allEvents.filter(event => 
+      event.date >= dateRange.displayStart && event.date <= dateRange.displayEnd
+    );
+    
+    const totalEvents = viewEvents.length;
+    const completedEvents = viewEvents.filter(e => e.status === 'COMPLETED').length;
+    const pendingEvents = viewEvents.filter(e => e.status === 'SCHEDULED').length;
+
+    // Get period label for display
+    const getPeriodLabel = () => {
+      switch (viewMode) {
+        case 'month':
+          return format(currentDate, 'MMMM yyyy');
+        case 'week':
+          return `Week of ${format(dateRange.displayStart, 'MMM d')} - ${format(dateRange.displayEnd, 'MMM d, yyyy')}`;
+        case 'day':
+          return format(currentDate, 'EEEE, MMM d, yyyy');
+        default:
+          return '';
+      }
+    };
 
     return (
       <div className="calendar-stats">
+        <div className="stats-header">
+          <h4>📊 Stats for {getPeriodLabel()}</h4>
+        </div>
         <div className="stat-card">
           <div className="stat-icon">📅</div>
           <div className="stat-content">

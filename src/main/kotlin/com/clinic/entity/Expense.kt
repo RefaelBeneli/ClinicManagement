@@ -28,8 +28,9 @@ data class Expense(
     @Column(nullable = false, length = 3)
     val currency: String = "ILS",
     
-    @Column(nullable = false, length = 100)
-    val category: String,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    val category: ExpenseCategory,
     
     @Column(columnDefinition = "TEXT")
     val notes: String? = null,
@@ -49,8 +50,9 @@ data class Expense(
     @Column(name = "is_paid", nullable = false)
     val isPaid: Boolean = false,
     
-    @Column(name = "payment_method", length = 100)
-    val paymentMethod: String? = null,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_type_id")
+    val paymentType: PaymentType? = null,
     
     @Column(name = "receipt_url", length = 500)
     val receiptUrl: String? = null,

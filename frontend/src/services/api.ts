@@ -24,7 +24,10 @@ import {
   PaymentType,
   ClientSourceResponse,
   ClientSourceRequest,
-  UpdateClientSourceRequest
+  UpdateClientSourceRequest,
+  ExpenseCategoryResponse,
+  ExpenseCategoryRequest,
+  UpdateExpenseCategoryRequest
 } from '../types';
 
 // Data transformation functions to handle backend/frontend property name mismatches
@@ -735,6 +738,43 @@ export const clientSources = {
     const response = await apiClient.patch(`/client-sources/${id}/toggle`);
     return response.data;
   },
+};
+
+export const expenseCategories = {
+  getAll: async (): Promise<ExpenseCategoryResponse[]> => {
+    const response = await apiClient.get('/expense-categories');
+    return response.data;
+  },
+
+  getActive: async (): Promise<ExpenseCategoryResponse[]> => {
+    const response = await apiClient.get('/expense-categories/active');
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ExpenseCategoryResponse> => {
+    const response = await apiClient.get(`/expense-categories/${id}`);
+    return response.data;
+  },
+
+  create: async (data: ExpenseCategoryRequest): Promise<ExpenseCategoryResponse> => {
+    const response = await apiClient.post('/expense-categories', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: UpdateExpenseCategoryRequest): Promise<ExpenseCategoryResponse> => {
+    const response = await apiClient.put(`/expense-categories/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete(`/expense-categories/${id}`);
+    return response.data;
+  },
+
+  toggleActive: async (id: number): Promise<ExpenseCategoryResponse> => {
+    const response = await apiClient.patch(`/expense-categories/${id}/toggle`);
+    return response.data;
+  }
 };
 
 export default apiClient; 

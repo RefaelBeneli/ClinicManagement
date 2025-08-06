@@ -8,7 +8,16 @@ import {
   MeetingStatus 
 } from '../types';
 import { meetings as meetingsApi, clients as clientsApi, paymentTypes as paymentTypesApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import './SessionPanel.css';
+
+// Helper function to get default payment types
+const getDefaultPaymentTypes = (): PaymentType[] => [
+  { id: 1, name: 'Cash', isActive: true, createdAt: '', updatedAt: '' },
+  { id: 2, name: 'Credit Card', isActive: true, createdAt: '', updatedAt: '' },
+  { id: 3, name: 'Bank Transfer', isActive: true, createdAt: '', updatedAt: '' },
+  { id: 4, name: 'Check', isActive: true, createdAt: '', updatedAt: '' }
+];
 
 interface SessionPanelProps {
   onClose: () => void;
@@ -24,6 +33,7 @@ interface SessionStats {
 }
 
 const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<Meeting[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,13 +93,20 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   }, []);
 
   const fetchPaymentTypes = useCallback(async () => {
-    try {
-      const paymentTypeData = await paymentTypesApi.getAll();
-      setPaymentTypes(paymentTypeData);
-    } catch (error) {
-      console.error('Error fetching payment types:', error);
+    if (user?.role === 'ADMIN') {
+      try {
+        const paymentTypeData = await paymentTypesApi.getActive();
+        setPaymentTypes(paymentTypeData);
+      } catch (error) {
+        console.warn('Failed to load payment types from API:', error);
+        setPaymentTypes(getDefaultPaymentTypes());
+      }
+    } else {
+      // Non-admin users get default payment types without API call
+      console.log('Using default payment types for non-admin user');
+      setPaymentTypes(getDefaultPaymentTypes());
     }
-  }, []);
+  }, [user?.role]);
 
   const fetchStats = useCallback(async (sessionData?: Meeting[]) => {
     try {

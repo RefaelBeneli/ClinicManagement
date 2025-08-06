@@ -49,49 +49,86 @@ const ExpenseDetailsModal: React.FC<ExpenseDetailsModalProps> = ({ expense, isOp
             <h3>Basic Information</h3>
             <div className="detail-grid">
               <div className="detail-item">
-                <label><strong>Name:</strong></label>
-                <p>{expense.name}</p>
-              </div>
-              
-              <div className="detail-item">
                 <label><strong>Category:</strong></label>
-                <p>{expense.category}</p>
+                <p>{expense.category.name}</p>
               </div>
               
               <div className="detail-item">
                 <label><strong>Amount:</strong></label>
-                <p className="amount-text">{formatCurrency(expense.amount)}</p>
+                <p>₪{expense.amount}</p>
               </div>
               
               <div className="detail-item">
                 <label><strong>Currency:</strong></label>
                 <p>{expense.currency}</p>
               </div>
-            </div>
-          </div>
-
-          {expense.description && (
-            <div className="detail-section">
-              <h3>Description</h3>
-              <div className="description-content">
-                <p>{expense.description}</p>
+              
+              <div className="detail-item">
+                <label><strong>Date:</strong></label>
+                <p>{new Date(expense.expenseDate).toLocaleDateString()}</p>
+              </div>
+              
+              <div className="detail-item">
+                <label><strong>Payment Status:</strong></label>
+                <span className={`payment-badge ${expense.isPaid ? 'paid' : 'unpaid'}`}>
+                  {expense.isPaid ? 'Paid' : 'Unpaid'}
+                </span>
+              </div>
+              
+              <div className="detail-item">
+                <label><strong>Payment Type:</strong></label>
+                <p>{expense.paymentType?.name || 'Not specified'}</p>
+              </div>
+              
+              <div className="detail-item">
+                <label><strong>Receipt URL:</strong></label>
+                <p>{expense.receiptUrl || 'Not provided'}</p>
+              </div>
+              
+              <div className="detail-item">
+                <label><strong>Notes:</strong></label>
+                <p>{expense.notes || 'No notes'}</p>
               </div>
             </div>
-          )}
+            
+            {expense.isRecurring && (
+              <div className="detail-section">
+                <h3>Recurrence Information</h3>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <label><strong>Recurrence Frequency:</strong></label>
+                    <p>{expense.recurrenceFrequency}</p>
+                  </div>
+                  
+                  <div className="detail-item">
+                    <label><strong>Next Due Date:</strong></label>
+                    <p>{expense.nextDueDate ? new Date(expense.nextDueDate).toLocaleDateString() : 'Not set'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {expense.description && (
+              <div className="detail-section">
+                <h3>Description</h3>
+                <p>{expense.description}</p>
+              </div>
+            )}
+          </div>
 
           <div className="detail-section">
             <h3>Payment Information</h3>
             <div className="detail-grid">
               <div className="detail-item">
                 <label><strong>Payment Status:</strong></label>
-                <span className={`payment-badge ${expense.paid ? 'paid' : 'unpaid'}`}>
-                  {expense.paid ? 'Paid' : 'Unpaid'}
+                <span className={`payment-badge ${expense.isPaid ? 'paid' : 'unpaid'}`}>
+                  {expense.isPaid ? 'Paid' : 'Unpaid'}
                 </span>
               </div>
               
               <div className="detail-item">
-                <label><strong>Payment Method:</strong></label>
-                <p>{expense.paymentMethod || 'Not specified'}</p>
+                <label><strong>Payment Type:</strong></label>
+                <p>{expense.paymentType?.name || 'Not specified'}</p>
               </div>
               
               <div className="detail-item">
@@ -105,7 +142,7 @@ const ExpenseDetailsModal: React.FC<ExpenseDetailsModalProps> = ({ expense, isOp
             </div>
           </div>
 
-          {expense.recurring && (
+          {expense.isRecurring && (
             <div className="detail-section">
               <h3>Recurrence Information</h3>
               <div className="detail-grid">

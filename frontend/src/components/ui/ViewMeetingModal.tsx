@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Meeting, MeetingStatus, PaymentType } from '../../types';
 import { meetings, paymentTypes as paymentTypesApi } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import './ViewMeetingModal.css';
 import './Modal.css';
+
+// Helper function to get default payment types
+const getDefaultPaymentTypes = (): PaymentType[] => [
+  { id: 1, name: 'Bank Transfer', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 2, name: 'Bit', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 3, name: 'Paybox', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 4, name: 'Cash', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+];
 
 interface ViewMeetingModalProps {
   meeting: Meeting | null;
@@ -12,6 +21,7 @@ interface ViewMeetingModalProps {
 }
 
 const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, onClose, onRefresh }) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentMeeting, setCurrentMeeting] = useState<Meeting | null>(meeting);
@@ -32,19 +42,18 @@ const ViewMeetingModal: React.FC<ViewMeetingModalProps> = ({ meeting, isOpen, on
   }, [isOpen]);
 
   const fetchPaymentTypes = async () => {
-    try {
-      const types = await paymentTypesApi.getAll();
-      setPaymentTypes(types);
-    } catch (error) {
-      console.log('⚠️ Failed to fetch payment types from API, using fallback:', error);
-      // Fallback payment types if API fails
-      const fallbackPaymentTypes: PaymentType[] = [
-        { id: 1, name: 'Bank Transfer', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 2, name: 'Bit', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 3, name: 'Paybox', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 4, name: 'Cash', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-      ];
-      setPaymentTypes(fallbackPaymentTypes);
+    if (user?.role === 'ADMIN') {
+      try {
+        const types = await paymentTypesApi.getActive();
+        setPaymentTypes(types);
+      } catch (error) {
+        console.warn('Failed to load payment types from API:', error);
+        setPaymentTypes(getDefaultPaymentTypes());
+      }
+    } else {
+      // Non-admin users get default payment types without API call
+      console.log('Using default payment types for non-admin user');
+      setPaymentTypes(getDefaultPaymentTypes());
     }
   };
 

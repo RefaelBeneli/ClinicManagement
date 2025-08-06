@@ -2,6 +2,9 @@
 """
 Clinic Management System - Test Data Generator
 Generates comprehensive test data including edge cases for testing the clinic management system.
+
+To run this script, use the following command:
+source test_data_env/bin/activate && python3 generate_test_data.py
 """
 
 import mysql.connector
@@ -537,17 +540,16 @@ class TestDataGenerator:
         if is_paid and status == 'COMPLETED':
             payment_date = self.random_date(meeting_date, meeting_date + datetime.timedelta(days=7))
         
-        google_event_id = random.choice([None, f"google_event_{self.random_string(10)}"])
         is_active = random.choice([True, True, True, False])  # 75% active
         
         try:
             self.cursor.execute("""
                 INSERT INTO meetings (user_id, client_id, payment_type_id, meeting_date, 
                                    duration, price, notes, summary, status, is_paid, payment_date, 
-                                   google_event_id, is_active, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                   is_active, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (user_id, client_id, payment_type_id, meeting_date, duration, price,
-                  notes, summary, status, is_paid, payment_date, google_event_id, is_active, meeting_date))
+                  notes, summary, status, is_paid, payment_date, is_active, meeting_date))
             
         except mysql.connector.Error as err:
             logger.warning(f"Failed to insert meeting: {err}")
@@ -674,7 +676,6 @@ class TestDataGenerator:
                     if is_paid and status == 'COMPLETED':
                         payment_date = self.random_date(time_slot, time_slot + datetime.timedelta(days=7))
                     
-                    google_event_id = random.choice([None, f"google_event_{self.random_string(10)}"])
                     is_recurring = random.choice([True, False])
                     
                     recurrence_frequency = None
@@ -689,12 +690,12 @@ class TestDataGenerator:
                         self.cursor.execute("""
                             INSERT INTO personal_meetings (user_id, therapist_name, meeting_type_id, provider_type,
                                                         provider_credentials, meeting_date, duration, price, notes,
-                                                        summary, status, is_paid, payment_date, google_event_id,
-                                                        is_recurring, recurrence_frequency, next_due_date, is_active, created_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                                        summary, status, is_paid, payment_date, is_recurring, 
+                                                        recurrence_frequency, next_due_date, is_active, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
                              time_slot, duration, price, notes, summary, status, is_paid, payment_date,
-                             google_event_id, is_recurring, recurrence_frequency, next_due_date, is_active, time_slot))
+                             is_recurring, recurrence_frequency, next_due_date, is_active, time_slot))
                         
                         meeting_count += 1
                         
@@ -830,13 +831,34 @@ class TestDataGenerator:
                     is_active = random.choice([True, True, True, False])  # 75% active
                     
                     try:
+                        # Get or create expense category
+                        self.cursor.execute("SELECT id FROM expense_categories WHERE name = %s", (category,))
+                        category_result = self.cursor.fetchone()
+                        if category_result:
+                            category_id = category_result[0]
+                        else:
+                            # Create the category if it doesn't exist
+                            self.cursor.execute("""
+                                INSERT INTO expense_categories (name, description, is_active, created_at, updated_at)
+                                VALUES (%s, %s, %s, %s, %s)
+                            """, (category, f"Category for {category}", True, datetime.datetime.now(), datetime.datetime.now()))
+                            category_id = self.cursor.lastrowid
+                        
+                        # Get payment type ID if specified
+                        payment_type_id = None
+                        if payment_method:
+                            self.cursor.execute("SELECT id FROM payment_types WHERE name = %s", (payment_method,))
+                            payment_result = self.cursor.fetchone()
+                            if payment_result:
+                                payment_type_id = payment_result[0]
+                        
                         self.cursor.execute("""
-                            INSERT INTO expenses (user_id, name, description, amount, currency, category, notes,
+                            INSERT INTO expenses (user_id, name, description, amount, currency, category_id, notes,
                                                expense_date, is_recurring, recurrence_frequency, next_due_date,
-                                               is_paid, payment_method, receipt_url, is_active, created_at, updated_at)
+                                               is_paid, payment_type_id, receipt_url, is_active, created_at, updated_at)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """, (user_id, name, description, amount, currency, category, notes, expense_date.date(),
-                             is_recurring, recurrence_frequency, next_due_date, is_paid, payment_method,
+                        """, (user_id, name, description, amount, currency, category_id, notes, expense_date.date(),
+                             is_recurring, recurrence_frequency, next_due_date, is_paid, payment_type_id,
                              receipt_url, is_active, datetime.datetime.now(), datetime.datetime.now()))
                         
                         expense_count += 1
@@ -856,17 +878,16 @@ class TestDataGenerator:
             # Only some users have calendar integration
             if random.random() < 0.3:  # 30% chance
                 google_calendar_id = f"calendar_{self.random_string(10)}@group.calendar.google.com"
-                access_token = f"access_token_{self.random_string(50)}"
-                refresh_token = f"refresh_token_{self.random_string(50)}"
-                token_expiry = self.random_date(datetime.datetime.now(), datetime.datetime.now() + datetime.timedelta(days=30))
                 is_active = random.choice([True, False])
                 
                 try:
                     self.cursor.execute("""
-                        INSERT INTO calendar_integration (user_id, google_calendar_id, access_token, refresh_token,
-                                                        token_expiry, is_active, created_at, updated_at)
+                        INSERT INTO calendar_integrations (user_id, google_calendar_id, sync_enabled, 
+                                                        sync_client_sessions, sync_personal_meetings, 
+                                                        last_sync_date, created_at, updated_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (user_id, google_calendar_id, access_token, refresh_token, token_expiry, is_active,
+                    """, (user_id, google_calendar_id, is_active, True, True, 
+                         datetime.datetime.now() - datetime.timedelta(days=random.randint(1, 30)),
                          datetime.datetime.now(), datetime.datetime.now()))
                     
                     integration_count += 1

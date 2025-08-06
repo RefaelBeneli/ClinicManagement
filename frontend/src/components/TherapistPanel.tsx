@@ -209,13 +209,13 @@ const TherapistPanel: React.FC = () => {
       // Expense analytics
       const expenseStats = {
         total: expenseList.length,
-        paid: expenseList.filter(e => e.paid).length,
-        unpaid: expenseList.filter(e => !e.paid).length,
+        paid: expenseList.filter(e => e.isPaid).length,
+        unpaid: expenseList.filter(e => !e.isPaid).length,
         totalAmount: expenseList.reduce((sum, e) => sum + e.amount, 0),
-        paidAmount: expenseList.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0),
-        unpaidAmount: expenseList.filter(e => !e.paid).reduce((sum, e) => sum + e.amount, 0),
+        paidAmount: expenseList.filter(e => e.isPaid).reduce((sum, e) => sum + e.amount, 0),
+        unpaidAmount: expenseList.filter(e => !e.isPaid).reduce((sum, e) => sum + e.amount, 0),
         byCategory: expenseList.reduce((acc, e) => {
-          acc[e.category] = (acc[e.category] || 0) + e.amount;
+          acc[e.category.name] = (acc[e.category.name] || 0) + e.amount;
           return acc;
         }, {} as Record<string, number>)
       };
@@ -365,7 +365,7 @@ const TherapistPanel: React.FC = () => {
         // Mark as paid - show payment type selection modal
         console.log('💰 Marking as paid - showing payment type modal');
         try {
-          const paymentTypes = await paymentTypesApi.getAll();
+          const paymentTypes = await paymentTypesApi.getActive(); // Use getActive instead of getAll
           console.log('✅ Payment types fetched:', paymentTypes);
           setPaymentTypes(paymentTypes);
         } catch (error) {
@@ -1727,7 +1727,7 @@ const TherapistPanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {expenseList.map((expense) => (
-                    <tr key={expense.id} className={expense.active === false ? 'disabled-item' : ''} style={expense.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
+                    <tr key={expense.id} className={expense.isActive === false ? 'disabled-item' : ''} style={expense.isActive === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{expense.id}</td>
                       <td>
                         <input
@@ -1735,27 +1735,25 @@ const TherapistPanel: React.FC = () => {
                           value={expense.name}
                           onChange={(e) => handleExpenseNameUpdate(expense.id, e.target.value)}
                           className="inline-input"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                         />
                       </td>
                       <td>
                         <input
                           type="number"
-                          step="0.01"
-                          min="0"
                           value={expense.amount}
                           onChange={(e) => handleExpenseAmountUpdate(expense.id, parseFloat(e.target.value) || 0)}
                           className="inline-input"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                         />
                       </td>
                       <td>
                         <input
                           type="text"
-                          value={expense.category}
+                          value={expense.category.name}
                           onChange={(e) => handleExpenseCategoryUpdate(expense.id, e.target.value)}
                           className="inline-input"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                         />
                       </td>
                       <td>
@@ -1764,59 +1762,41 @@ const TherapistPanel: React.FC = () => {
                           value={expense.expenseDate.split('T')[0]}
                           onChange={(e) => handleExpenseDateUpdate(expense.id, e.target.value)}
                           className="inline-input"
-                          disabled={expense.active === false}
+                          disabled={expense.isActive === false}
                         />
                       </td>
                       <td>
                         <button
-                                        className={`payment-badge ${expense.paid ? 'paid' : 'unpaid'}`}
-              onClick={() => {
-                console.log('🎯 Payment button clicked for expense:', expense.id, 'Current status:', expense.paid);
-                handleExpensePaymentToggle(expense.id, expense.paid);
-              }}
+                          className={`payment-badge ${expense.isPaid ? 'paid' : 'unpaid'}`}
+                          onClick={() => {
+                            console.log('🎯 Payment button clicked for expense:', expense.id, 'Current status:', expense.isPaid);
+                            handleExpensePaymentToggle(expense.id, expense.isPaid);
+                          }}
                           style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
                         >
-                          {expense.paid ? 'Paid' : 'Unpaid'}
+                          {expense.isPaid ? 'Paid' : 'Unpaid'}
                         </button>
                       </td>
                       <td>
                         <button 
                           className="btn-small"
-                          onClick={() => {
-                            console.log('🎯 View button clicked for expense:', expense.id);
-                            handleViewExpense(expense);
-                          }}
-                        >
-                          View
-                        </button>
-                        <button 
-                          className="btn-small"
-                          onClick={() => {
-                            console.log('🎯 Edit button clicked for expense:', expense.id);
-                            handleEditExpense(expense);
-                          }}
+                          onClick={() => handleEditExpense(expense)}
                         >
                           Edit
                         </button>
-                        {expense.active !== false ? (
+                        {expense.isActive !== false ? (
                           <button 
                             className="btn-small"
                             style={{ backgroundColor: '#dc3545', color: 'white' }}
-                            onClick={() => {
-                              console.log('🎯 Delete button clicked for expense:', expense.id);
-                              handleDeleteExpense(expense.id);
-                            }}
+                            onClick={() => handleDeleteExpense(expense.id)}
                           >
                             Delete
                           </button>
                         ) : (
                           <button 
-                            className="btn-small btn-restore"
+                            className="btn-small"
                             style={{ backgroundColor: '#28a745', color: 'white' }}
-                            onClick={() => {
-                              console.log('🎯 Restore button clicked for expense:', expense.id);
-                              handleRestoreExpense(expense.id);
-                            }}
+                            onClick={() => handleRestoreExpense(expense.id)}
                           >
                             Restore
                           </button>

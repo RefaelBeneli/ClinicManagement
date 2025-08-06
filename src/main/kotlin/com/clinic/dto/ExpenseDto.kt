@@ -20,8 +20,8 @@ data class ExpenseRequest(
     
     val currency: String = "ILS",
     
-    @field:NotBlank(message = "Category is required")
-    val category: String,
+    @field:NotNull(message = "Category ID is required")
+    val categoryId: Long,
     
     val notes: String? = null,
     
@@ -37,7 +37,7 @@ data class ExpenseRequest(
     
     val isPaid: Boolean = false,
     
-    val paymentMethod: String? = null,
+    val paymentTypeId: Long? = null,
     
     val receiptUrl: String? = null
 )
@@ -48,7 +48,7 @@ data class ExpenseResponse(
     val description: String?,
     val amount: BigDecimal,
     val currency: String,
-    val category: String,
+    val category: ExpenseCategoryResponse,
     val notes: String?,
     val expenseDate: LocalDate,
     val isRecurring: Boolean,
@@ -56,7 +56,7 @@ data class ExpenseResponse(
     val nextDueDate: LocalDate?,
     @JsonProperty("isPaid")
     val isPaid: Boolean,
-    val paymentMethod: String?,
+    val paymentType: PaymentTypeResponse?,
     val receiptUrl: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
@@ -69,7 +69,7 @@ data class UpdateExpenseRequest(
     val description: String? = null,
     val amount: BigDecimal? = null,
     val currency: String? = null,
-    val category: String? = null,
+    val categoryId: Long? = null,
     val notes: String? = null,
     val expenseDate: LocalDate? = null,
     @JsonProperty("isRecurring")
@@ -78,7 +78,7 @@ data class UpdateExpenseRequest(
     val nextDueDate: LocalDate? = null,
     @JsonProperty("isPaid")
     val isPaid: Boolean? = null,
-    val paymentMethod: String? = null,
+    val paymentTypeId: Long? = null,
     val receiptUrl: String? = null
 )
 

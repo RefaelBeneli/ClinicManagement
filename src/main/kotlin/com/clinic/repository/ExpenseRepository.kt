@@ -1,6 +1,7 @@
 package com.clinic.repository
 
 import com.clinic.entity.Expense
+import com.clinic.entity.ExpenseCategory
 import com.clinic.entity.User
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -20,14 +21,14 @@ interface ExpenseRepository : JpaRepository<Expense, Long> {
     
     fun findByUserAndIsRecurringTrue(user: User): List<Expense>
     
-    fun findByUserAndCategory(user: User, category: String): List<Expense>
+    fun findByUserAndCategory(user: User, category: ExpenseCategory): List<Expense>
     
     fun findByUserAndExpenseDateBetween(user: User, startDate: LocalDate, endDate: LocalDate): List<Expense>
     
     fun findByUserAndNextDueDateBefore(user: User, date: LocalDate): List<Expense>
     
     @Query("SELECT e.category, SUM(e.amount) FROM Expense e WHERE e.user = :user GROUP BY e.category")
-    fun getCategoryBreakdown(@Param("user") user: User): List<Array<Any>>
+    fun getCategoryBreakdown(@Param("user") user: User): List<Pair<ExpenseCategory, BigDecimal>>
     
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user = :user AND e.isPaid = true")
     fun getTotalPaidAmount(@Param("user") user: User): BigDecimal?

@@ -419,34 +419,54 @@ export interface Expense {
   description?: string;
   amount: number;
   currency: string;
-  category: string;
+  category: ExpenseCategoryResponse;
   notes?: string;
   expenseDate: string;
-  recurring: boolean;
+  isRecurring: boolean;
   recurrenceFrequency?: string;
   nextDueDate?: string;
-  paid: boolean;
-  paymentMethod?: string;
+  isPaid: boolean;
+  paymentType?: PaymentType;
   receiptUrl?: string;
   createdAt: string;
   updatedAt: string;
-  active?: boolean;
+  isActive?: boolean;
 }
 
 export interface ExpenseRequest {
   name: string;
   description?: string;
   amount: number;
-  currency?: string;
-  category: string;
+  currency: string;
+  categoryId: number;
   notes?: string;
   expenseDate: string;
-  recurring?: boolean;
+  isRecurring?: boolean;
   recurrenceFrequency?: string;
   nextDueDate?: string;
-  paid?: boolean;
-  paymentMethod?: string;
+  isPaid?: boolean;
+  paymentTypeId?: number;
   receiptUrl?: string;
+}
+
+export interface ExpenseResponse {
+  id: number;
+  name: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  category: ExpenseCategoryResponse;
+  notes: string | null;
+  expenseDate: string;
+  isRecurring: boolean;
+  recurrenceFrequency: string | null;
+  nextDueDate: string | null;
+  isPaid: boolean;
+  paymentType: PaymentType | null;
+  receiptUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
 }
 
 export interface UpdateExpenseRequest {
@@ -454,14 +474,14 @@ export interface UpdateExpenseRequest {
   description?: string;
   amount?: number;
   currency?: string;
-  category?: string;
+  categoryId?: number;
   notes?: string;
   expenseDate?: string;
-  recurring?: boolean;
+  isRecurring?: boolean;
   recurrenceFrequency?: string;
   nextDueDate?: string;
-  paid?: boolean;
-  paymentMethod?: string;
+  isPaid?: boolean;
+  paymentTypeId?: number;
   receiptUrl?: string;
 }
 
@@ -472,4 +492,25 @@ export interface ExpenseSummary {
   recurringExpenses: number;
   monthlyAverage: number;
   categoryBreakdown: Record<string, number>;
+}
+
+export interface ExpenseCategoryResponse {
+  id: number;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpenseCategoryRequest {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateExpenseCategoryRequest {
+  name?: string;
+  description?: string;
+  isActive?: boolean;
 } 

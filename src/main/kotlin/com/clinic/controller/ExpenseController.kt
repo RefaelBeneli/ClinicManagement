@@ -76,10 +76,10 @@ class ExpenseController {
         }
     }
 
-    @GetMapping("/category/{category}")
-    fun getExpensesByCategory(@PathVariable category: String): ResponseEntity<*> {
+    @GetMapping("/category/{categoryId}")
+    fun getExpensesByCategory(@PathVariable categoryId: Long): ResponseEntity<*> {
         return try {
-            val expenses = expenseService.getExpensesByCategory(category)
+            val expenses = expenseService.getExpensesByCategory(categoryId)
             ResponseEntity.ok(expenses)
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(MessageResponse("Error getting expenses by category: ${e.message}"))
