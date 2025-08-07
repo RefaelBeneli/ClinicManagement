@@ -87,10 +87,7 @@ const ViewExpenseModal: React.FC<ViewExpenseModalProps> = ({ expense, isOpen, on
                     <p>{expense.recurrenceFrequency}</p>
                   </div>
                   
-                  <div className="detail-item">
-                    <label><strong>Next Due Date:</strong></label>
-                    <p>{expense.nextDueDate ? new Date(expense.nextDueDate).toLocaleDateString() : 'Not set'}</p>
-                  </div>
+
                 </div>
               </div>
             )}

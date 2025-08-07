@@ -44,6 +44,9 @@ data class Expense(
     @Column(name = "recurrence_frequency", length = 50)
     val recurrenceFrequency: String? = null,
     
+    @Column(name = "recurrence_count")
+    val recurrenceCount: Int? = null,
+    
     @Column(name = "next_due_date")
     val nextDueDate: LocalDate? = null,
     

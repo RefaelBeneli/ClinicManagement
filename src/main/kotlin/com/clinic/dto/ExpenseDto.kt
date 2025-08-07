@@ -33,6 +33,8 @@ data class ExpenseRequest(
     
     val recurrenceFrequency: String? = null,
     
+    val recurrenceCount: Int? = null,
+    
     val nextDueDate: LocalDate? = null,
     
     val isPaid: Boolean = false,
@@ -53,6 +55,7 @@ data class ExpenseResponse(
     val expenseDate: LocalDate,
     val isRecurring: Boolean,
     val recurrenceFrequency: String?,
+    val recurrenceCount: Int?,
     val nextDueDate: LocalDate?,
     @JsonProperty("isPaid")
     val isPaid: Boolean,
@@ -75,6 +78,7 @@ data class UpdateExpenseRequest(
     @JsonProperty("isRecurring")
     val isRecurring: Boolean? = null,
     val recurrenceFrequency: String? = null,
+    val recurrenceCount: Int? = null,
     val nextDueDate: LocalDate? = null,
     @JsonProperty("isPaid")
     val isPaid: Boolean? = null,

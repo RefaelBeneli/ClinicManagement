@@ -100,10 +100,7 @@ const ExpenseDetailsModal: React.FC<ExpenseDetailsModalProps> = ({ expense, isOp
                     <p>{expense.recurrenceFrequency}</p>
                   </div>
                   
-                  <div className="detail-item">
-                    <label><strong>Next Due Date:</strong></label>
-                    <p>{expense.nextDueDate ? new Date(expense.nextDueDate).toLocaleDateString() : 'Not set'}</p>
-                  </div>
+
                 </div>
               </div>
             )}
@@ -158,16 +155,7 @@ const ExpenseDetailsModal: React.FC<ExpenseDetailsModalProps> = ({ expense, isOp
                   </div>
                 )}
                 
-                {expense.nextDueDate && (
-                  <div className="detail-item">
-                    <label><strong>Next Due Date:</strong></label>
-                    <p>{new Date(expense.nextDueDate).toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    })}</p>
-                  </div>
-                )}
+
               </div>
             </div>
           )}

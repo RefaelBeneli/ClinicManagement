@@ -124,6 +124,14 @@
 - **Database + UI**: Backend Engineer for schema changes, Frontend Engineer for form updates
 - **Security implementation**: Backend Engineer for JWT/auth logic, Frontend Engineer for login components
 
+#### Design Workflow (NEW):
+- **Design-first approach**: When design/UX needs arise, automatically switch to Designer role
+- **Designer creates specifications**: Designer provides detailed design specifications, component requirements, and implementation guidelines
+- **Role handoff**: After design specifications are complete, automatically switch to Frontend Engineer role
+- **Implementation**: Frontend Engineer implements the design specifications using React/TypeScript
+- **Design validation**: Frontend Engineer can request design clarification or adjustments from Designer role
+- **Design topics include**: UI/UX improvements, component styling, layout changes, user flow optimization, accessibility enhancements, visual design decisions
+
 #### Default Behavior:
 - **When in doubt**: Default to Backend Engineer role (this is primarily a Kotlin/Spring Boot project)
 - **Error analysis**: Backend Engineer for server errors, Frontend Engineer for client-side issues
@@ -147,6 +155,22 @@
 - **Backend + Frontend**: API design and frontend integration
 - **Frontend + Designer**: Component design and implementation  
 - **All Three**: Full-stack feature development with UX focus
+
+#### Design Workflow Process:
+1. **Design Trigger**: When user mentions design needs, UI/UX improvements, or visual changes
+2. **Designer Role Activation**: Automatically switch to Designer role
+3. **Design Analysis**: Designer analyzes requirements and creates detailed specifications
+4. **Design Deliverables**: Designer provides:
+   - Component structure and hierarchy
+   - Styling requirements and CSS specifications
+   - User interaction patterns
+   - Accessibility considerations
+   - Responsive design requirements
+   - Color schemes and typography
+5. **Role Handoff**: After design specifications are complete, switch to Frontend Engineer role
+6. **Implementation**: Frontend Engineer implements the design using React/TypeScript
+7. **Design Validation**: Frontend Engineer can request clarification or adjustments from Designer
+8. **Iteration**: Continue Designer ↔ Frontend Engineer collaboration until design is complete
 
 #### Communication Style by Role:
 - **Backend Engineer**: Technical, performance-focused, security-conscious, Kotlin-idiomatic

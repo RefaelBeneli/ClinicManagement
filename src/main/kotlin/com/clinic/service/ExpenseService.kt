@@ -40,7 +40,50 @@ class ExpenseService {
                 .orElseThrow { RuntimeException("Payment type not found with id: $paymentTypeId") }
         }
         
-        val expense = Expense(
+        if (expenseRequest.isRecurring && expenseRequest.recurrenceCount != null && expenseRequest.recurrenceCount > 1) {
+            return createRecurringExpenses(expenseRequest, currentUser, category, paymentType)
+        } else {
+            val expense = Expense(
+                user = currentUser,
+                name = expenseRequest.name,
+                description = expenseRequest.description,
+                amount = expenseRequest.amount,
+                currency = expenseRequest.currency,
+                category = category,
+                notes = expenseRequest.notes,
+                expenseDate = expenseRequest.expenseDate,
+                isRecurring = expenseRequest.isRecurring,
+                recurrenceFrequency = expenseRequest.recurrenceFrequency,
+                recurrenceCount = expenseRequest.recurrenceCount,
+                nextDueDate = expenseRequest.nextDueDate,
+                isPaid = expenseRequest.isPaid,
+                paymentType = paymentType,
+                receiptUrl = expenseRequest.receiptUrl
+            )
+            
+            val savedExpense = expenseRepository.save(expense)
+            return mapToResponse(savedExpense)
+        }
+    }
+
+    private fun createRecurringExpenses(
+        expenseRequest: ExpenseRequest,
+        currentUser: User,
+        category: ExpenseCategory,
+        paymentType: PaymentType?
+    ): ExpenseResponse {
+        if (expenseRequest.recurrenceFrequency == null) {
+            throw RuntimeException("Recurrence frequency is required for recurring expenses")
+        }
+
+        val recurrenceCount = expenseRequest.recurrenceCount ?: 1
+        println("🔄 Creating recurring expenses: count=$recurrenceCount, frequency=${expenseRequest.recurrenceFrequency}")
+        
+        val expenses = mutableListOf<Expense>()
+        var currentDate = expenseRequest.expenseDate
+
+        // Create the first (parent) expense
+        val parentExpense = Expense(
             user = currentUser,
             name = expenseRequest.name,
             description = expenseRequest.description,
@@ -48,17 +91,57 @@ class ExpenseService {
             currency = expenseRequest.currency,
             category = category,
             notes = expenseRequest.notes,
-            expenseDate = expenseRequest.expenseDate,
-            isRecurring = expenseRequest.isRecurring,
+            expenseDate = currentDate,
+            isRecurring = true,
             recurrenceFrequency = expenseRequest.recurrenceFrequency,
-            nextDueDate = expenseRequest.nextDueDate,
+            recurrenceCount = recurrenceCount,
+            nextDueDate = if (recurrenceCount > 1) calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency) else null,
             isPaid = expenseRequest.isPaid,
             paymentType = paymentType,
             receiptUrl = expenseRequest.receiptUrl
         )
-        
-        val savedExpense = expenseRepository.save(expense)
-        return mapToResponse(savedExpense)
+        val savedParentExpense = expenseRepository.save(parentExpense)
+        expenses.add(savedParentExpense)
+        println("✅ Created parent expense (occurrence 1)")
+
+        // Create subsequent expenses
+        for (occurrence in 2..recurrenceCount) {
+            currentDate = calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency)
+            
+            val expense = Expense(
+                user = currentUser,
+                name = expenseRequest.name,
+                description = expenseRequest.description,
+                amount = expenseRequest.amount,
+                currency = expenseRequest.currency,
+                category = category,
+                notes = expenseRequest.notes,
+                expenseDate = currentDate,
+                isRecurring = true,
+                recurrenceFrequency = expenseRequest.recurrenceFrequency,
+                recurrenceCount = recurrenceCount,
+                nextDueDate = if (occurrence < recurrenceCount) calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency) else null,
+                isPaid = expenseRequest.isPaid,
+                paymentType = paymentType,
+                receiptUrl = expenseRequest.receiptUrl
+            )
+            expenses.add(expenseRepository.save(expense))
+            println("✅ Created occurrence $occurrence")
+        }
+
+        println("🎉 Total expenses created: ${expenses.size}")
+        return mapToResponse(savedParentExpense)
+    }
+
+    private fun calculateNextExpenseDate(currentDate: LocalDate, frequency: String): LocalDate {
+        return when (frequency.uppercase()) {
+            "DAILY" -> currentDate.plusDays(1)
+            "WEEKLY" -> currentDate.plusWeeks(1)
+            "MONTHLY" -> currentDate.plusMonths(1)
+            "QUARTERLY" -> currentDate.plusMonths(3)
+            "YEARLY" -> currentDate.plusYears(1)
+            else -> throw RuntimeException("Unsupported recurrence frequency: $frequency")
+        }
     }
 
     fun getAllExpenses(): List<ExpenseResponse> {
@@ -102,6 +185,7 @@ class ExpenseService {
             expenseDate = updateRequest.expenseDate ?: expense.expenseDate,
             isRecurring = updateRequest.isRecurring ?: expense.isRecurring,
             recurrenceFrequency = updateRequest.recurrenceFrequency,
+            recurrenceCount = updateRequest.recurrenceCount ?: expense.recurrenceCount,
             nextDueDate = updateRequest.nextDueDate,
             isPaid = updateRequest.isPaid ?: expense.isPaid,
             paymentType = paymentType,
@@ -244,6 +328,7 @@ class ExpenseService {
             expenseDate = expense.expenseDate,
             isRecurring = expense.isRecurring,
             recurrenceFrequency = expense.recurrenceFrequency,
+            recurrenceCount = expense.recurrenceCount,
             nextDueDate = expense.nextDueDate,
             isPaid = expense.isPaid,
             paymentType = expense.paymentType?.let { PaymentTypeResponse.fromEntity(it) },

@@ -31,7 +31,6 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
     expenseDate: new Date().toISOString().split('T')[0],
     isRecurring: false,
     recurrenceFrequency: '',
-    nextDueDate: '',
     isPaid: false,
     paymentTypeId: undefined,
     receiptUrl: ''
@@ -45,12 +44,12 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
   const CURRENCY_OPTIONS = ['ILS', 'USD', 'EUR'];
 
   const RECURRENCE_OPTIONS = [
+    { value: 'DAILY', label: 'Daily' },
     { value: 'WEEKLY', label: 'Weekly' },
     { value: 'BIWEEKLY', label: 'Bi-weekly' },
     { value: 'MONTHLY', label: 'Monthly' },
     { value: 'QUARTERLY', label: 'Quarterly' },
-    { value: 'YEARLY', label: 'Yearly' },
-    { value: 'CUSTOM', label: 'Custom' }
+    { value: 'YEARLY', label: 'Yearly' }
   ];
 
   useEffect(() => {
@@ -65,7 +64,6 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
         expenseDate: expense.expenseDate,
         isRecurring: expense.isRecurring,
         recurrenceFrequency: expense.recurrenceFrequency || '',
-        nextDueDate: expense.nextDueDate || '',
         isPaid: expense.isPaid,
         paymentTypeId: expense.paymentType?.id,
         receiptUrl: expense.receiptUrl || ''
@@ -318,7 +316,8 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
             </div>
 
             {formData.isRecurring && (
-              <>
+              <div className="recurring-section">
+                <h4>🔄 Recurring Settings</h4>
                 <div className="enhanced-group">
                   <label htmlFor="recurrenceFrequency">Recurrence Frequency</label>
                   <select
@@ -337,18 +336,59 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
                   </select>
                 </div>
 
-                <div className="enhanced-group">
-                  <label htmlFor="nextDueDate">Next Due Date</label>
-                  <input
-                    type="date"
-                    id="nextDueDate"
-                    name="nextDueDate"
-                    value={formData.nextDueDate}
-                    onChange={handleInputChange}
-                    className="enhanced-input"
-                  />
-                </div>
-              </>
+                {formData.recurrenceFrequency && (
+                  <div className="enhanced-group">
+                    <label>
+                      Recurrence Count
+                      <span 
+                        className="tooltip" 
+                        title="Number of times this expense should repeat. Leave unchecked for specific count, or check 'Infinite' for ongoing recurring expense."
+                      >
+                        ℹ️
+                      </span>
+                    </label>
+                    <div className="recurrence-count-container">
+                      <div className="count-input-group">
+                        <input
+                          type="number"
+                          name="recurrenceCount"
+                          min="1"
+                          max="365"
+                          value={formData.recurrenceCount === null ? '' : formData.recurrenceCount}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            recurrenceCount: e.target.value ? parseInt(e.target.value) : 1
+                          }))}
+                          placeholder="Enter count"
+                          disabled={formData.recurrenceCount === null}
+                          className="enhanced-input count-input"
+                        />
+                        <span className="frequency-unit">
+                          {formData.recurrenceFrequency === 'DAILY' && 'days'}
+                          {formData.recurrenceFrequency === 'WEEKLY' && 'weeks'}
+                          {formData.recurrenceFrequency === 'BIWEEKLY' && 'bi-weeks'}
+                          {formData.recurrenceFrequency === 'MONTHLY' && 'months'}
+                          {formData.recurrenceFrequency === 'QUARTERLY' && 'quarters'}
+                          {formData.recurrenceFrequency === 'YEARLY' && 'years'}
+                        </span>
+                      </div>
+                      <div className="infinite-checkbox">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={formData.recurrenceCount === null}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              recurrenceCount: e.target.checked ? null : 1
+                            }))}
+                          />
+                          ♾️ Infinite
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="enhanced-group">
@@ -376,6 +416,12 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
               />
             </div>
           </form>
+          
+          {error && (
+            <div className="error-message">
+              ⚠️ {error}
+            </div>
+          )}
         </div>
         
         <div className="modal__footer">
@@ -393,6 +439,7 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({ expense, isOpen, on
             onClick={handleSubmit}
             disabled={loading}
           >
+            {loading && <span className="loading-spinner"></span>}
             {loading ? (expense ? 'Updating...' : 'Adding...') : (expense ? 'Update Expense' : 'Add Expense')}
           </button>
         </div>

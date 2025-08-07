@@ -448,7 +448,7 @@ export interface Expense {
   expenseDate: string;
   isRecurring: boolean;
   recurrenceFrequency?: string;
-  nextDueDate?: string;
+  recurrenceCount?: number | null;
   isPaid: boolean;
   paymentType?: PaymentType;
   receiptUrl?: string;
@@ -467,7 +467,7 @@ export interface ExpenseRequest {
   expenseDate: string;
   isRecurring?: boolean;
   recurrenceFrequency?: string;
-  nextDueDate?: string;
+  recurrenceCount?: number | null;
   isPaid?: boolean;
   paymentTypeId?: number;
   receiptUrl?: string;
@@ -503,7 +503,7 @@ export interface UpdateExpenseRequest {
   expenseDate?: string;
   isRecurring?: boolean;
   recurrenceFrequency?: string;
-  nextDueDate?: string;
+  recurrenceCount?: number | null;
   isPaid?: boolean;
   paymentTypeId?: number;
   receiptUrl?: string;

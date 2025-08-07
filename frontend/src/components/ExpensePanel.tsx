@@ -41,7 +41,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     expenseDate: '',
     isRecurring: false,
     recurrenceFrequency: '',
-    nextDueDate: '',
+    recurrenceCount: 1,
     isPaid: false,
     paymentTypeId: undefined,
     receiptUrl: ''
@@ -281,7 +281,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       expenseDate: expense.expenseDate.split('T')[0],
       isRecurring: expense.isRecurring,
       recurrenceFrequency: expense.recurrenceFrequency || '',
-      nextDueDate: expense.nextDueDate || '',
+      recurrenceCount: expense.recurrenceCount === null ? null : (expense.recurrenceCount || 1),
       isPaid: expense.isPaid,
       paymentTypeId: expense.paymentType?.id,
       receiptUrl: expense.receiptUrl || ''
@@ -338,7 +338,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       expenseDate: '',
       isRecurring: false,
       recurrenceFrequency: '',
-      nextDueDate: '',
+      recurrenceCount: 1,
       isPaid: false,
       paymentTypeId: undefined,
       receiptUrl: ''
@@ -724,7 +724,12 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
                   <input
                     type="checkbox"
                     checked={formData.isRecurring}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      isRecurring: e.target.checked,
+                      recurrenceFrequency: e.target.checked ? prev.recurrenceFrequency : '',
+                      recurrenceCount: e.target.checked ? prev.recurrenceCount : 1
+                    }))}
                   />
                   Recurring Expense
                 </label>
@@ -735,9 +740,10 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
                   <label>Recurrence Frequency</label>
                   <select
                     value={formData.recurrenceFrequency}
-                    onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value, recurrenceCount: 1 }))}
                   >
                     <option value="">Select frequency</option>
+                    <option value="DAILY">Daily</option>
                     <option value="WEEKLY">Weekly</option>
                     <option value="MONTHLY">Monthly</option>
                     <option value="QUARTERLY">Quarterly</option>
@@ -748,14 +754,55 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
               
               {formData.isRecurring && formData.recurrenceFrequency && (
                 <div className="form-group">
-                  <label>Next Due Date</label>
-                  <input
-                    type="date"
-                    value={formData.nextDueDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, nextDueDate: e.target.value }))}
-                  />
+                  <label>
+                    Recurrence Count
+                    <span 
+                      className="tooltip" 
+                      title="Number of times this expense should repeat. Leave unchecked for specific count, or check 'Infinite' for ongoing recurring expense."
+                    >
+                      ℹ️
+                    </span>
+                  </label>
+                  <div className="recurrence-count-container">
+                    <div className="count-input-group">
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={formData.recurrenceCount === null ? '' : formData.recurrenceCount}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          recurrenceCount: e.target.value ? parseInt(e.target.value) : 1
+                        }))}
+                        placeholder="Enter count"
+                        disabled={formData.recurrenceCount === null}
+                        className="count-input"
+                      />
+                      <span className="frequency-unit">
+                        {formData.recurrenceFrequency === 'DAILY' && 'days'}
+                        {formData.recurrenceFrequency === 'WEEKLY' && 'weeks'}
+                        {formData.recurrenceFrequency === 'MONTHLY' && 'months'}
+                        {formData.recurrenceFrequency === 'QUARTERLY' && 'quarters'}
+                        {formData.recurrenceFrequency === 'YEARLY' && 'years'}
+                      </span>
+                    </div>
+                    <div className="infinite-checkbox">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={formData.recurrenceCount === null}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            recurrenceCount: e.target.checked ? null : 1
+                          }))}
+                        />
+                        ♾️ Infinite
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
+              
               
               <div className="form-group">
                 <label>Payment Type</label>

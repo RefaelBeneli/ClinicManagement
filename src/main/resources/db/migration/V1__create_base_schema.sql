@@ -42,7 +42,10 @@ CREATE TABLE expense_categories (
 CREATE TABLE client_sources (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
+    duration INT NOT NULL DEFAULT 60,
     price DECIMAL(10,2) NOT NULL,
+    no_show_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    default_sessions INT NOT NULL DEFAULT 1,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -78,12 +81,19 @@ CREATE TABLE meetings (
     notes TEXT,
     summary TEXT,
     status VARCHAR(50) NOT NULL DEFAULT 'SCHEDULED',
+    google_event_id VARCHAR(255),
+    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+    recurrence_frequency VARCHAR(50),
+    total_sessions INT,
+    session_number INT NOT NULL DEFAULT 1,
+    parent_meeting_id BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (client_id) REFERENCES clients(id),
-    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
+    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id),
+    FOREIGN KEY (parent_meeting_id) REFERENCES meetings(id)
 );
 
 -- Create personal_meeting_types table
@@ -115,6 +125,7 @@ CREATE TABLE personal_meetings (
     notes TEXT,
     summary TEXT,
     status VARCHAR(50) NOT NULL DEFAULT 'SCHEDULED',
+    google_event_id VARCHAR(255),
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     recurrence_frequency VARCHAR(50),
     next_due_date DATE,
@@ -138,6 +149,7 @@ CREATE TABLE expenses (
     expense_date DATE NOT NULL,
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     recurrence_frequency VARCHAR(50),
+    recurrence_count INT,
     next_due_date DATE,
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
     payment_type_id BIGINT,
@@ -188,17 +200,17 @@ INSERT INTO expense_categories (name, description) VALUES
 ('Other', 'Miscellaneous expenses');
 
 -- Insert default client sources
-INSERT INTO client_sources (name, price) VALUES
-('Private', 200.00),
-('Natal', 150.00),
-('Clalit', 120.00);
+INSERT INTO client_sources (name, duration, price, no_show_price, default_sessions) VALUES
+('Private', 60, 200.00, 100.00, 1),
+('Natal', 45, 150.00, 75.00, 1),
+('Clalit', 50, 120.00, 60.00, 1);
 
 -- Insert default personal meeting types
-INSERT INTO personal_meeting_types (name, duration, price) VALUES
-('Personal Therapy', 60, 300.00),
-('Professional Development', 90, 400.00),
-('Supervision', 60, 250.00),
-('Teaching Session', 120, 500.00);
+INSERT INTO personal_meeting_types (name, duration, price, is_recurring, recurrence_frequency) VALUES
+('Personal Therapy', 60, 300.00, FALSE, NULL),
+('Professional Development', 90, 400.00, FALSE, NULL),
+('Supervision', 60, 250.00, FALSE, NULL),
+('Teaching Session', 120, 500.00, FALSE, NULL);
 
 -- Insert default admin user
 INSERT INTO users (username, password, email, full_name, role, enabled, approval_status) VALUES
