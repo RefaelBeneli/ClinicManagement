@@ -33,6 +33,105 @@ import AddSessionModal from './ui/AddSessionModal';
 import AddPersonalMeetingModal from './ui/AddPersonalMeetingModal';
 import './TherapistPanel.css';
 
+// Sortable table header component
+interface SortableHeaderProps {
+  column: string;
+  currentSortBy: string;
+  currentSortOrder: 'asc' | 'desc';
+  onSort: (column: string) => void;
+  children: React.ReactNode;
+}
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ 
+  column, 
+  currentSortBy, 
+  currentSortOrder, 
+  onSort, 
+  children 
+}) => {
+  const isActive = currentSortBy === column;
+  
+  return (
+    <th 
+      onClick={() => onSort(column)}
+      style={{ 
+        cursor: 'pointer', 
+        userSelect: 'none',
+        position: 'relative',
+        paddingRight: '20px'
+      }}
+      className="sortable-header"
+    >
+      {children}
+      <span style={{ 
+        marginLeft: '5px',
+        color: isActive ? '#667eea' : '#ccc',
+        fontSize: '0.8em'
+      }}>
+        {isActive ? (currentSortOrder === 'asc' ? '↑' : '↓') : '↕'}
+      </span>
+    </th>
+  );
+};
+
+// Filter input component
+interface FilterInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: 'text' | 'select';
+  options?: { value: string; label: string }[];
+}
+
+const FilterInput: React.FC<FilterInputProps> = ({ 
+  value, 
+  onChange, 
+  placeholder = 'Filter...', 
+  type = 'text',
+  options = []
+}) => {
+  if (type === 'select') {
+    return (
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="filter-input"
+        style={{
+          width: '100%',
+          padding: '4px 8px',
+          border: '1px solid #ddd',
+          borderRadius: '4px',
+          fontSize: '0.8rem',
+          backgroundColor: 'white'
+        }}
+      >
+        {options.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="filter-input"
+      style={{
+        width: '100%',
+        padding: '4px 8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '0.8rem'
+      }}
+    />
+  );
+};
+
 const TherapistPanel: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -46,6 +145,49 @@ const TherapistPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'meetings' | 'personal-meetings' | 'expenses' | 'analytics' | 'calendar'>('dashboard');
   const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
   
+  // Sorting state for each table
+  const [clientSortBy, setClientSortBy] = useState<'id' | 'fullName' | 'email' | 'phone' | 'active' | 'createdAt' | 'source'>('id');
+  const [clientSortOrder, setClientSortOrder] = useState<'asc' | 'desc'>('asc');
+  
+  const [meetingSortBy, setMeetingSortBy] = useState<'id' | 'client' | 'meetingDate' | 'duration' | 'price' | 'status' | 'isPaid' | 'clientSource'>('meetingDate');
+  const [meetingSortOrder, setMeetingSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  const [personalMeetingSortBy, setPersonalMeetingSortBy] = useState<'id' | 'therapistName' | 'meetingType' | 'meetingDate' | 'duration' | 'price' | 'status' | 'isPaid'>('meetingDate');
+  const [personalMeetingSortOrder, setPersonalMeetingSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  const [expenseSortBy, setExpenseSortBy] = useState<'id' | 'name' | 'amount' | 'category' | 'expenseDate' | 'isPaid'>('expenseDate');
+  const [expenseSortOrder, setExpenseSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Filtering state for each table
+  const [clientFilters, setClientFilters] = useState({
+    active: 'ALL',
+    source: 'ALL'
+  });
+
+  const [meetingFilters, setMeetingFilters] = useState({
+    client: '',
+    status: 'ALL',
+    isPaid: 'ALL',
+    price: '',
+    duration: '',
+    clientSource: 'ALL'
+  });
+
+  const [personalMeetingFilters, setPersonalMeetingFilters] = useState({
+    therapistName: '',
+    meetingType: '',
+    status: 'ALL',
+    isPaid: 'ALL',
+    price: '',
+    duration: ''
+  });
+
+  const [expenseFilters, setExpenseFilters] = useState({
+    category: 'ALL',
+    isPaid: 'ALL',
+    expenseDate: ''
+  });
+
   // Panel states
   const [showMeetingPanel, setShowMeetingPanel] = useState(false);
   const [showPersonalMeetingPanel, setShowPersonalMeetingPanel] = useState(false);
@@ -68,14 +210,26 @@ const TherapistPanel: React.FC = () => {
   const [editPersonalMeetingModal, setEditPersonalMeetingModal] = useState<{ isOpen: boolean; meeting: PersonalMeeting | null }>({ isOpen: false, meeting: null });
   const [editExpenseModal, setEditExpenseModal] = useState<{ isOpen: boolean; expense: Expense | null }>({ isOpen: false, expense: null });
 
-  // Add new modal states
+  // Add modal states
   const [addClientModal, setAddClientModal] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [addMeetingModal, setAddMeetingModal] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [addPersonalMeetingModal, setAddPersonalMeetingModal] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [addExpenseModal, setAddExpenseModal] = useState(false);
+
+  // Payment type selection state
+  const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
+  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType | null>(null);
+  const [meetingToPay, setMeetingToPay] = useState<Meeting | null>(null);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
+
+  // Status dropdown state
+  const [statusDropdowns, setStatusDropdowns] = useState<{
+    meetings: { [key: number]: boolean };
+    personalMeetings: { [key: number]: boolean };
+  }>({
+    meetings: {},
+    personalMeetings: {}
+  });
 
   // Stats state
   const [stats, setStats] = useState({
@@ -99,6 +253,327 @@ const TherapistPanel: React.FC = () => {
 
   // Analytics period state
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+
+  // Sorting handlers
+  const handleClientSort = (column: string) => {
+    if (clientSortBy === column) {
+      setClientSortOrder(clientSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setClientSortBy(column as any);
+      setClientSortOrder('asc');
+    }
+  };
+
+  const handleMeetingSort = (column: string) => {
+    if (meetingSortBy === column) {
+      setMeetingSortOrder(meetingSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setMeetingSortBy(column as any);
+      setMeetingSortOrder('asc');
+    }
+  };
+
+  const handlePersonalMeetingSort = (column: string) => {
+    if (personalMeetingSortBy === column) {
+      setPersonalMeetingSortOrder(personalMeetingSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setPersonalMeetingSortBy(column as any);
+      setPersonalMeetingSortOrder('asc');
+    }
+  };
+
+  const handleExpenseSort = (column: string) => {
+    if (expenseSortBy === column) {
+      setExpenseSortOrder(expenseSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setExpenseSortBy(column as any);
+      setExpenseSortOrder('asc');
+    }
+  };
+
+  // Filter handlers
+  const handleClientFilter = (column: string, value: string) => {
+    setClientFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleMeetingFilter = (column: string, value: string) => {
+    setMeetingFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handlePersonalMeetingFilter = (column: string, value: string) => {
+    setPersonalMeetingFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleExpenseFilter = (column: string, value: string) => {
+    setExpenseFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  // Clear all filters
+  const clearClientFilters = () => {
+    setClientFilters({
+      active: 'ALL',
+      source: 'ALL'
+    });
+  };
+
+      const clearMeetingFilters = () => {
+      setMeetingFilters({
+        client: '',
+        status: 'ALL',
+        isPaid: 'ALL',
+        price: '',
+        duration: '',
+        clientSource: 'ALL'
+      });
+    };
+
+  const clearPersonalMeetingFilters = () => {
+    setPersonalMeetingFilters({
+      therapistName: '',
+      meetingType: '',
+      status: 'ALL',
+      isPaid: 'ALL',
+      price: '',
+      duration: ''
+    });
+  };
+
+      const clearExpenseFilters = () => {
+      setExpenseFilters({
+        category: 'ALL',
+        isPaid: 'ALL',
+        expenseDate: ''
+      });
+    };
+
+  // Sorted and filtered data
+  const sortedClientList = useMemo(() => {
+    let filtered = [...clientList];
+
+    // Apply filters
+    if (clientFilters.active !== 'ALL') {
+      const isActive = clientFilters.active === 'ACTIVE';
+      filtered = filtered.filter(client => client.active === isActive);
+    }
+    if (clientFilters.source !== 'ALL') {
+      filtered = filtered.filter(client => 
+        client.source?.name === clientFilters.source
+      );
+    }
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (clientSortBy) {
+        case 'id':
+          comparison = a.id - b.id;
+          break;
+        case 'fullName':
+          comparison = a.fullName.localeCompare(b.fullName);
+          break;
+        case 'email':
+          comparison = (a.email || '').localeCompare(b.email || '');
+          break;
+        case 'phone':
+          comparison = (a.phone || '').localeCompare(b.phone || '');
+          break;
+        case 'active':
+          comparison = (a.active ? 1 : 0) - (b.active ? 1 : 0);
+          break;
+        case 'createdAt':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case 'source':
+          comparison = (a.source?.name || '').localeCompare(b.source?.name || '');
+          break;
+      }
+      
+      return clientSortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [clientList, clientSortBy, clientSortOrder, clientFilters]);
+
+  const sortedMeetingList = useMemo(() => {
+    let filtered = [...meetingList];
+
+    // Apply filters
+    if (meetingFilters.client) {
+      filtered = filtered.filter(meeting => 
+        (meeting.client?.fullName || '').toLowerCase().includes(meetingFilters.client.toLowerCase())
+      );
+    }
+    if (meetingFilters.status !== 'ALL') {
+      filtered = filtered.filter(meeting => meeting.status === meetingFilters.status);
+    }
+    if (meetingFilters.isPaid !== 'ALL') {
+      const isPaid = meetingFilters.isPaid === 'PAID';
+      filtered = filtered.filter(meeting => meeting.isPaid === isPaid);
+    }
+    if (meetingFilters.price) {
+      filtered = filtered.filter(meeting => 
+        meeting.price.toString().includes(meetingFilters.price)
+      );
+    }
+    if (meetingFilters.duration) {
+      filtered = filtered.filter(meeting => 
+        meeting.duration.toString().includes(meetingFilters.duration)
+      );
+    }
+    if (meetingFilters.clientSource !== 'ALL') {
+      filtered = filtered.filter(meeting => 
+        meeting.client?.source?.name === meetingFilters.clientSource
+      );
+    }
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (meetingSortBy) {
+        case 'id':
+          comparison = a.id - b.id;
+          break;
+        case 'client':
+          comparison = (a.client?.fullName || '').localeCompare(b.client?.fullName || '');
+          break;
+        case 'meetingDate':
+          comparison = new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime();
+          break;
+        case 'duration':
+          comparison = a.duration - b.duration;
+          break;
+        case 'price':
+          comparison = a.price - b.price;
+          break;
+        case 'status':
+          comparison = (a.status || '').localeCompare(b.status || '');
+          break;
+        case 'isPaid':
+          comparison = (a.isPaid ? 1 : 0) - (b.isPaid ? 1 : 0);
+          break;
+        case 'clientSource':
+          comparison = (a.client?.source?.name || '').localeCompare(b.client?.source?.name || '');
+          break;
+      }
+      
+      return meetingSortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [meetingList, meetingSortBy, meetingSortOrder, meetingFilters]);
+
+  const sortedPersonalMeetingList = useMemo(() => {
+    let filtered = [...personalMeetingList];
+
+    // Apply filters
+    if (personalMeetingFilters.therapistName) {
+      filtered = filtered.filter(meeting => 
+        meeting.therapistName.toLowerCase().includes(personalMeetingFilters.therapistName.toLowerCase())
+      );
+    }
+    if (personalMeetingFilters.meetingType) {
+      filtered = filtered.filter(meeting => 
+        (meeting.meetingType?.name || '').toLowerCase().includes(personalMeetingFilters.meetingType.toLowerCase())
+      );
+    }
+    if (personalMeetingFilters.status !== 'ALL') {
+      filtered = filtered.filter(meeting => meeting.status === personalMeetingFilters.status);
+    }
+    if (personalMeetingFilters.isPaid !== 'ALL') {
+      const isPaid = personalMeetingFilters.isPaid === 'PAID';
+      filtered = filtered.filter(meeting => meeting.isPaid === isPaid);
+    }
+    if (personalMeetingFilters.price) {
+      filtered = filtered.filter(meeting => 
+        meeting.price.toString().includes(personalMeetingFilters.price)
+      );
+    }
+    if (personalMeetingFilters.duration) {
+      filtered = filtered.filter(meeting => 
+        meeting.duration.toString().includes(personalMeetingFilters.duration)
+      );
+    }
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (personalMeetingSortBy) {
+        case 'id':
+          comparison = a.id - b.id;
+          break;
+        case 'therapistName':
+          comparison = a.therapistName.localeCompare(b.therapistName);
+          break;
+        case 'meetingType':
+          comparison = (a.meetingType?.name || '').localeCompare(b.meetingType?.name || '');
+          break;
+        case 'meetingDate':
+          comparison = new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime();
+          break;
+        case 'duration':
+          comparison = a.duration - b.duration;
+          break;
+        case 'price':
+          comparison = a.price - b.price;
+          break;
+        case 'status':
+          comparison = (a.status || '').localeCompare(b.status || '');
+          break;
+        case 'isPaid':
+          comparison = (a.isPaid ? 1 : 0) - (b.isPaid ? 1 : 0);
+          break;
+      }
+      
+      return personalMeetingSortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [personalMeetingList, personalMeetingSortBy, personalMeetingSortOrder, personalMeetingFilters]);
+
+  const sortedExpenseList = useMemo(() => {
+    let filtered = [...expenseList];
+
+    // Apply filters
+    if (expenseFilters.category !== 'ALL') {
+      filtered = filtered.filter(expense => 
+        expense.category?.name === expenseFilters.category
+      );
+    }
+    if (expenseFilters.isPaid !== 'ALL') {
+      const isPaid = expenseFilters.isPaid === 'PAID';
+      filtered = filtered.filter(expense => expense.isPaid === isPaid);
+    }
+    if (expenseFilters.expenseDate) {
+      filtered = filtered.filter(expense => 
+        new Date(expense.expenseDate).toLocaleDateString().includes(expenseFilters.expenseDate)
+      );
+    }
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (expenseSortBy) {
+        case 'id':
+          comparison = a.id - b.id;
+          break;
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'amount':
+          comparison = a.amount - b.amount;
+          break;
+        case 'category':
+          comparison = (a.category?.name || '').localeCompare(b.category?.name || '');
+          break;
+        case 'expenseDate':
+          comparison = new Date(a.expenseDate).getTime() - new Date(b.expenseDate).getTime();
+          break;
+        case 'isPaid':
+          comparison = (a.isPaid ? 1 : 0) - (b.isPaid ? 1 : 0);
+          break;
+      }
+      
+      return expenseSortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [expenseList, expenseSortBy, expenseSortOrder, expenseFilters]);
 
   // Use the same API URL logic as the main API service
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -390,7 +865,7 @@ const TherapistPanel: React.FC = () => {
         setSelectedPaymentType(null);
         setShowPaymentTypeModal(true);
         const session = meetingList.find(m => m.id === meetingId);
-        setSessionToPay(session || null);
+        setMeetingToPay(session || null);
         console.log('✅ Session found:', session?.client?.fullName);
       }
       console.log('✅ Meeting payment status updated successfully');
@@ -455,14 +930,6 @@ const TherapistPanel: React.FC = () => {
   };
 
   // Status dropdown state
-  const [statusDropdowns, setStatusDropdowns] = useState<{
-    meetings: { [key: number]: boolean };
-    personalMeetings: { [key: number]: boolean };
-  }>({
-    meetings: {},
-    personalMeetings: {}
-  });
-
   const toggleStatusDropdown = (type: 'meetings' | 'personalMeetings', id: number) => {
     setStatusDropdowns(prev => ({
       ...prev,
@@ -670,7 +1137,6 @@ const TherapistPanel: React.FC = () => {
     setAddClientModal(true);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAddMeeting = () => {
     setShowMeetingPanel(true);
   };
@@ -907,30 +1373,25 @@ const TherapistPanel: React.FC = () => {
   };
 
   // Payment type selection modal state
-  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
-  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType | null>(null);
-  const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
-  const [sessionToPay, setSessionToPay] = useState<Meeting | null>(null);
-
   const handlePaymentTypeSelect = (type: PaymentType) => {
     setSelectedPaymentType(type);
   };
 
   const handleConfirmPaymentType = async () => {
-    if (selectedPaymentType && sessionToPay) {
+    if (selectedPaymentType && meetingToPay) {
       try {
-        console.log('💰 Confirming payment type:', selectedPaymentType.name, 'for session:', sessionToPay.id);
+        console.log('💰 Confirming payment type:', selectedPaymentType.name, 'for session:', meetingToPay.id);
         const updateData = {
           isPaid: true,
           paymentTypeId: selectedPaymentType.id
         };
         console.log('🔧 Update data:', updateData);
-        await meetings.update(sessionToPay.id, updateData);
+        await meetings.update(meetingToPay.id, updateData);
         console.log('✅ Meeting payment type updated successfully');
         await fetchMeetings();
         setShowPaymentTypeModal(false);
         setSelectedPaymentType(null);
-        setSessionToPay(null);
+        setMeetingToPay(null);
       } catch (error) {
         console.error('❌ Failed to update meeting payment type:', error);
         alert('Failed to update payment type. Please try again.');
@@ -942,17 +1403,17 @@ const TherapistPanel: React.FC = () => {
     console.log('❌ Payment type selection cancelled');
     setShowPaymentTypeModal(false);
     setSelectedPaymentType(null);
-    setSessionToPay(null);
+    setMeetingToPay(null);
   };
 
   // Debug modal state changes
   useEffect(() => {
     console.log('🔍 Modal state changed:', {
       showPaymentTypeModal,
-      sessionToPay: sessionToPay?.client?.fullName,
+      sessionToPay: meetingToPay?.client?.fullName,
       paymentTypesCount: paymentTypes.length
     });
-  }, [showPaymentTypeModal, sessionToPay, paymentTypes.length]);
+  }, [showPaymentTypeModal, meetingToPay, paymentTypes.length]);
 
   if (loading) {
     return (
@@ -1108,20 +1569,114 @@ const TherapistPanel: React.FC = () => {
               </div>
             </div>
             <div className="clients-table">
+              <div className="table-controls">
+                <div className="filter-count">
+                  Showing {sortedClientList.length} of {clientList.length} clients
+                </div>
+                <button 
+                  onClick={clearClientFilters}
+                  className="clear-filters-btn"
+                >
+                  Clear Filters
+                </button>
+              </div>
+              
+              {/* Filter Panel */}
+              <div className="filter-panel">
+                <div className="filter-group">
+                  <label className="filter-label">Status:</label>
+                  <FilterInput
+                    value={clientFilters.active}
+                    onChange={(value) => handleClientFilter('active', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'ACTIVE', label: 'Active' },
+                      { value: 'INACTIVE', label: 'Inactive' }
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Source:</label>
+                  <FilterInput
+                    value={clientFilters.source}
+                    onChange={(value) => handleClientFilter('source', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All Sources' },
+                      ...meetingSources.map(source => ({
+                        value: source.name,
+                        label: source.name
+                      }))
+                    ]}
+                  />
+                </div>
+              </div>
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Full Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Status</th>
-                    <th>Created</th>
+                    <SortableHeader
+                      column="id"
+                      currentSortBy={clientSortBy}
+                      currentSortOrder={clientSortOrder}
+                      onSort={handleClientSort}
+                    >
+                      ID
+                    </SortableHeader>
+                    <SortableHeader
+                      column="fullName"
+                      currentSortBy={clientSortBy}
+                      currentSortOrder={clientSortOrder}
+                      onSort={handleClientSort}
+                    >
+                      Full Name
+                    </SortableHeader>
+                    <SortableHeader
+                      column="email"
+                      currentSortBy={clientSortBy}
+                      currentSortOrder={clientSortOrder}
+                      onSort={handleClientSort}
+                    >
+                      Email
+                    </SortableHeader>
+                    <SortableHeader
+                      column="phone"
+                      currentSortBy={clientSortBy}
+                      currentSortOrder={clientSortOrder}
+                      onSort={handleClientSort}
+                    >
+                      Phone
+                    </SortableHeader>
+                    <SortableHeader
+                      column="active"
+                      currentSortBy={clientSortBy}
+                      currentSortOrder={clientSortOrder}
+                      onSort={handleClientSort}
+                    >
+                      Status
+                    </SortableHeader>
+                    <SortableHeader
+                      column="createdAt"
+                      currentSortBy={clientSortBy}
+                      currentSortOrder={clientSortOrder}
+                      onSort={handleClientSort}
+                    >
+                      Created
+                    </SortableHeader>
+                    <SortableHeader
+                      column="source"
+                      currentSortBy={clientSortBy}
+                      currentSortOrder={clientSortOrder}
+                      onSort={handleClientSort}
+                    >
+                      Source
+                    </SortableHeader>
                     <th>Actions</th>
                   </tr>
+                  
                 </thead>
                 <tbody>
-                  {clientList.map((client) => (
+                  {sortedClientList.map((client) => (
                     <tr key={client.id} className={!client.active ? 'disabled-item' : ''}>
                       <td>{client.id}</td>
                       <td>
@@ -1165,6 +1720,7 @@ const TherapistPanel: React.FC = () => {
                         </button>
                       </td>
                       <td>{new Date(client.createdAt).toLocaleDateString()}</td>
+                      <td>{client.source?.name || 'No source'}</td>
                       <td>
                         <button 
                           className="btn-small"
@@ -1240,23 +1796,161 @@ const TherapistPanel: React.FC = () => {
               </div>
             </div>
             <div className="meetings-table">
+              <div className="table-controls">
+                <div className="filter-count">
+                  Showing {sortedMeetingList.length} of {meetingList.length} meetings
+                </div>
+                <button 
+                  onClick={clearMeetingFilters}
+                  className="clear-filters-btn"
+                >
+                  Clear Filters
+                </button>
+              </div>
+              
+              {/* Filter Panel */}
+              <div className="filter-panel">
+                <div className="filter-group">
+                  <label className="filter-label">Client:</label>
+                  <FilterInput
+                    value={meetingFilters.client}
+                    onChange={(value) => handleMeetingFilter('client', value)}
+                    placeholder="Filter client..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Duration:</label>
+                  <FilterInput
+                    value={meetingFilters.duration}
+                    onChange={(value) => handleMeetingFilter('duration', value)}
+                    placeholder="Filter duration..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Price:</label>
+                  <FilterInput
+                    value={meetingFilters.price}
+                    onChange={(value) => handleMeetingFilter('price', value)}
+                    placeholder="Filter price..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Status:</label>
+                  <FilterInput
+                    value={meetingFilters.status}
+                    onChange={(value) => handleMeetingFilter('status', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'SCHEDULED', label: 'Scheduled' },
+                      { value: 'COMPLETED', label: 'Completed' },
+                      { value: 'CANCELLED', label: 'Cancelled' }
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Payment:</label>
+                  <FilterInput
+                    value={meetingFilters.isPaid}
+                    onChange={(value) => handleMeetingFilter('isPaid', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'PAID', label: 'Paid' },
+                      { value: 'UNPAID', label: 'Unpaid' }
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Client Source:</label>
+                  <FilterInput
+                    value={meetingFilters.clientSource}
+                    onChange={(value) => handleMeetingFilter('clientSource', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All Sources' },
+                      ...meetingSources.map(source => ({
+                        value: source.name,
+                        label: source.name
+                      }))
+                    ]}
+                  />
+                </div>
+              </div>
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Client</th>
-                    <th>Date & Time</th>
-                    <th>Duration</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                    <th>Payment</th>
-                    <th>Payment Type</th>
-                    <th>Source</th>
+                    <SortableHeader
+                      column="id"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      ID
+                    </SortableHeader>
+                    <SortableHeader
+                      column="client"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      Client
+                    </SortableHeader>
+                    <SortableHeader
+                      column="meetingDate"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      Date & Time
+                    </SortableHeader>
+                    <SortableHeader
+                      column="duration"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      Duration
+                    </SortableHeader>
+                    <SortableHeader
+                      column="price"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      Price
+                    </SortableHeader>
+                    <SortableHeader
+                      column="status"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      Status
+                    </SortableHeader>
+                    <SortableHeader
+                      column="isPaid"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      Payment
+                    </SortableHeader>
+                    <SortableHeader
+                      column="clientSource"
+                      currentSortBy={meetingSortBy}
+                      currentSortOrder={meetingSortOrder}
+                      onSort={handleMeetingSort}
+                    >
+                      Client Source
+                    </SortableHeader>
+                    <th>Meeting Stats</th>
                     <th>Actions</th>
                   </tr>
+
                 </thead>
                 <tbody>
-                  {meetingList.map((meeting) => (
+                  {sortedMeetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{meeting.id}</td>
                       <td>
@@ -1396,15 +2090,24 @@ const TherapistPanel: React.FC = () => {
                         </button>
                       </td>
                       <td>
-                        <span className={`payment-date-cell ${
-                          meeting.isPaid && meeting.paymentType ? 'paid' : 
-                          meeting.isPaid ? 'paid-no-type' : 'unpaid'
-                        }`}>
-                          {formatPaymentType(meeting)}
-                        </span>
+                        {meeting.client?.source?.name || 'No source'}
                       </td>
                       <td>
-                        <span>Source: {meeting.client?.source?.name || 'No source'}</span>
+                        {(() => {
+                          const clientMeetings = meetingList.filter(m => m.client.id === meeting.client.id);
+                          const completedMeetings = clientMeetings.filter(m => m.status === 'COMPLETED').length;
+                          const scheduledMeetings = clientMeetings.filter(m => m.status === 'SCHEDULED').length;
+                          return (
+                            <div style={{ fontSize: '0.8rem', textAlign: 'center' }}>
+                              <div style={{ color: '#28a745', fontWeight: 'bold' }}>
+                                ✓ {completedMeetings} completed
+                              </div>
+                              <div style={{ color: '#007bff', fontWeight: 'bold' }}>
+                                📅 {scheduledMeetings} scheduled
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         <button 
@@ -1481,22 +2184,153 @@ const TherapistPanel: React.FC = () => {
               </div>
             </div>
             <div className="personal-meetings-table">
+              <div className="table-controls">
+                <div className="filter-count">
+                  Showing {sortedPersonalMeetingList.length} of {personalMeetingList.length} personal meetings
+                </div>
+                <button 
+                  onClick={clearPersonalMeetingFilters}
+                  className="clear-filters-btn"
+                >
+                  Clear Filters
+                </button>
+              </div>
+              
+              {/* Filter Panel */}
+              <div className="filter-panel">
+                <div className="filter-group">
+                  <label className="filter-label">Provider:</label>
+                  <FilterInput
+                    value={personalMeetingFilters.therapistName}
+                    onChange={(value) => handlePersonalMeetingFilter('therapistName', value)}
+                    placeholder="Filter provider..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Type:</label>
+                  <FilterInput
+                    value={personalMeetingFilters.meetingType}
+                    onChange={(value) => handlePersonalMeetingFilter('meetingType', value)}
+                    placeholder="Filter type..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Duration:</label>
+                  <FilterInput
+                    value={personalMeetingFilters.duration}
+                    onChange={(value) => handlePersonalMeetingFilter('duration', value)}
+                    placeholder="Filter duration..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Price:</label>
+                  <FilterInput
+                    value={personalMeetingFilters.price}
+                    onChange={(value) => handlePersonalMeetingFilter('price', value)}
+                    placeholder="Filter price..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Status:</label>
+                  <FilterInput
+                    value={personalMeetingFilters.status}
+                    onChange={(value) => handlePersonalMeetingFilter('status', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'SCHEDULED', label: 'Scheduled' },
+                      { value: 'COMPLETED', label: 'Completed' },
+                      { value: 'CANCELLED', label: 'Cancelled' }
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Payment:</label>
+                  <FilterInput
+                    value={personalMeetingFilters.isPaid}
+                    onChange={(value) => handlePersonalMeetingFilter('isPaid', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'PAID', label: 'Paid' },
+                      { value: 'UNPAID', label: 'Unpaid' }
+                    ]}
+                  />
+                </div>
+              </div>
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Provider</th>
-                    <th>Type</th>
-                    <th>Date & Time</th>
-                    <th>Duration</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                    <th>Payment</th>
+                    <SortableHeader
+                      column="id"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      ID
+                    </SortableHeader>
+                    <SortableHeader
+                      column="therapistName"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      Provider
+                    </SortableHeader>
+                    <SortableHeader
+                      column="meetingType"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      Type
+                    </SortableHeader>
+                    <SortableHeader
+                      column="meetingDate"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      Date & Time
+                    </SortableHeader>
+                    <SortableHeader
+                      column="duration"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      Duration
+                    </SortableHeader>
+                    <SortableHeader
+                      column="price"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      Price
+                    </SortableHeader>
+                    <SortableHeader
+                      column="status"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      Status
+                    </SortableHeader>
+                    <SortableHeader
+                      column="isPaid"
+                      currentSortBy={personalMeetingSortBy}
+                      currentSortOrder={personalMeetingSortOrder}
+                      onSort={handlePersonalMeetingSort}
+                    >
+                      Payment
+                    </SortableHeader>
                     <th>Actions</th>
                   </tr>
+
                 </thead>
                 <tbody>
-                  {personalMeetingList.map((meeting) => (
+                  {sortedPersonalMeetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{meeting.id}</td>
                       <td>
@@ -1724,20 +2558,117 @@ const TherapistPanel: React.FC = () => {
               </div>
             </div>
             <div className="expenses-table">
+              <div className="table-controls">
+                <div className="filter-count">
+                  Showing {sortedExpenseList.length} of {expenseList.length} expenses
+                </div>
+                <button 
+                  onClick={clearExpenseFilters}
+                  className="clear-filters-btn"
+                >
+                  Clear Filters
+                </button>
+              </div>
+              
+              {/* Filter Panel */}
+              <div className="filter-panel">
+                <div className="filter-group">
+                  <label className="filter-label">Category:</label>
+                  <FilterInput
+                    value={expenseFilters.category}
+                    onChange={(value) => handleExpenseFilter('category', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All Categories' },
+                      ...Array.from(new Set(expenseList.map(expense => expense.category.name)))
+                        .filter(Boolean)
+                        .sort()
+                        .map(categoryName => ({
+                          value: categoryName,
+                          label: categoryName
+                        }))
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Date:</label>
+                  <FilterInput
+                    value={expenseFilters.expenseDate}
+                    onChange={(value) => handleExpenseFilter('expenseDate', value)}
+                    placeholder="Filter date..."
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Status:</label>
+                  <FilterInput
+                    value={expenseFilters.isPaid}
+                    onChange={(value) => handleExpenseFilter('isPaid', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'PAID', label: 'Paid' },
+                      { value: 'UNPAID', label: 'Unpaid' }
+                    ]}
+                  />
+                </div>
+              </div>
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Category</th>
-                    <th>Date</th>
-                    <th>Status</th>
+                    <SortableHeader
+                      column="id"
+                      currentSortBy={expenseSortBy}
+                      currentSortOrder={expenseSortOrder}
+                      onSort={handleExpenseSort}
+                    >
+                      ID
+                    </SortableHeader>
+                    <SortableHeader
+                      column="name"
+                      currentSortBy={expenseSortBy}
+                      currentSortOrder={expenseSortOrder}
+                      onSort={handleExpenseSort}
+                    >
+                      Description
+                    </SortableHeader>
+                    <SortableHeader
+                      column="amount"
+                      currentSortBy={expenseSortBy}
+                      currentSortOrder={expenseSortOrder}
+                      onSort={handleExpenseSort}
+                    >
+                      Amount
+                    </SortableHeader>
+                    <SortableHeader
+                      column="category"
+                      currentSortBy={expenseSortBy}
+                      currentSortOrder={expenseSortOrder}
+                      onSort={handleExpenseSort}
+                    >
+                      Category
+                    </SortableHeader>
+                    <SortableHeader
+                      column="expenseDate"
+                      currentSortBy={expenseSortBy}
+                      currentSortOrder={expenseSortOrder}
+                      onSort={handleExpenseSort}
+                    >
+                      Date
+                    </SortableHeader>
+                    <SortableHeader
+                      column="isPaid"
+                      currentSortBy={expenseSortBy}
+                      currentSortOrder={expenseSortOrder}
+                      onSort={handleExpenseSort}
+                    >
+                      Status
+                    </SortableHeader>
                     <th>Actions</th>
                   </tr>
+
                 </thead>
                 <tbody>
-                  {expenseList.map((expense) => (
+                  {sortedExpenseList.map((expense) => (
                     <tr key={expense.id} className={expense.isActive === false ? 'disabled-item' : ''} style={expense.isActive === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>{expense.id}</td>
                       <td>
@@ -1985,7 +2916,7 @@ const TherapistPanel: React.FC = () => {
       />
 
       {/* Payment Type Selection Modal */}
-      {showPaymentTypeModal && sessionToPay && (
+      {showPaymentTypeModal && meetingToPay && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
@@ -1993,7 +2924,7 @@ const TherapistPanel: React.FC = () => {
               <button className="modal-close-button" onClick={handleCancelPaymentType}>×</button>
             </div>
             <div className="modal-body">
-              <p>Select payment type for <strong>{sessionToPay.client?.fullName}</strong>:</p>
+              <p>Select payment type for <strong>{meetingToPay.client?.fullName}</strong>:</p>
               <div className="payment-type-selection">
                 <select
                   className="payment-type-select"

@@ -1,0 +1,638 @@
+/* BulkOperations Styles */
+.bulk-operations {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  z-index: 1000;
+  max-width: 90vw;
+  min-width: 400px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.bulk-operations.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.bulk-operations.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+  pointer-events: none;
+}
+
+/* Main Content */
+.bulk-operations-content {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Selection Info */
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.selection-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.selection-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selected-count {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.total-count {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Bulk Actions */
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.bulk-action-btn {
+  background: white;
+  border: 2px solid #e0e0e0;
+  color: #333;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.bulk-action-btn:hover:not(.disabled) {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.bulk-action-btn:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.bulk-action-btn.destructive {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.bulk-action-btn.destructive:hover:not(.disabled) {
+  background: #fff5f5;
+  border-color: #c82333;
+  color: #c82333;
+}
+
+.bulk-action-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #999;
+  border-color: #f0f0f0;
+}
+
+.action-icon {
+  font-size: 1rem;
+}
+
+.action-label {
+  font-size: 0.9rem;
+}
+
+/* Clear Selection */
+.clear-selection-btn {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  color: #666;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.clear-selection-btn:hover {
+  background: #e9ecef;
+  color: #333;
+}
+
+.clear-selection-btn:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Progress Section */
+.bulk-progress {
+  border-top: 1px solid #f0f0f0;
+  padding: 15px 20px;
+  background: #fafafa;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-text {
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.progress-percentage {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 600;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #667eea;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Progress Details */
+.progress-details {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 0.85rem;
+}
+
+.progress-completed {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.progress-failed {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.progress-cancel {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin-left: auto;
+}
+
+.progress-cancel:hover {
+  background: #c82333;
+}
+
+.progress-cancel:focus {
+  outline: 2px solid #dc3545;
+  outline-offset: 2px;
+}
+
+/* Progress Errors */
+.progress-errors {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.progress-errors details {
+  cursor: pointer;
+}
+
+.progress-errors summary {
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 5px 0;
+}
+
+.progress-errors ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.progress-errors li {
+  color: #666;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+/* Confirmation Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(2px);
+}
+
+.confirmation-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.modal-close:focus {
+  outline: 2px solid #667eea;
+  outline-offset: -2px;
+}
+
+.modal-body {
+  padding: 25px;
+  text-align: center;
+}
+
+.confirmation-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.confirmation-message {
+  margin-bottom: 25px;
+}
+
+.confirmation-message p {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.destructive-warning {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.destructive-warning p {
+  margin: 0 0 10px 0;
+  color: #c53030;
+}
+
+.destructive-warning strong {
+  font-weight: 700;
+}
+
+.confirmation-input {
+  width: 100%;
+  background: white;
+  border: 2px solid #e53e3e;
+  border-radius: 6px;
+  padding: 12px 15px;
+  font-size: 1rem;
+  color: #333;
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.confirmation-input:focus {
+  outline: none;
+  border-color: #c53030;
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
+.selected-items-summary {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.selected-items-summary p {
+  margin: 0 0 10px 0;
+  font-weight: 600;
+  color: #333;
+}
+
+.selected-items-list {
+  margin: 0;
+  padding-left: 20px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.selected-items-list li {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 25px;
+  border-top: 1px solid #f0f0f0;
+  background: #f8f9fa;
+}
+
+.btn-cancel,
+.btn-confirm {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-cancel {
+  background: #e0e0e0;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #d0d0d0;
+  color: #333;
+}
+
+.btn-confirm {
+  background: #667eea;
+  color: white;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #5a6fd8;
+  transform: translateY(-1px);
+}
+
+.btn-confirm.destructive {
+  background: #dc3545;
+}
+
+.btn-confirm.destructive:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.btn-confirm:disabled {
+  background: #ccc;
+  color: #999;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-cancel:focus,
+.btn-confirm:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .bulk-operations {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+    min-width: auto;
+    max-width: none;
+  }
+  
+  .bulk-operations.visible {
+    transform: none;
+  }
+  
+  .bulk-operations.hidden {
+    transform: translateY(20px);
+  }
+  
+  .bulk-operations-content {
+    padding: 12px 15px;
+    gap: 15px;
+  }
+  
+  .bulk-actions {
+    gap: 8px;
+  }
+  
+  .bulk-action-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .action-icon {
+    font-size: 0.9rem;
+  }
+  
+  .clear-selection-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .bulk-progress {
+    padding: 12px 15px;
+  }
+  
+  .progress-details {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .confirmation-modal {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .modal-body {
+    padding: 20px;
+  }
+  
+  .modal-actions {
+    padding: 15px 20px;
+    flex-direction: column;
+  }
+  
+  .btn-cancel,
+  .btn-confirm {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .bulk-operations-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .selection-info {
+    justify-content: center;
+  }
+  
+  .bulk-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .bulk-action-btn {
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .clear-selection-btn {
+    align-self: center;
+  }
+  
+  .progress-info {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
+  }
+  
+  .progress-details {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .confirmation-icon {
+    font-size: 2.5rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.2rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .bulk-operations,
+  .bulk-action-btn,
+  .clear-selection-btn,
+  .progress-cancel,
+  .modal-close,
+  .btn-cancel,
+  .btn-confirm,
+  .progress-fill {
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .bulk-operations {
+    border: 2px solid #000;
+  }
+  
+  .bulk-action-btn,
+  .clear-selection-btn {
+    border: 2px solid #000;
+  }
+  
+  .confirmation-modal {
+    border: 2px solid #000;
+  }
+  
+  .progress-bar {
+    border: 1px solid #000;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .bulk-operations,
+  .modal-overlay {
+    display: none;
+  }
+} 

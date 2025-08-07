@@ -1402,3 +1402,307 @@
     width: 100%;
   }
 } 
+
+/* Sortable Table Headers */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 20px;
+  transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+.sortable-header:active {
+  background-color: #bbdefb !important;
+}
+
+/* Table hover effects for sortable headers */
+.clients-table th.sortable-header:hover,
+.meetings-table th.sortable-header:hover,
+.personal-meetings-table th.sortable-header:hover,
+.expenses-table th.sortable-header:hover {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+/* Enhanced table styles for better sorting UX */
+.clients-table th,
+.meetings-table th,
+.personal-meetings-table th,
+.expenses-table th {
+  background: #f8f9fa;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #e9ecef;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+/* Sort indicator styles */
+.sortable-header span {
+  margin-left: 5px;
+  font-size: 0.8em;
+  transition: color 0.2s ease;
+}
+
+.sortable-header:hover span {
+  color: #1976d2 !important;
+}
+
+/* Active sort indicator */
+.sortable-header span[style*="color: #667eea"] {
+  font-weight: bold;
+}
+
+/* Responsive table improvements */
+@media (max-width: 768px) {
+  .sortable-header {
+    padding: 10px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .sortable-header span {
+    font-size: 0.7em;
+  }
+} 
+
+/* Table Controls */
+.table-controls {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+}
+
+.clear-filters-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.clear-filters-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Filter count indicator */
+.filter-count {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+/* Enhanced table styles for better filtering UX */
+.clients-table,
+.meetings-table,
+.personal-meetings-table,
+.expenses-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 25px;
+  border: 1px solid #e9ecef;
+}
+
+/* Filter row responsive design */
+@media (max-width: 768px) {
+  .filter-row td {
+    padding: 8px 10px;
+  }
+  
+  .filter-input {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+  
+  .clear-filters-btn {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+  }
+  
+  .table-controls {
+    padding: 8px 12px;
+  }
+}
+
+/* Filter input styles */
+.filter-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  background-color: white;
+  color: #495057;
+}
+
+/* Filter input focus animation */
+.filter-input:focus {
+  transform: translateY(-1px);
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+/* Disabled filter inputs for number columns */
+.filter-input[disabled] {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Filter label styles */
+.filter-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Filter Panel Styles */
+.filter-panel {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  flex: 1;
+}
+
+.filter-group .filter-label {
+  margin-bottom: 5px;
+  font-size: 0.8rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.filter-group .filter-input {
+  margin-bottom: 0;
+}
+
+/* Responsive filter panel */
+@media (max-width: 768px) {
+  .filter-panel {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .filter-group {
+    min-width: 100%;
+  }
+}
+
+/* Ensure filter rows align properly with table columns */
+.filter-row td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+  width: auto;
+}
+
+.filter-row td:empty {
+  padding: 8px 12px;
+}
+
+/* Ensure filter inputs take full width of their cell */
+.filter-row .filter-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Force table columns to align properly */
+.clients-table th,
+.clients-table td,
+.meetings-table th,
+.meetings-table td,
+.personal-meetings-table th,
+.personal-meetings-table td,
+.expenses-table th,
+.expenses-table td {
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Ensure filter row cells match header cells */
+.filter-row td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 8px 12px;
+}
+
+/* Force table structure to be consistent */
+.clients-table table,
+.meetings-table table,
+.personal-meetings-table table,
+.expenses-table table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+/* Ensure each column has consistent width */
+.clients-table th,
+.clients-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+  table-layout: auto;
+}
+
+/* Force filter row alignment - ensure each cell aligns with its header */
+.clients-table .filter-row td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+}
+
+.meetings-table th,
+.meetings-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.personal-meetings-table th,
+.personal-meetings-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.expenses-table th,
+.expenses-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+} 
