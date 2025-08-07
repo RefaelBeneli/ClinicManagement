@@ -37,7 +37,8 @@ class ClientSourceService(
             name = request.name,
             duration = request.duration,
             price = request.price,
-            noShowPrice = request.noShowPrice
+            noShowPrice = request.noShowPrice,
+            defaultSessions = request.defaultSessions
         )
         return clientSourceRepository.save(source).toResponse()
     }
@@ -57,6 +58,7 @@ class ClientSourceService(
             duration = request.duration ?: source.duration,
             price = request.price ?: source.price,
             noShowPrice = request.noShowPrice ?: source.noShowPrice,
+            defaultSessions = request.defaultSessions ?: source.defaultSessions,
             isActive = request.isActive ?: source.isActive
         )
         return clientSourceRepository.save(updated).toResponse()
@@ -82,6 +84,7 @@ class ClientSourceService(
             duration = duration,
             price = price,
             noShowPrice = noShowPrice,
+            defaultSessions = defaultSessions,
             isActive = isActive,
             createdAt = createdAt,
             updatedAt = updatedAt

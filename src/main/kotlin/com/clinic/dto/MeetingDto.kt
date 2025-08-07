@@ -1,6 +1,7 @@
 package com.clinic.dto
 
 import com.clinic.entity.MeetingStatus
+import com.clinic.entity.RecurrenceFrequency
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
@@ -20,7 +21,14 @@ data class MeetingRequest(
     
     val notes: String? = null,
     
-    val summary: String? = null
+    val summary: String? = null,
+    
+    // Recurring meeting fields
+    val isRecurring: Boolean = false,
+    
+    val recurrenceFrequency: RecurrenceFrequency? = null,
+    
+    val totalSessions: Int? = null
 )
 
 data class MeetingResponse(
@@ -36,6 +44,11 @@ data class MeetingResponse(
     val notes: String?,
     val summary: String?,
     val status: MeetingStatus,
+    val isRecurring: Boolean,
+    val recurrenceFrequency: RecurrenceFrequency?,
+    val totalSessions: Int?,
+    val sessionNumber: Int,
+    val parentMeetingId: Long?,
     val createdAt: LocalDateTime,
     @JsonProperty("isActive")
     val isActive: Boolean

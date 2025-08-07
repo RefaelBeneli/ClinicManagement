@@ -19,7 +19,11 @@ data class ClientSourceRequest(
     val price: BigDecimal,
     
     @field:NotNull(message = "No-show price is required")
-    val noShowPrice: BigDecimal
+    val noShowPrice: BigDecimal,
+    
+    @field:NotNull(message = "Default sessions is required")
+    @field:Positive(message = "Default sessions must be positive")
+    val defaultSessions: Int = 1
 )
 
 data class ClientSourceResponse(
@@ -28,6 +32,7 @@ data class ClientSourceResponse(
     val duration: Int,
     val price: BigDecimal,
     val noShowPrice: BigDecimal,
+    val defaultSessions: Int,
     @JsonProperty("isActive")
     val isActive: Boolean,
     val createdAt: LocalDateTime,
@@ -39,6 +44,7 @@ data class UpdateClientSourceRequest(
     val duration: Int?,
     val price: BigDecimal?,
     val noShowPrice: BigDecimal?,
+    val defaultSessions: Int?,
     @JsonProperty("isActive")
     val isActive: Boolean?
 ) 

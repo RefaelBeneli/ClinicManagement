@@ -24,6 +24,9 @@ data class ClientSource(
     val noShowPrice: BigDecimal, // Price for no-show
     
     @Column(nullable = false)
+    val defaultSessions: Int = 1, // Default number of sessions for recurring meetings
+    
+    @Column(nullable = false)
     val isActive: Boolean = true,
     
     @Column(name = "created_at", nullable = false)

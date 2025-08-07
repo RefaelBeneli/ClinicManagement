@@ -154,6 +154,7 @@ const SourceManagementTab: React.FC = () => {
               <th>Duration (min)</th>
               <th>Default Price (₪)</th>
               <th>No-Show Price (₪)</th>
+              <th>Default Sessions</th>
               <th>Status</th>
               <th>Last Updated</th>
               <th>Actions</th>
@@ -166,6 +167,7 @@ const SourceManagementTab: React.FC = () => {
                 <td>{source.duration}</td>
                 <td>{source.price}</td>
                 <td>{source.noShowPrice}</td>
+                <td>{source.defaultSessions}</td>
                 <td>
                   <span className={`status ${source.isActive ? 'active' : 'inactive'}`}>
                     {source.isActive ? 'Active' : 'Inactive'}
@@ -248,7 +250,8 @@ const CreateSourceModal: React.FC<CreateSourceModalProps> = ({
     name: '',
     duration: 60,
     price: 0,
-    noShowPrice: 0
+    noShowPrice: 0,
+    defaultSessions: 1
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -270,6 +273,10 @@ const CreateSourceModal: React.FC<CreateSourceModalProps> = ({
     
     if (formData.noShowPrice < 0) {
       newErrors.noShowPrice = 'No-show price cannot be negative';
+    }
+    
+    if (formData.defaultSessions <= 0) {
+      newErrors.defaultSessions = 'Default sessions must be positive';
     }
     
     setErrors(newErrors);
@@ -362,6 +369,22 @@ const CreateSourceModal: React.FC<CreateSourceModalProps> = ({
             {errors.noShowPrice && <span className="error-message">{errors.noShowPrice}</span>}
           </div>
 
+          <div className="form-group">
+            <label htmlFor="defaultSessions">Default Sessions *</label>
+            <input
+              id="defaultSessions"
+              type="number"
+              min="1"
+              value={formData.defaultSessions}
+              onChange={(e) => handleInputChange('defaultSessions', parseInt(e.target.value))}
+              className={errors.defaultSessions ? 'error' : ''}
+            />
+            <small className="help-text">
+              Number of sessions to be booked by default
+            </small>
+            {errors.defaultSessions && <span className="error-message">{errors.defaultSessions}</span>}
+          </div>
+
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
@@ -386,7 +409,8 @@ const EditSourceModal: React.FC<EditSourceModalProps> = ({
     name: source.name,
     duration: source.duration,
     price: source.price,
-    noShowPrice: source.noShowPrice
+    noShowPrice: source.noShowPrice,
+    defaultSessions: source.defaultSessions
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -408,6 +432,10 @@ const EditSourceModal: React.FC<EditSourceModalProps> = ({
     
     if (formData.noShowPrice < 0) {
       newErrors.noShowPrice = 'No-show price cannot be negative';
+    }
+    
+    if (formData.defaultSessions <= 0) {
+      newErrors.defaultSessions = 'Default sessions must be positive';
     }
     
     setErrors(newErrors);
@@ -498,6 +526,22 @@ const EditSourceModal: React.FC<EditSourceModalProps> = ({
               Price charged when client doesn't show up for the meeting
             </small>
             {errors.noShowPrice && <span className="error-message">{errors.noShowPrice}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="defaultSessions">Default Sessions *</label>
+            <input
+              id="defaultSessions"
+              type="number"
+              min="1"
+              value={formData.defaultSessions}
+              onChange={(e) => handleInputChange('defaultSessions', parseInt(e.target.value))}
+              className={errors.defaultSessions ? 'error' : ''}
+            />
+            <small className="help-text">
+              Number of sessions to be booked by default
+            </small>
+            {errors.defaultSessions && <span className="error-message">{errors.defaultSessions}</span>}
           </div>
 
           <div className="form-actions">

@@ -58,11 +58,11 @@ const SimpleChart: React.FC<SimpleChartProps> = ({
     let cumulativePercentage = 0;
     
     return (
-      <div className="chart-container">
+    <div className="chart-container">
         <div className="pie-chart-wrapper">
           <svg className="pie-chart-svg" viewBox="0 0 200 200" width="180" height="180">
             {sortedData.map((item, index) => {
-              const percentage = (item.value / totalValue) * 100;
+          const percentage = (item.value / totalValue) * 100;
               const startAngle = (cumulativePercentage / 100) * 360;
               const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
               const midAngle = (startAngle + endAngle) / 2;
@@ -97,8 +97,8 @@ const SimpleChart: React.FC<SimpleChartProps> = ({
               }
               
               cumulativePercentage += percentage;
-              
-              return (
+          
+          return (
                 <g key={index}>
                   <path
                     d={pathData}
@@ -121,8 +121,8 @@ const SimpleChart: React.FC<SimpleChartProps> = ({
                     </text>
                   )}
                 </g>
-              );
-            })}
+          );
+        })}
           </svg>
           <div className="pie-center-info">
             <div className="pie-total-label">Total</div>
@@ -131,18 +131,18 @@ const SimpleChart: React.FC<SimpleChartProps> = ({
                 ? `₪${Math.round(totalValue).toLocaleString()}`
                 : totalValue
               }
-            </div>
-          </div>
+        </div>
+      </div>
           <div className={`pie-legend ${sortedData.length <= 3 ? 'legend-large' : sortedData.length <= 5 ? 'legend-medium' : 'legend-small'}`}>
             {sortedData.map((item, index) => {
               const percentage = (item.value / totalValue) * 100;
               
               return (
-                <div key={index} className="legend-item">
-                  <div 
-                    className="legend-color"
-                    style={{ backgroundColor: item.color || `hsl(${index * 60}, 70%, 60%)` }}
-                  />
+          <div key={index} className="legend-item">
+            <div 
+              className="legend-color"
+              style={{ backgroundColor: item.color || `hsl(${index * 60}, 70%, 60%)` }}
+            />
                   <span className="legend-label">
                     {item.label}
                   </span>
@@ -156,9 +156,9 @@ const SimpleChart: React.FC<SimpleChartProps> = ({
               );
             })}
           </div>
-        </div>
       </div>
-    );
+    </div>
+  );
   };
 
   const renderLineChart = () => (

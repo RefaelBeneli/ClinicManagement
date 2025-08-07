@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Meeting, MeetingStatus, MeetingRequest } from '../types';
+import { Meeting, MeetingStatus, MeetingRequest, RecurrenceFrequency, Client } from '../types';
 import { meetings as meetingsApi, clients as clientsApi } from '../services/api';
 import './MeetingPanel.css';
 
@@ -30,9 +30,12 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
     notes: '',
     summary: '',
     status: MeetingStatus.SCHEDULED,
-    isPaid: false
+    isPaid: false,
+    isRecurring: false,
+    recurrenceFrequency: RecurrenceFrequency.WEEKLY,
+    totalSessions: 1
   });
-  const [clients, setClients] = useState<Array<{id: number, fullName: string}>>([]);
+  const [clients, setClients] = useState<Client[]>([]);
 
   const fetchClients = async () => {
     try {
@@ -289,7 +292,10 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
         duration: formData.duration,
         price: formData.price,
         notes: formData.notes,
-        summary: formData.summary
+        summary: formData.summary,
+        isRecurring: formData.isRecurring,
+        recurrenceFrequency: formData.isRecurring ? formData.recurrenceFrequency : undefined,
+        totalSessions: formData.isRecurring ? formData.totalSessions : undefined
       };
       
       const newMeeting = await meetingsApi.create(meetingRequest);
@@ -332,6 +338,7 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
+  // Reset form
   const resetForm = () => {
     setFormData({
       clientId: 0,
@@ -341,7 +348,10 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
       notes: '',
       summary: '',
       status: MeetingStatus.SCHEDULED,
-      isPaid: false
+      isPaid: false,
+      isRecurring: false,
+      recurrenceFrequency: RecurrenceFrequency.WEEKLY,
+      totalSessions: 1
     });
   };
 
@@ -356,7 +366,10 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
       notes: meeting.notes || '',
       summary: meeting.summary || '',
       status: meeting.status,
-      isPaid: meeting.isPaid
+      isPaid: meeting.isPaid,
+      isRecurring: meeting.isRecurring || false,
+      recurrenceFrequency: meeting.recurrenceFrequency || RecurrenceFrequency.WEEKLY,
+      totalSessions: meeting.totalSessions || 1
     });
     setShowAddForm(true);
   };
@@ -758,6 +771,102 @@ const MeetingPanel: React.FC<MeetingPanelProps> = ({ onClose, onRefresh }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Client Source Information */}
+              {formData.clientId > 0 && (
+                <div className="client-source-info">
+                  {(() => {
+                    const selectedClient = clients.find(c => c.id === formData.clientId);
+                    if (selectedClient?.source) {
+                      return (
+                        <div className="source-details">
+                          <div className="source-header">
+                            <span className="source-icon">🏥</span>
+                            <strong>Client Source: {selectedClient.source.name}</strong>
+                          </div>
+                          <div className="source-info-grid">
+                            <div className="info-item">
+                              <span className="info-label">Duration:</span>
+                              <span className="info-value">{selectedClient.source.duration} min</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-label">Price:</span>
+                              <span className="info-value">₪{selectedClient.source.price}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-label">Default Sessions:</span>
+                              <span className="info-value">{selectedClient.source.defaultSessions}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+
+              {/* Recurring Meeting Section */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.isRecurring}
+                      onChange={(e) => {
+                        const isRecurring = e.target.checked;
+                        const selectedClient = clients.find(c => c.id === formData.clientId);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          isRecurring,
+                          totalSessions: isRecurring ? (selectedClient?.source?.defaultSessions || 1) : 1
+                        }));
+                      }}
+                    />
+                    <span style={{ marginLeft: '8px' }}>Recurring Meeting</span>
+                  </label>
+                </div>
+              </div>
+
+              {formData.isRecurring && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Frequency</label>
+                    <select
+                      value={formData.recurrenceFrequency}
+                      onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value as RecurrenceFrequency }))}
+                    >
+                      <option value={RecurrenceFrequency.WEEKLY}>Weekly</option>
+                      <option value={RecurrenceFrequency.BIWEEKLY}>Bi-weekly</option>
+                      <option value={RecurrenceFrequency.MONTHLY}>Monthly</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Total Sessions</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="52"
+                      value={formData.totalSessions}
+                      onChange={(e) => setFormData(prev => ({ ...prev, totalSessions: parseInt(e.target.value) || 1 }))}
+                    />
+                    <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      {formData.clientId > 0 ? (
+                        (() => {
+                          const selectedClient = clients.find(c => c.id === formData.clientId);
+                          if (selectedClient?.source) {
+                            return `Default from ${selectedClient.source.name}: ${selectedClient.source.defaultSessions} sessions`;
+                          }
+                          return `Default: ${formData.totalSessions} sessions`;
+                        })()
+                      ) : (
+                        'Select a client to see default session count'
+                      )}
+                    </small>
+                  </div>
+                </div>
+              )}
 
               <div className="form-group">
                 <label>Notes</label>

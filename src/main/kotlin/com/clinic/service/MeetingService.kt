@@ -7,6 +7,7 @@ import com.clinic.dto.ClientResponse
 import com.clinic.dto.PaymentTypeResponse
 import com.clinic.entity.Meeting
 import com.clinic.entity.MeetingStatus
+import com.clinic.entity.RecurrenceFrequency
 import com.clinic.repository.MeetingRepository
 import com.clinic.repository.ClientRepository
 import com.clinic.repository.PaymentTypeRepository
@@ -38,19 +39,95 @@ class MeetingService {
         // Use client's source defaults if not provided
         val finalDuration = meetingRequest.duration ?: client.source.duration
         val finalPrice = meetingRequest.price ?: client.source.price
+        val finalTotalSessions = meetingRequest.totalSessions ?: client.source.defaultSessions
 
-        val meeting = Meeting(
+        if (meetingRequest.isRecurring) {
+            return createRecurringMeetings(meetingRequest, client, currentUser, finalDuration, finalPrice, finalTotalSessions)
+        } else {
+            val meeting = Meeting(
+                client = client,
+                user = currentUser,
+                meetingDate = meetingRequest.meetingDate,
+                duration = finalDuration,
+                price = finalPrice,
+                notes = meetingRequest.notes,
+                summary = meetingRequest.summary,
+                isRecurring = false
+            )
+
+            val savedMeeting = meetingRepository.save(meeting)
+            return mapToResponse(savedMeeting)
+        }
+    }
+
+    private fun createRecurringMeetings(
+        meetingRequest: MeetingRequest,
+        client: com.clinic.entity.Client,
+        currentUser: com.clinic.entity.User,
+        duration: Int,
+        price: BigDecimal,
+        totalSessions: Int
+    ): MeetingResponse {
+        if (meetingRequest.recurrenceFrequency == null) {
+            throw RuntimeException("Recurrence frequency is required for recurring meetings")
+        }
+
+        println("🔄 Creating recurring meetings: totalSessions=$totalSessions, frequency=${meetingRequest.recurrenceFrequency}")
+        
+        val meetings = mutableListOf<Meeting>()
+        var currentDate = meetingRequest.meetingDate
+
+        // Create the first (parent) meeting
+        val parentMeeting = Meeting(
             client = client,
             user = currentUser,
-            meetingDate = meetingRequest.meetingDate,
-            duration = finalDuration,
-            price = finalPrice,
+            meetingDate = currentDate,
+            duration = duration,
+            price = price,
             notes = meetingRequest.notes,
-            summary = meetingRequest.summary
+            summary = meetingRequest.summary,
+            isRecurring = true,
+            recurrenceFrequency = meetingRequest.recurrenceFrequency,
+            totalSessions = totalSessions,
+            sessionNumber = 1,
+            parentMeetingId = null
         )
+        val savedParentMeeting = meetingRepository.save(parentMeeting)
+        meetings.add(savedParentMeeting)
+        println("✅ Created parent meeting (session 1)")
 
-        val savedMeeting = meetingRepository.save(meeting)
-        return mapToResponse(savedMeeting)
+        // Create subsequent meetings
+        for (sessionNumber in 2..totalSessions) {
+            currentDate = calculateNextDate(currentDate, meetingRequest.recurrenceFrequency)
+            
+            val meeting = Meeting(
+                client = client,
+                user = currentUser,
+                meetingDate = currentDate,
+                duration = duration,
+                price = price,
+                notes = meetingRequest.notes,
+                summary = meetingRequest.summary,
+                isRecurring = true,
+                recurrenceFrequency = meetingRequest.recurrenceFrequency,
+                totalSessions = totalSessions,
+                sessionNumber = sessionNumber,
+                parentMeetingId = savedParentMeeting.id
+            )
+            meetings.add(meetingRepository.save(meeting))
+            println("✅ Created session $sessionNumber")
+        }
+
+        println("🎉 Total meetings created: ${meetings.size}")
+        return mapToResponse(savedParentMeeting)
+    }
+
+    private fun calculateNextDate(currentDate: LocalDateTime, frequency: RecurrenceFrequency): LocalDateTime {
+        return when (frequency) {
+            RecurrenceFrequency.WEEKLY -> currentDate.plusWeeks(1)
+            RecurrenceFrequency.BIWEEKLY -> currentDate.plusWeeks(2)
+            RecurrenceFrequency.MONTHLY -> currentDate.plusMonths(1)
+        }
     }
 
     fun getAllMeetings(): List<MeetingResponse> {
@@ -311,6 +388,11 @@ class MeetingService {
             notes = meeting.notes,
             summary = meeting.summary,
             status = meeting.status,
+            isRecurring = meeting.isRecurring,
+            recurrenceFrequency = meeting.recurrenceFrequency,
+            totalSessions = meeting.totalSessions,
+            sessionNumber = meeting.sessionNumber,
+            parentMeetingId = meeting.parentMeetingId,
             createdAt = meeting.createdAt,
             isActive = meeting.isActive
         )
@@ -323,6 +405,7 @@ class MeetingService {
             duration = source.duration,
             price = source.price,
             noShowPrice = source.noShowPrice,
+            defaultSessions = source.defaultSessions,
             isActive = source.isActive,
             createdAt = source.createdAt,
             updatedAt = source.updatedAt

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingType, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
+import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingTypeEntity, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
 import { personalMeetings as personalMeetingsApi } from '../services/api';
 import './PersonalMeetingPanel.css';
 
@@ -18,28 +18,17 @@ interface PersonalMeetingStats {
 
 const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, onRefresh }) => {
   // Helper functions for meeting type defaults
-  const getDefaultDuration = (type: PersonalMeetingType): number => {
-    switch (type) {
-      case PersonalMeetingType.PERSONAL_THERAPY: return 60;
-      case PersonalMeetingType.PROFESSIONAL_DEVELOPMENT: return 90;
-      case PersonalMeetingType.SUPERVISION: return 60;
-      case PersonalMeetingType.TEACHING_SESSION: return 120;
-      default: return 60;
-    }
+  const getDefaultDuration = (type: PersonalMeetingTypeEntity): number => {
+    return type.duration || 60;
   };
 
-  const getDefaultPrice = (type: PersonalMeetingType): number => {
-    switch (type) {
-      case PersonalMeetingType.PERSONAL_THERAPY: return 400;
-      case PersonalMeetingType.PROFESSIONAL_DEVELOPMENT: return 500;
-      case PersonalMeetingType.SUPERVISION: return 350;
-      case PersonalMeetingType.TEACHING_SESSION: return 600;
-      default: return 400;
-    }
+  const getDefaultPrice = (type: PersonalMeetingTypeEntity): number => {
+    return type.price || 400;
   };
 
   const [personalMeetings, setPersonalMeetings] = useState<PersonalMeeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<PersonalMeeting[]>([]);
+  const [meetingTypes, setMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,7 +43,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const [editingMeeting, setEditingMeeting] = useState<PersonalMeeting | null>(null);
   const [formData, setFormData] = useState<PersonalMeetingRequest>({
     therapistName: '',
-    meetingType: PersonalMeetingType.PERSONAL_THERAPY,
+    meetingType: undefined,
     providerType: 'Therapist',
     providerCredentials: '',
     meetingDate: '',
@@ -65,7 +54,6 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     isRecurring: false,
     recurrenceFrequency: '',
     nextDueDate: '',
-    // Payment tracking fields
     isPaid: false,
     paymentDate: ''
   });
@@ -104,6 +92,19 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       console.warn('Failed to fetch personal meeting stats:', error);
     }
   }, [personalMeetings]);
+
+  // Load meeting types
+  useEffect(() => {
+    const loadMeetingTypes = async () => {
+      try {
+        const types = await personalMeetingsApi.getActiveMeetingTypes();
+        setMeetingTypes(types);
+      } catch (error) {
+        console.error('Error loading meeting types:', error);
+      }
+    };
+    loadMeetingTypes();
+  }, []);
 
   useEffect(() => {
     fetchPersonalMeetings();
@@ -238,7 +239,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
 
 
 
-  const handleMeetingTypeUpdate = useCallback(async (meetingId: number, meetingType: PersonalMeetingType) => {
+  const handleMeetingTypeUpdate = useCallback(async (meetingId: number, meetingType: PersonalMeetingTypeEntity) => {
     try {
       await personalMeetingsApi.update(meetingId, { meetingType });
       // Update local state instead of refetching to prevent scroll
@@ -600,22 +601,25 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
               <div className="form-group">
                 <label>Session Type *</label>
                 <select
-                  value={formData.meetingType}
+                  value={formData.meetingType?.id || ''}
                   onChange={(e) => {
-                    const selectedType = e.target.value as PersonalMeetingType;
-                    setFormData(prev => ({
-                      ...prev,
-                      meetingType: selectedType,
-                      duration: getDefaultDuration(selectedType),
-                      price: getDefaultPrice(selectedType)
-                    }));
+                    const selectedType = meetingTypes.find(type => type.id === parseInt(e.target.value));
+                    if (selectedType) {
+                      setFormData(prev => ({
+                        ...prev,
+                        meetingType: selectedType,
+                        duration: getDefaultDuration(selectedType),
+                        price: getDefaultPrice(selectedType)
+                      }));
+                    }
                   }}
                   className="meeting-type-select"
+                  required
                 >
-                  <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
-                  <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
-                  <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
-                  <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                  <option value="">Select session type...</option>
+                  {meetingTypes.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
                 </select>
                 <small className="form-help">
                   Duration and price will be automatically set based on the session type
@@ -846,10 +850,13 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                     <div className="detail-item">
                       <span className="label">Type:</span>
                       <select
-                        value={meeting.meetingType}
+                        value={meeting.meetingType?.id || ''}
                         onChange={(e) => {
                           e.preventDefault();
-                          handleMeetingTypeUpdate(meeting.id, e.target.value as PersonalMeetingType);
+                          const selectedType = meetingTypes.find(type => type.id === parseInt(e.target.value));
+                          if (selectedType) {
+                            handleMeetingTypeUpdate(meeting.id, selectedType);
+                          }
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -859,10 +866,9 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                         className="inline-select"
                         disabled={meeting.active === false}
                       >
-                        <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
-                        <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
-                        <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
-                        <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                        {meetingTypes.map(type => (
+                          <option key={type.id} value={type.id}>{type.name}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="detail-item">

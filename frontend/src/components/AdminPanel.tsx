@@ -257,35 +257,35 @@ const AdminPanel: React.FC = () => {
           <div className="admin-dashboard">
             <h3>📊 System Overview</h3>
             <div className="stats-grid">
-              <div className="stat-card">
+              <div className="stat-card" title="Total number of registered users in the system, including both therapists and administrators">
                 <div className="stat-icon">👥</div>
                 <div className="stat-content">
                   <h4>Total Users</h4>
                   <div className="stat-value">{stats.totalUsers}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Total number of clients being served by all therapists in the clinic">
                 <div className="stat-icon">🧑‍⚕️</div>
                 <div className="stat-content">
                   <h4>Total Clients</h4>
                   <div className="stat-value">{stats.totalClients}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Total number of therapy sessions scheduled across all therapists and time periods">
                 <div className="stat-icon">📅</div>
                 <div className="stat-content">
                   <h4>Total Meetings</h4>
                   <div className="stat-value">{stats.totalMeetings}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Total number of recorded expenses across all therapists and categories">
                 <div className="stat-icon">💰</div>
                 <div className="stat-content">
                   <h4>Total Expenses</h4>
                   <div className="stat-value">{stats.totalExpenses}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Number of new user registrations awaiting administrator approval before accessing the system">
                 <div className="stat-icon">⏳</div>
                 <div className="stat-content">
                   <h4>Pending Approvals</h4>

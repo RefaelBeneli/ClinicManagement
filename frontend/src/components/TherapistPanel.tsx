@@ -16,7 +16,7 @@ import {
   Expense, 
   MeetingStatus, 
   PersonalMeetingStatus, 
-  PersonalMeetingType, 
+  PersonalMeetingTypeEntity, 
   ClientSourceResponse, 
   PaymentType 
 } from '../types';
@@ -41,6 +41,7 @@ const TherapistPanel: React.FC = () => {
   const [personalMeetingList, setPersonalMeetingList] = useState<PersonalMeeting[]>([]);
   const [expenseList, setExpenseList] = useState<Expense[]>([]);
   const [meetingSources, setMeetingSources] = useState<ClientSourceResponse[]>([]);
+  const [meetingTypes, setMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'meetings' | 'personal-meetings' | 'expenses' | 'analytics' | 'calendar'>('dashboard');
   const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
@@ -224,7 +225,9 @@ const TherapistPanel: React.FC = () => {
       const personalMeetingStats = {
         total: personalMeetingList.length,
         byType: personalMeetingList.reduce((acc, m) => {
-          acc[m.meetingType] = (acc[m.meetingType] || 0) + 1;
+          if (m.meetingType?.name) {
+            acc[m.meetingType.name] = (acc[m.meetingType.name] || 0) + 1;
+          }
           return acc;
         }, {} as Record<string, number>),
         byProvider: personalMeetingList.reduce((acc, m) => {
@@ -275,6 +278,10 @@ const TherapistPanel: React.FC = () => {
           fetchExpenses(),
           fetchMeetingSources()
         ]);
+        
+        // Load meeting types
+        const types = await personalMeetings.getActiveMeetingTypes();
+        setMeetingTypes(types);
       } catch (error) {
         console.error('❌ Error fetching data:', error);
       } finally {
@@ -530,7 +537,7 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
-  const handlePersonalMeetingTypeUpdate = async (meetingId: number, meetingType: PersonalMeetingType) => {
+  const handlePersonalMeetingTypeUpdate = async (meetingId: number, meetingType: PersonalMeetingTypeEntity) => {
     try {
       await personalMeetings.update(meetingId, { meetingType });
       await fetchPersonalMeetings();
@@ -1029,42 +1036,42 @@ const TherapistPanel: React.FC = () => {
           <div className="therapist-dashboard">
             <h3>📊 Practice Overview</h3>
             <div className="stats-grid">
-              <div className="stat-card">
+              <div className="stat-card" title="Total number of clients currently under your care and active in your practice">
                 <div className="stat-icon">🧑‍⚕️</div>
                 <div className="stat-content">
                   <h4>Total Clients</h4>
                   <div className="stat-value">{stats.totalClients}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Number of therapy sessions scheduled for today that require your attention">
                 <div className="stat-icon">📅</div>
                 <div className="stat-content">
                   <h4>Today's Sessions</h4>
                   <div className="stat-value">{stats.todayMeetings}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Total revenue earned from client sessions this month, helping track your financial performance">
                 <div className="stat-icon">💰</div>
                 <div className="stat-content">
                   <h4>Monthly Revenue</h4>
                   <div className="stat-value">{formatCurrency(stats.monthlyRevenue)}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Number of completed therapy sessions that haven't been paid yet - important for cash flow management">
                 <div className="stat-icon">⏳</div>
                 <div className="stat-content">
                   <h4>Unpaid Sessions</h4>
                   <div className="stat-value">{stats.unpaidSessions}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Total number of your personal therapy or guidance sessions for professional development">
                 <div className="stat-icon">🧘‍♀️</div>
                 <div className="stat-content">
                   <h4>Personal Sessions</h4>
                   <div className="stat-value">{stats.totalPersonalMeetings}</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" title="Total number of business expenses you've recorded for tax purposes and practice management">
                 <div className="stat-icon">💸</div>
                 <div className="stat-content">
                   <h4>Total Expenses</h4>
@@ -1503,15 +1510,19 @@ const TherapistPanel: React.FC = () => {
                       </td>
                       <td>
                         <select
-                          value={meeting.meetingType}
-                          onChange={(e) => handlePersonalMeetingTypeUpdate(meeting.id, e.target.value as PersonalMeetingType)}
+                          value={meeting.meetingType?.id || ''}
+                          onChange={(e) => {
+                            const selectedType = meetingTypes.find(type => type.id === parseInt(e.target.value));
+                            if (selectedType) {
+                              handlePersonalMeetingTypeUpdate(meeting.id, selectedType);
+                            }
+                          }}
                           className="inline-select"
                           disabled={meeting.active === false}
                         >
-                          <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
-                          <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
-                          <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
-                          <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                          {meetingTypes.map(type => (
+                            <option key={type.id} value={type.id}>{type.name}</option>
+                          ))}
                         </select>
                       </td>
                       <td>

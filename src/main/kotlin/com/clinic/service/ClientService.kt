@@ -131,6 +131,7 @@ class ClientService {
             duration = source.duration,
             price = source.price,
             noShowPrice = source.noShowPrice,
+            defaultSessions = source.defaultSessions,
             isActive = source.isActive,
             createdAt = source.createdAt,
             updatedAt = source.updatedAt

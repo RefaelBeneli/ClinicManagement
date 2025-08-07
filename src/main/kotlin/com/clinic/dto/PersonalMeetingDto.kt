@@ -45,7 +45,7 @@ data class PersonalMeetingRequest(
 data class PersonalMeetingResponse(
     val id: Long,
     val therapistName: String,
-    val meetingType: PersonalMeetingTypeResponse,
+    val meetingType: PersonalMeetingTypeResponse?,
     val providerType: String,
     val providerCredentials: String?,
     val meetingDate: LocalDateTime,

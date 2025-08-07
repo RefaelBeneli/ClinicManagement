@@ -109,6 +109,7 @@ export interface MeetingSource {
   duration: number;
   price: number;
   noShowPrice: number;
+  defaultSessions: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -118,7 +119,10 @@ export interface MeetingSource {
 export interface ClientSourceResponse {
   id: number;
   name: string;
+  duration: number;
   price: number;
+  noShowPrice: number;
+  defaultSessions: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -127,13 +131,19 @@ export interface ClientSourceResponse {
 // NEW: ClientSourceRequest interface
 export interface ClientSourceRequest {
   name: string;
+  duration: number;
   price: number;
+  noShowPrice: number;
+  defaultSessions: number;
 }
 
 // NEW: UpdateClientSourceRequest interface
 export interface UpdateClientSourceRequest {
   name?: string;
+  duration?: number;
   price?: number;
+  noShowPrice?: number;
+  defaultSessions?: number;
   isActive?: boolean;
 }
 
@@ -177,6 +187,11 @@ export interface Meeting {
   notes?: string;
   summary?: string;
   status: MeetingStatus;
+  isRecurring: boolean;
+  recurrenceFrequency?: RecurrenceFrequency;
+  totalSessions?: number;
+  sessionNumber: number;
+  parentMeetingId?: number;
   createdAt: string;
   active?: boolean;
 }
@@ -188,6 +203,9 @@ export interface MeetingRequest {
   price?: number;
   notes?: string;
   summary?: string;
+  isRecurring?: boolean;
+  recurrenceFrequency?: RecurrenceFrequency;
+  totalSessions?: number;
 }
 
 export interface UpdateMeetingRequest {
@@ -206,7 +224,7 @@ export interface UpdateMeetingRequest {
 export interface PersonalMeeting {
   id: number;
   therapistName: string;
-  meetingType: PersonalMeetingType;
+  meetingType?: PersonalMeetingTypeEntity;
   providerType: string;
   providerCredentials?: string;
   meetingDate: string;
@@ -226,7 +244,7 @@ export interface PersonalMeeting {
 
 export interface PersonalMeetingRequest {
   therapistName: string;
-  meetingType?: PersonalMeetingType;
+  meetingType?: PersonalMeetingTypeEntity;
   providerType?: string;
   providerCredentials?: string;
   meetingDate: string;
@@ -244,7 +262,7 @@ export interface PersonalMeetingRequest {
 
 export interface UpdatePersonalMeetingRequest {
   therapistName?: string;
-  meetingType?: PersonalMeetingType;
+  meetingType?: PersonalMeetingTypeEntity;
   providerType?: string;
   providerCredentials?: string;
   meetingDate?: string;
@@ -278,6 +296,12 @@ export enum PersonalMeetingType {
   PROFESSIONAL_DEVELOPMENT = 'PROFESSIONAL_DEVELOPMENT',
   SUPERVISION = 'SUPERVISION',
   TEACHING_SESSION = 'TEACHING_SESSION'
+}
+
+export enum RecurrenceFrequency {
+  WEEKLY = 'WEEKLY',
+  BIWEEKLY = 'BIWEEKLY',
+  MONTHLY = 'MONTHLY'
 }
 
 export interface MessageResponse {

@@ -55,7 +55,7 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
               
               <div className="detail-item">
                 <label><strong>Meeting Type:</strong></label>
-                <p>{meeting.meetingType}</p>
+                <p>{meeting.meetingType?.name || 'Not specified'}</p>
               </div>
               
               <div className="detail-item">

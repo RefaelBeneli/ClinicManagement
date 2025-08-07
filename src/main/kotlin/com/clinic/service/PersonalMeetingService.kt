@@ -3,9 +3,9 @@ package com.clinic.service
 import com.clinic.dto.PersonalMeetingRequest
 import com.clinic.dto.PersonalMeetingResponse
 import com.clinic.dto.UpdatePersonalMeetingRequest
+import com.clinic.dto.PersonalMeetingTypeResponse
 import com.clinic.entity.PersonalMeeting
 import com.clinic.entity.PersonalMeetingStatus
-import com.clinic.dto.PersonalMeetingTypeResponse
 import com.clinic.repository.PersonalMeetingRepository
 import com.clinic.repository.PersonalMeetingTypeRepository
 import org.springframework.beans.factory.annotation.Autowired
@@ -64,7 +64,7 @@ class PersonalMeetingService {
     private fun createGuideExpense(personalMeeting: PersonalMeeting) {
         val expenseRequest = com.clinic.dto.ExpenseRequest(
             name = "Guide Session - ${personalMeeting.therapistName}",
-            description = "Personal session with guide: ${personalMeeting.meetingType.name}",
+            description = "Personal session with guide: ${personalMeeting.meetingType?.name ?: "Unknown Type"}",
             amount = personalMeeting.price,
             currency = "ILS",
             categoryId = 1, // Default to "Other" category
@@ -286,17 +286,19 @@ class PersonalMeetingService {
         return PersonalMeetingResponse(
             id = meeting.id,
             therapistName = meeting.therapistName,
-            meetingType = PersonalMeetingTypeResponse(
-                id = meeting.meetingType.id,
-                name = meeting.meetingType.name,
-                duration = meeting.meetingType.duration,
-                price = meeting.meetingType.price,
-                isRecurring = meeting.meetingType.isRecurring,
-                recurrenceFrequency = meeting.meetingType.recurrenceFrequency,
-                isActive = meeting.meetingType.isActive,
-                createdAt = meeting.meetingType.createdAt,
-                updatedAt = meeting.meetingType.updatedAt
-            ),
+            meetingType = meeting.meetingType?.let { meetingType ->
+                PersonalMeetingTypeResponse(
+                    id = meetingType.id,
+                    name = meetingType.name,
+                    duration = meetingType.duration,
+                    price = meetingType.price,
+                    isRecurring = meetingType.isRecurring,
+                    recurrenceFrequency = meetingType.recurrenceFrequency,
+                    isActive = meetingType.isActive,
+                    createdAt = meetingType.createdAt,
+                    updatedAt = meetingType.updatedAt
+                )
+            },
             providerType = meeting.providerType,
             providerCredentials = meeting.providerCredentials,
             meetingDate = meeting.meetingDate,

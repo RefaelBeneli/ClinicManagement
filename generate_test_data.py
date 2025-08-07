@@ -542,14 +542,30 @@ class TestDataGenerator:
         
         is_active = random.choice([True, True, True, False])  # 75% active
         
+        # Recurring meeting fields (10% chance for recurring)
+        is_recurring = random.random() < 0.1  # 10% chance
+        recurrence_frequency = None
+        total_sessions = None
+        session_number = 1
+        parent_meeting_id = None
+        
+        if is_recurring and meeting_index == 0:  # Only make first meeting in series recurring
+            recurrence_frequency = random.choice(['WEEKLY', 'BIWEEKLY', 'MONTHLY'])
+            # Get default sessions from client source
+            self.cursor.execute("SELECT default_sessions FROM client_sources WHERE id = %s", (client_source_id,))
+            default_sessions = self.cursor.fetchone()[0]
+            total_sessions = random.choice([default_sessions, default_sessions + 2, default_sessions + 5])
+        
         try:
             self.cursor.execute("""
                 INSERT INTO meetings (user_id, client_id, payment_type_id, meeting_date, 
                                    duration, price, notes, summary, status, is_paid, payment_date, 
-                                   is_active, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                   is_active, is_recurring, recurrence_frequency, total_sessions, 
+                                   session_number, parent_meeting_id, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (user_id, client_id, payment_type_id, meeting_date, duration, price,
-                  notes, summary, status, is_paid, payment_date, is_active, meeting_date))
+                  notes, summary, status, is_paid, payment_date, is_active, is_recurring,
+                  recurrence_frequency, total_sessions, session_number, parent_meeting_id, meeting_date))
             
         except mysql.connector.Error as err:
             logger.warning(f"Failed to insert meeting: {err}")

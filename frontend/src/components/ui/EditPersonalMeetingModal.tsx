@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PersonalMeeting, UpdatePersonalMeetingRequest, PersonalMeetingStatus, PersonalMeetingType } from '../../types';
+import { PersonalMeeting, UpdatePersonalMeetingRequest, PersonalMeetingStatus, PersonalMeetingTypeEntity } from '../../types';
 import { personalMeetings } from '../../services/api';
 import './ViewPersonalMeetingModal.css';
 
@@ -11,9 +11,10 @@ interface EditPersonalMeetingModalProps {
 }
 
 const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ meeting, isOpen, onClose, onSuccess }) => {
+  const [meetingTypes, setMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
   const [formData, setFormData] = useState<UpdatePersonalMeetingRequest>({
     therapistName: '',
-    meetingType: PersonalMeetingType.PERSONAL_THERAPY,
+    meetingType: undefined,
     providerType: '',
     providerCredentials: '',
     meetingDate: '',
@@ -29,6 +30,22 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Load meeting types when modal opens
+  useEffect(() => {
+    const loadMeetingTypes = async () => {
+      try {
+        const types = await personalMeetings.getActiveMeetingTypes();
+        setMeetingTypes(types);
+      } catch (error) {
+        console.error('Error loading meeting types:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadMeetingTypes();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (meeting) {
@@ -139,14 +156,18 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
               <select
                 id="meetingType"
                 name="meetingType"
-                value={formData.meetingType}
-                onChange={handleInputChange}
+                value={formData.meetingType?.id || ''}
+                onChange={(e) => {
+                  const selectedType = meetingTypes.find(type => type.id === parseInt(e.target.value));
+                  if (selectedType) {
+                    setFormData(prev => ({ ...prev, meetingType: selectedType }));
+                  }
+                }}
                 required
               >
-                <option value={PersonalMeetingType.PERSONAL_THERAPY}>Personal Therapy</option>
-                <option value={PersonalMeetingType.PROFESSIONAL_DEVELOPMENT}>Professional Development</option>
-                <option value={PersonalMeetingType.SUPERVISION}>Supervision</option>
-                <option value={PersonalMeetingType.TEACHING_SESSION}>Teaching Session</option>
+                {meetingTypes.map(type => (
+                  <option key={type.id} value={type.id}>{type.name}</option>
+                ))}
               </select>
             </div>
 

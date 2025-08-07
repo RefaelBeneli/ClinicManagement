@@ -9,7 +9,7 @@ interface AnalyticsPanelProps {
   onClose?: () => void;
 }
 
-type TimePeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
+type TimePeriod = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'specific-month' | 'custom-range';
 
 interface FilteredData {
   meetings: Meeting[];
@@ -54,6 +54,18 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<TimePeriod>('month');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split('T')[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
   const [rawData, setRawData] = useState<{
     clients: Client[];
     meetings: Meeting[];
@@ -87,12 +99,23 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
       case 'year':
         startDate.setDate(now.getDate() - 365);
         break;
+      case 'specific-month':
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const monthStart = new Date(year, month - 1, 1);
+        const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+        return { startDate: monthStart, endDate: monthEnd };
+      case 'custom-range':
+        const customStart = new Date(customStartDate);
+        const customEnd = new Date(customEndDate);
+        customStart.setHours(0, 0, 0, 0);
+        customEnd.setHours(23, 59, 59, 999);
+        return { startDate: customStart, endDate: customEnd };
       default:
         startDate.setDate(now.getDate() - 7);
     }
     
     return { startDate, endDate: now };
-  }, []);
+  }, [selectedMonth, customStartDate, customEndDate]);
 
   // Get previous period range for growth calculations
   const getPreviousDateRange = useCallback((period: TimePeriod) => {
@@ -128,13 +151,32 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
         endDate.setDate(now.getDate() - 365);
         startDate.setDate(now.getDate() - 730);
         break;
+      case 'specific-month':
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const prevMonth = month === 1 ? 12 : month - 1;
+        const prevYear = month === 1 ? year - 1 : year;
+        const prevMonthStart = new Date(prevYear, prevMonth - 1, 1);
+        const prevMonthEnd = new Date(prevYear, prevMonth, 0, 23, 59, 59, 999);
+        return { startDate: prevMonthStart, endDate: prevMonthEnd };
+      case 'custom-range':
+        const customStart = new Date(customStartDate);
+        const customEnd = new Date(customEndDate);
+        const rangeDays = Math.ceil((customEnd.getTime() - customStart.getTime()) / (1000 * 60 * 60 * 24));
+        const prevStart = new Date(customStart);
+        const prevEnd = new Date(customStart);
+        prevStart.setDate(prevStart.getDate() - rangeDays);
+        prevEnd.setDate(prevEnd.getDate() - 1);
+        prevStart.setHours(0, 0, 0, 0);
+        prevEnd.setHours(23, 59, 59, 999);
+        return { startDate: prevStart, endDate: prevEnd };
       default:
+        // Default to previous week
         endDate.setDate(now.getDate() - 7);
         startDate.setDate(now.getDate() - 14);
     }
     
     return { startDate, endDate };
-  }, []);
+  }, [selectedMonth, customStartDate, customEndDate]);
 
   // Filter data by date range
   const filterDataByPeriod = useCallback((data: any[], dateField: string, startDate: Date, endDate: Date) => {
@@ -236,7 +278,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
     // Expense calculations
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const expenseRatio = totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0;
-    
+
     // Expenses by category
     const expensesByCategory: Record<string, number> = {};
     expenses.forEach(e => {
@@ -335,6 +377,18 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
       case 'month': return 'This Month';
       case 'quarter': return 'This Quarter';
       case 'year': return 'This Year';
+      case 'specific-month':
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${monthNames[month - 1]} ${year}`;
+      case 'custom-range':
+        const startDate = new Date(customStartDate);
+        const endDate = new Date(customEndDate);
+        const formatDate = (date: Date) => date.toLocaleDateString('en-US', { 
+          month: 'short', day: 'numeric', year: 'numeric' 
+        });
+        return `${formatDate(startDate)} - ${formatDate(endDate)}`;
       default: return 'This Week';
     }
   };
@@ -352,16 +406,17 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
 
   // Show no data message
   if (!hasData) {
-    return (
-      <div className="analytics-panel">
-        {/* Header */}
-        <div className="analytics-header">
-          <div className="analytics-header-left">
-            <h2>📊 Practice Analytics</h2>
+  return (
+    <div className="analytics-panel">
+      {/* Header */}
+      <div className="analytics-header">
+        <div className="analytics-header-left">
+          <h2>📊 Practice Analytics</h2>
             <p>Performance insights for {getPeriodLabel(period).toLowerCase()}</p>
-          </div>
-          <div className="analytics-header-right">
-            <div className="period-selector">
+        </div>
+        <div className="analytics-header-right">
+          <div className="period-selector">
+            <div className="period-main-controls">
               <label htmlFor="period-select">Time Period:</label>
               <select 
                 id="period-select"
@@ -375,18 +430,68 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                 <option value="month" title="Last 30 days">This Month</option>
                 <option value="quarter" title="Last 90 days">This Quarter</option>
                 <option value="year" title="Last 365 days">This Year</option>
+                <option value="specific-month" title="Choose a specific month">Specific Month</option>
+                <option value="custom-range" title="Choose a custom date range">Custom Range</option>
               </select>
             </div>
-            {onClose && (
-              <button className="btn-close" onClick={onClose}>
-                ✕
-              </button>
+            
+            {/* Specific Month Selector */}
+            {period === 'specific-month' && (
+              <div className="period-additional-controls">
+                <div className="date-input-group">
+                  <label htmlFor="month-select">Month:</label>
+                  <input
+                    type="month"
+                    id="month-select"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="date-input"
+                    title="Select the specific month to analyze"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Custom Range Selectors */}
+            {period === 'custom-range' && (
+              <div className="period-additional-controls">
+                <div className="date-range-inputs">
+                  <div className="date-input-group">
+                    <label htmlFor="start-date">From:</label>
+                    <input
+                      type="date"
+                      id="start-date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="date-input"
+                      title="Select the start date for the range"
+                    />
+                  </div>
+                  <div className="date-input-group">
+                    <label htmlFor="end-date">To:</label>
+                    <input
+                      type="date"
+                      id="end-date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="date-input"
+                      title="Select the end date for the range"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
+          {onClose && (
+            <button className="btn-close" onClick={onClose}>
+              ✕
+            </button>
+          )}
         </div>
+      </div>
 
         {/* No Data Message */}
-        <div className="analytics-content">
+      <div className="analytics-content">
           <div className="no-data-message">
             <div className="no-data-icon">📊</div>
             <h3>No Data Available</h3>
@@ -398,10 +503,10 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                 <li>Scheduling meetings</li>
                 <li>Recording business expenses</li>
               </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+                      </div>
+                    </div>
+                  </div>
+                      </div>
     );
   }
 
@@ -417,23 +522,74 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
         <div className="analytics-header-left">
           <h2>📊 Practice Analytics</h2>
           <p>Performance insights for {getPeriodLabel(period).toLowerCase()}</p>
-        </div>
+                      </div>
         <div className="analytics-header-right">
           <div className="period-selector">
-            <label htmlFor="period-select">Time Period:</label>
-            <select 
-              id="period-select"
-              value={period} 
-              onChange={(e) => setPeriod(e.target.value as TimePeriod)}
-              className="period-select-dropdown"
-              title="Select the time period for analytics data"
-            >
-              <option value="day" title="Today only">Today</option>
-              <option value="week" title="Last 7 days">This Week</option>
-              <option value="month" title="Last 30 days">This Month</option>
-              <option value="quarter" title="Last 90 days">This Quarter</option>
-              <option value="year" title="Last 365 days">This Year</option>
-            </select>
+            <div className="period-main-controls">
+              <label htmlFor="period-select">Time Period:</label>
+              <select 
+                id="period-select"
+                value={period} 
+                onChange={(e) => setPeriod(e.target.value as TimePeriod)}
+                className="period-select-dropdown"
+                title="Select the time period for analytics data"
+              >
+                <option value="day" title="Today only">Today</option>
+                <option value="week" title="Last 7 days">This Week</option>
+                <option value="month" title="Last 30 days">This Month</option>
+                <option value="quarter" title="Last 90 days">This Quarter</option>
+                <option value="year" title="Last 365 days">This Year</option>
+                <option value="specific-month" title="Choose a specific month">Specific Month</option>
+                <option value="custom-range" title="Choose a custom date range">Custom Range</option>
+              </select>
+            </div>
+            
+            {/* Specific Month Selector */}
+            {period === 'specific-month' && (
+              <div className="period-additional-controls">
+                <div className="date-input-group">
+                  <label htmlFor="month-select">Month:</label>
+                  <input
+                    type="month"
+                    id="month-select"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="date-input"
+                    title="Select the specific month to analyze"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Custom Range Selectors */}
+            {period === 'custom-range' && (
+              <div className="period-additional-controls">
+                <div className="date-range-inputs">
+                  <div className="date-input-group">
+                    <label htmlFor="start-date">From:</label>
+                    <input
+                      type="date"
+                      id="start-date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="date-input"
+                      title="Select the start date for the range"
+                    />
+                  </div>
+                  <div className="date-input-group">
+                    <label htmlFor="end-date">To:</label>
+                    <input
+                      type="date"
+                      id="end-date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="date-input"
+                      title="Select the end date for the range"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           {onClose && (
             <button className="btn-close" onClick={onClose}>
@@ -461,12 +617,12 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     >
                       {getGrowthIcon(analytics.revenue.growth)} {formatPercentage(Math.abs(analytics.revenue.growth))}
                     </span>
-                  </div>
-                </div>
-              </div>
+                      </div>
+                      </div>
+                    </div>
               <div className="metric-value" title="Total income from all sessions in the selected time period">
                 {formatCurrency(analytics.revenue.gross)}
-              </div>
+                      </div>
               <div className="metric-details">
                 <div className="detail-item">
                   <span title="Revenue remaining after subtracting all business expenses">Net Revenue:</span>
@@ -476,21 +632,21 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                   >
                     {formatCurrency(analytics.revenue.net)}
                   </span>
-                </div>
+                      </div>
                 <div className="detail-item">
                   <span title="Revenue that has been actually received from clients">Collected:</span>
                   <span title="Amount of revenue that has been actually received (paid sessions)">
                     {formatCurrency(analytics.revenue.paid)}
                   </span>
-                </div>
+                    </div>
                 <div className="detail-item">
                   <span title="Percentage of total revenue that has been successfully collected">Collection Rate:</span>
                   <span title="Percentage of gross revenue that has been collected">
                     {formatPercentage(analytics.revenue.collectionRate)}
                   </span>
+                  </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
             {/* Sessions Card */}
             <div className="metric-card sessions">
@@ -505,33 +661,33 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     >
                       {getGrowthIcon(analytics.sessions.growth)} {formatPercentage(Math.abs(analytics.sessions.growth))}
                     </span>
-                  </div>
-                </div>
-              </div>
+                      </div>
+                    </div>
+                      </div>
               <div className="metric-value" title="Total number of sessions scheduled in the selected time period">
                 {analytics.sessions.total}
-              </div>
+                    </div>
               <div className="metric-details">
                 <div className="detail-item">
                   <span title="Sessions that have finished and been marked as completed">Completed:</span>
                   <span title="Number of sessions that have been completed">
                     {analytics.sessions.completed}
                   </span>
-                </div>
+                      </div>
                 <div className="detail-item">
                   <span title="Percentage of scheduled sessions that were actually completed">Completion Rate:</span>
                   <span title="Percentage of scheduled sessions that were completed">
                     {formatPercentage(analytics.sessions.completionRate)}
                   </span>
-                </div>
+                    </div>
                 <div className="detail-item">
                   <span title="Average length of time for each session">Avg Duration:</span>
                   <span title="Average duration of sessions in minutes">
                     {analytics.sessions.averageDuration} min
                   </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
             {/* Clients Card */}
             <div className="metric-card clients">
@@ -539,32 +695,32 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                 <div className="metric-icon">👥</div>
                 <div className="metric-info">
                   <h3>Clients</h3>
-                </div>
-              </div>
+                      </div>
+                    </div>
               <div className="metric-value" title="Number of active clients in the selected time period">
                 {analytics.clients.active}
-              </div>
+                      </div>
               <div className="metric-details">
                 <div className="detail-item">
                   <span title="Clients who have joined during the selected time period">New Clients:</span>
                   <span title="Number of new clients added in the selected time period">
                     {analytics.clients.new}
                   </span>
-                </div>
+                    </div>
                 <div className="detail-item">
                   <span title="Percentage of clients who continue booking sessions over time">Retention:</span>
                   <span title="Percentage of clients who continue to book sessions">
                     {formatPercentage(analytics.clients.retention)}
                   </span>
-                </div>
+                      </div>
                 <div className="detail-item">
                   <span title="Average revenue generated per client during the period">Avg Value:</span>
                   <span title="Average revenue generated per client in the selected period">
                     {formatCurrency(analytics.clients.averageValue)}
                   </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
             {/* Expenses Card */}
             <div className="metric-card expenses">
@@ -572,8 +728,8 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                 <div className="metric-icon">💸</div>
                 <div className="metric-info">
                   <h3>Expenses</h3>
-                </div>
-              </div>
+                    </div>
+                  </div>
               <div className="metric-value" title="Total business expenses in the selected time period">
                 {formatCurrency(analytics.expenses.total)}
               </div>
@@ -585,47 +741,47 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     title="Percentage of gross revenue spent on expenses (lower is better)"
                   >
                     {formatPercentage(analytics.expenses.ratio)}
-                  </span>
-                </div>
+                      </span>
+                    </div>
               </div>
-            </div>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                </div>
 
         {/* Charts Section */}
         {(analytics.revenue.gross > 0 || analytics.sessions.total > 0) && (
           <div className="charts-section">
-            <div className="charts-grid">
+                  <div className="charts-grid">
               {analytics.revenue.gross > 0 && (
                 <div className="chart-card">
                   <h3 title="Shows the breakdown of revenue that has been collected vs pending collection">
                     Revenue Distribution
                   </h3>
-                  <SimpleChart
-                    data={[
+                    <SimpleChart
+                      data={[
                       { label: 'Collected', value: analytics.revenue.paid, color: '#43e97b' },
-                      { label: 'Pending', value: analytics.revenue.unpaid, color: '#fa709a' }
-                    ]}
+                        { label: 'Pending', value: analytics.revenue.unpaid, color: '#fa709a' }
+                      ]}
                     title=""
-                    type="pie"
+                      type="pie"
                     height={200}
                   />
-                </div>
-              )}
+              </div>
+            )}
 
               {analytics.sessions.total > 0 && Object.keys(analytics.sessions.bySource).length > 0 && (
                 <div className="chart-card">
                   <h3 title="Shows the number of sessions from each client source (Private, Natal, Clalit, etc.)">
                     Sessions by Client Source
                   </h3>
-                  <SimpleChart
+                    <SimpleChart
                     data={Object.entries(analytics.sessions.bySource).map(([source, count], index) => ({
                       label: source,
-                      value: count,
+                        value: count,
                       color: chartColors[index % chartColors.length]
-                    }))}
+                      }))}
                     title=""
-                    type="pie"
+                      type="pie"
                     height={200}
                   />
                 </div>
@@ -636,7 +792,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                   <h3 title="Shows the revenue amount generated from each client source">
                     Income by Client Source
                   </h3>
-                  <SimpleChart
+                    <SimpleChart
                     data={Object.entries(analytics.revenue.bySource).map(([source, income], index) => ({
                       label: source,
                       value: income,
@@ -644,10 +800,10 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     }))}
                     title=""
                     type="pie"
-                    height={250}
-                  />
-                </div>
-              )}
+                      height={250}
+                    />
+              </div>
+            )}
 
               {analytics.expenses.total > 0 ? (
                 <div className="chart-card">
@@ -664,7 +820,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     type="pie"
                     height={250}
                   />
-                </div>
+                      </div>
               ) : (
                 <div className="chart-card">
                   <h3 title="Shows the breakdown of expenses by category">
@@ -675,10 +831,10 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     <div className="no-data-text">
                       <h4>No Expenses Recorded</h4>
                       <p>Add business expenses to see the breakdown by category</p>
-                    </div>
-                  </div>
+                      </div>
                 </div>
-              )}
+              </div>
+            )}
 
               {(analytics.revenue.gross > 0 || analytics.expenses.total > 0) && (
                 <div className="chart-card">
@@ -694,10 +850,10 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     type="pie"
                     height={250}
                   />
+              </div>
+            )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
         )}
       </div>
     </div>

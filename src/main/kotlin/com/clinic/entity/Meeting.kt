@@ -51,6 +51,23 @@ data class Meeting(
     @Column(name = "google_event_id", nullable = true)
     val googleEventId: String? = null,
     
+    // Recurring meeting fields
+    @Column(name = "is_recurring", nullable = false)
+    val isRecurring: Boolean = false,
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recurrence_frequency", nullable = true)
+    val recurrenceFrequency: RecurrenceFrequency? = null,
+    
+    @Column(name = "total_sessions", nullable = true)
+    val totalSessions: Int? = null,
+    
+    @Column(name = "session_number", nullable = false)
+    val sessionNumber: Int = 1,
+    
+    @Column(name = "parent_meeting_id", nullable = true)
+    val parentMeetingId: Long? = null,
+    
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
     
@@ -63,4 +80,10 @@ enum class MeetingStatus {
     COMPLETED,
     CANCELLED,
     NO_SHOW
+}
+
+enum class RecurrenceFrequency {
+    WEEKLY,
+    BIWEEKLY,
+    MONTHLY
 } 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Meeting, MeetingRequest, Client } from '../../types';
+import { Meeting, MeetingRequest, Client, RecurrenceFrequency } from '../../types';
 import { meetings as meetingsApi, clients as clientsApi } from '../../services/api';
 import './Modal.css';
 
@@ -16,7 +16,10 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSe
     duration: 60,
     price: 0,
     notes: '',
-    summary: ''
+    summary: '',
+    isRecurring: false,
+    recurrenceFrequency: RecurrenceFrequency.WEEKLY,
+    totalSessions: 1
   });
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -89,7 +92,10 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSe
       duration: 60,
       price: 0,
       notes: '',
-      summary: ''
+      summary: '',
+      isRecurring: false,
+      recurrenceFrequency: RecurrenceFrequency.WEEKLY,
+      totalSessions: 1
     });
     setError('');
     setShowDefaultsApplied(false);
@@ -111,7 +117,8 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSe
         ...prev,
         clientId: clientId,
         price: selectedClient.source!.price,
-        duration: 60 // Default duration of 60 minutes
+        duration: selectedClient.source!.duration || 60,
+        totalSessions: prev.isRecurring ? (selectedClient.source!.defaultSessions || 1) : 1
       }));
       
       // Show message that defaults were applied
@@ -123,7 +130,8 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSe
         ...prev,
         clientId: clientId,
         price: 0,
-        duration: 60
+        duration: 60,
+        totalSessions: 1
       }));
       setShowDefaultsApplied(false);
     }
@@ -201,6 +209,40 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSe
                   />
                 </div>
               </div>
+              
+              {/* Client Source Information */}
+              {formData.clientId > 0 && (
+                <div className="client-source-info">
+                  {(() => {
+                    const selectedClient = clients.find(c => c.id === formData.clientId);
+                    if (selectedClient?.source) {
+                      return (
+                        <div className="source-details">
+                          <div className="source-header">
+                            <span className="source-icon">🏥</span>
+                            <strong>Client Source: {selectedClient.source.name}</strong>
+                          </div>
+                          <div className="source-info-grid">
+                            <div className="info-item">
+                              <span className="info-label">Duration:</span>
+                              <span className="info-value">{selectedClient.source.duration} min</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-label">Price:</span>
+                              <span className="info-value">{formatCurrency(selectedClient.source.price)}</span>
+                            </div>
+                            <div className="info-item">
+                              <span className="info-label">Default Sessions:</span>
+                              <span className="info-value">{selectedClient.source.defaultSessions}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
             </div>
 
             {/* Session Details Section */}
@@ -253,6 +295,90 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ isOpen, onClose, onSe
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Recurring Meeting Section */}
+            <div className="form-section recurring-section">
+              <div className="section-header">
+                <h4>🔄 Recurring Sessions</h4>
+                <p>Set up multiple sessions at regular intervals</p>
+              </div>
+              
+              <div className="form-group enhanced-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.isRecurring}
+                    onChange={(e) => {
+                      const isRecurring = e.target.checked;
+                      const selectedClient = clients.find(c => c.id === formData.clientId);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        isRecurring,
+                        totalSessions: isRecurring ? (selectedClient?.source?.defaultSessions || 1) : 1
+                      }));
+                    }}
+                    disabled={loading}
+                    className="checkbox-input"
+                  />
+                  <span className="checkbox-text">Create recurring sessions</span>
+                </label>
+                <small className="help-text">
+                  Schedule multiple sessions automatically at regular intervals
+                </small>
+              </div>
+
+              {formData.isRecurring && (
+                <div className="form-row enhanced-row">
+                  <div className="form-group enhanced-group">
+                    <label htmlFor="recurrenceFrequency">Frequency</label>
+                    <select
+                      id="recurrenceFrequency"
+                      value={formData.recurrenceFrequency}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        recurrenceFrequency: e.target.value as RecurrenceFrequency 
+                      }))}
+                      disabled={loading}
+                      className="form-select enhanced-select"
+                    >
+                      <option value={RecurrenceFrequency.WEEKLY}>Weekly</option>
+                      <option value={RecurrenceFrequency.BIWEEKLY}>Bi-weekly</option>
+                      <option value={RecurrenceFrequency.MONTHLY}>Monthly</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group enhanced-group">
+                    <label htmlFor="totalSessions">Total Sessions</label>
+                    <input
+                      id="totalSessions"
+                      type="number"
+                      min="1"
+                      max="52"
+                      value={formData.totalSessions}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        totalSessions: parseInt(e.target.value) || 1 
+                      }))}
+                      disabled={loading}
+                      className="form-input enhanced-input"
+                    />
+                    <small className="help-text">
+                      {formData.clientId > 0 ? (
+                        (() => {
+                          const selectedClient = clients.find(c => c.id === formData.clientId);
+                          if (selectedClient?.source) {
+                            return `Default from ${selectedClient.source.name}: ${selectedClient.source.defaultSessions} sessions`;
+                          }
+                          return `Default: ${formData.totalSessions} sessions`;
+                        })()
+                      ) : (
+                        'Select a client to see default session count'
+                      )}
+                    </small>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notes Section */}
