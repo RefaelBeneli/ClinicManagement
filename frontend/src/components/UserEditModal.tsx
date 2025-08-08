@@ -50,7 +50,7 @@ const UserEditModal: React.FC<Props> = ({ userId, onClose, onSaved }) => {
 
   const approveIfPending = async () => {
     if (form.approvalStatus === UserApprovalStatus.PENDING) {
-      await userApproval.approveUser(userId, { userId });
+              await userApproval.approveUser(userId, { approvalStatus: 'APPROVED' });
       setForm((prev: any) => ({ ...prev, approvalStatus: UserApprovalStatus.APPROVED }));
     }
   };

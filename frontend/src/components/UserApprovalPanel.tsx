@@ -30,7 +30,7 @@ const UserApprovalPanel: React.FC<UserApprovalPanelProps> = ({ onClose }) => {
 
   const handleApprove = async (userId: number) => {
     try {
-      await userApproval.approveUser(userId, { userId });
+              await userApproval.approveUser(userId, { approvalStatus: 'APPROVED' });
       setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch (error: any) {
       alert('Failed to approve user: ' + (error.response?.data?.message || error.message));
@@ -40,7 +40,7 @@ const UserApprovalPanel: React.FC<UserApprovalPanelProps> = ({ onClose }) => {
   const handleReject = async (userId: number) => {
     const reason = prompt('Reason for rejection (optional):') || '';
     try {
-      await userApproval.rejectUser(userId, { userId, reason });
+      await userApproval.rejectUser(userId, { approvalStatus: 'REJECTED', rejectionReason: reason });
       setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch (error: any) {
       alert('Failed to reject user: ' + (error.response?.data?.message || error.message));

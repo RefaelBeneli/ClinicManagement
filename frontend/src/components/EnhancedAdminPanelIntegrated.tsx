@@ -6,10 +6,10 @@ import AdminDashboard from './AdminDashboard';
 import EnhancedUserManagement from './EnhancedUserManagement';
 import EnhancedClientManagement from './EnhancedClientManagement';
 import EnhancedSessionManagement from './EnhancedSessionManagement';
+import EnhancedPersonalMeetingManagement from './EnhancedPersonalMeetingManagement';
 import EnhancedFinancialManagement from './EnhancedFinancialManagement';
 import EnhancedSystemConfiguration from './EnhancedSystemConfiguration';
 import ExpensePanel from './ExpensePanel';
-import PersonalMeetingPanel from './PersonalMeetingPanel';
 import AnalyticsPanel from './AnalyticsPanel';
 import Calendar from './Calendar';
 import SourceManagementTab from './SourceManagementTab';
@@ -217,12 +217,9 @@ const EnhancedAdminPanelIntegrated: React.FC = () => {
       
       case 'personal-meetings':
         return (
-          <div className="section-wrapper">
-            <PersonalMeetingPanel 
-              onClose={() => setActiveSection('dashboard')}
-              onRefresh={handleRefresh}
-            />
-          </div>
+          <EnhancedPersonalMeetingManagement
+            onRefresh={handleRefresh}
+          />
         );
       
       case 'expenses':

@@ -12,6 +12,10 @@ data class AdminUserResponse(
     val fullName: String,
     val role: String,
     val enabled: Boolean,
+    val approvalStatus: String,
+    val approvedBy: String?,
+    val approvedDate: LocalDateTime?,
+    val rejectionReason: String?,
     val createdAt: LocalDateTime
 )
 
@@ -20,6 +24,11 @@ data class UpdateUserRequest(
     val fullName: String? = null,
     val role: String? = null,
     val enabled: Boolean? = null
+)
+
+data class ApproveUserRequest(
+    val approvalStatus: String,
+    val rejectionReason: String? = null
 )
 
 // Client Management DTOs

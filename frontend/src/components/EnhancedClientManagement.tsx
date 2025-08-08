@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminSearch, { SearchFilter, FilterPreset } from './AdminSearch';
 import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
@@ -67,6 +67,9 @@ const EnhancedClientManagement: React.FC<EnhancedClientManagementProps> = ({
   const [viewingClientId, setViewingClientId] = useState<number | null>(null);
   const [showActivityLog, setShowActivityLog] = useState(false);
   const [selectedClientForActivity, setSelectedClientForActivity] = useState<number | null>(null);
+
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
   const [showTherapistAssignment, setShowTherapistAssignment] = useState(false);
 
   // API URL configuration
@@ -439,8 +442,11 @@ const EnhancedClientManagement: React.FC<EnhancedClientManagementProps> = ({
 
   // Initialize on mount
   useEffect(() => {
-    fetchTherapists();
-    fetchClients();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchTherapists();
+      fetchClients();
+    }
   }, [fetchTherapists, fetchClients]);
 
   // Initialize filters after therapists are loaded

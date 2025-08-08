@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminSearch, { SearchFilter, FilterPreset } from './AdminSearch';
 import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
@@ -100,6 +100,9 @@ const EnhancedSessionManagement: React.FC<EnhancedSessionManagementProps> = ({
   const [showActivityLog, setShowActivityLog] = useState(false);
   const [selectedSessionForActivity, setSelectedSessionForActivity] = useState<{ id: number; type: 'MEETING' | 'PERSONAL_MEETING' } | null>(null);
   const [showCalendarView, setShowCalendarView] = useState(false);
+
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
 
   // API URL configuration
   const apiUrl = useMemo(() => {
@@ -576,8 +579,11 @@ const EnhancedSessionManagement: React.FC<EnhancedSessionManagementProps> = ({
 
   // Initialize on mount
   useEffect(() => {
-    initializeSearchFilters();
-    fetchSessions();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      initializeSearchFilters();
+      fetchSessions();
+    }
   }, [initializeSearchFilters, fetchSessions]);
 
   // Apply filters when data or filters change

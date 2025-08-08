@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminSearch, { SearchFilter, FilterPreset } from './AdminSearch';
 import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
@@ -59,6 +59,9 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showActivityLog, setShowActivityLog] = useState(false);
   const [selectedUserForActivity, setSelectedUserForActivity] = useState<number | null>(null);
+
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
 
   // API URL configuration
   const apiUrl = useMemo(() => {
@@ -320,8 +323,11 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
 
   // Initialize on mount
   useEffect(() => {
-    initializeSearchFilters();
-    fetchUsers();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      initializeSearchFilters();
+      fetchUsers();
+    }
   }, [initializeSearchFilters, fetchUsers]);
 
   // Apply filters when data or filters change
@@ -417,10 +423,10 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
           // Mock API calls - replace with actual implementation
           switch (actionId) {
             case 'approve':
-              await userApproval.approveUser(parseInt(userId), { userId: parseInt(userId) });
+              await userApproval.approveUser(parseInt(userId), { approvalStatus: 'APPROVED' });
               break;
             case 'reject':
-              await userApproval.rejectUser(parseInt(userId), { userId: parseInt(userId), reason: 'Bulk rejection' });
+              await userApproval.rejectUser(parseInt(userId), { approvalStatus: 'REJECTED', rejectionReason: 'Bulk rejection' });
               break;
             case 'enable':
             case 'disable':
@@ -708,7 +714,7 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
                       {user.approvalStatus === 'PENDING' && (
                         <button 
                           className="btn-small btn-approve"
-                          onClick={() => userApproval.approveUser(user.id, { userId: user.id }).then(fetchUsers)}
+                          onClick={() => userApproval.approveUser(user.id, { approvalStatus: 'APPROVED' }).then(fetchUsers)}
                           title="Quick approve"
                         >
                           ✅

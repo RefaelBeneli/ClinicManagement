@@ -21,13 +21,22 @@ class AuthController {
     private lateinit var authService: AuthService
 
     @PostMapping("/signin")
-    fun authenticateUser(@Valid @RequestBody loginRequest: LoginRequest): ResponseEntity<AuthResponse> {
+    fun authenticateUser(@Valid @RequestBody loginRequest: LoginRequest): ResponseEntity<*> {
         return try {
             val authResponse = authService.authenticateUser(loginRequest)
             ResponseEntity.ok(authResponse)
+        } catch (e: org.springframework.security.authentication.DisabledException) {
+            logger.error("Authentication failed for user: ${loginRequest.username}", e)
+            ResponseEntity.badRequest().body(MessageResponse(e.message ?: "Account is disabled"))
+        } catch (e: org.springframework.security.authentication.BadCredentialsException) {
+            logger.error("Authentication failed for user: ${loginRequest.username}", e)
+            ResponseEntity.badRequest().body(MessageResponse("Invalid username or password"))
+        } catch (e: RuntimeException) {
+            logger.error("Authentication failed for user: ${loginRequest.username}", e)
+            ResponseEntity.badRequest().body(MessageResponse(e.message ?: "Authentication failed"))
         } catch (e: Exception) {
             logger.error("Authentication failed for user: ${loginRequest.username}", e)
-            ResponseEntity.badRequest().build()
+            ResponseEntity.badRequest().body(MessageResponse("Authentication failed"))
         }
     }
 
@@ -36,9 +45,12 @@ class AuthController {
         return try {
             authService.registerUser(registerRequest)
             ResponseEntity.ok(MessageResponse("User registered successfully!"))
+        } catch (e: org.springframework.dao.DataIntegrityViolationException) {
+            logger.error("Registration failed for user: ${registerRequest.username}", e)
+            ResponseEntity.badRequest().body(MessageResponse("Username or email already exists"))
         } catch (e: RuntimeException) {
             logger.error("Registration failed for user: ${registerRequest.username}", e)
-            ResponseEntity.badRequest().body(MessageResponse("Registration failed"))
+            ResponseEntity.badRequest().body(MessageResponse(e.message ?: "Registration failed"))
         }
     }
 

@@ -34,7 +34,20 @@ const Register: React.FC = () => {
         state: { message: 'Registration successful! Please login with your credentials.' }
       });
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Registration failed. Please try again.');
+      // Handle validation errors from backend
+      if (error.response?.data?.errors) {
+        // Extract field-specific validation errors
+        const validationErrors = error.response.data.errors;
+        const errorMessages = Object.keys(validationErrors).map(field => {
+          const fieldErrors = validationErrors[field];
+          return `${field.charAt(0).toUpperCase() + field.slice(1)}: ${fieldErrors.join(', ')}`;
+        });
+        setError(errorMessages.join('\n'));
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +75,11 @@ const Register: React.FC = () => {
               value={formData.fullName}
               onChange={handleChange}
               required
+              minLength={2}
+              maxLength={100}
+              title="Full name must be 2-100 characters long"
             />
+            <small className="field-hint">Enter your full name (2-100 characters)</small>
           </div>
 
           <div className="form-group">
@@ -74,7 +91,12 @@ const Register: React.FC = () => {
               value={formData.username}
               onChange={handleChange}
               required
+              minLength={3}
+              maxLength={50}
+              pattern="[a-zA-Z0-9_]+"
+              title="Username must be 3-50 characters long and contain only letters, numbers, and underscores"
             />
+            <small className="field-hint">Username must be 3-50 characters long</small>
           </div>
 
           <div className="form-group">
@@ -86,7 +108,9 @@ const Register: React.FC = () => {
               value={formData.email}
               onChange={handleChange}
               required
+              title="Please enter a valid email address"
             />
+            <small className="field-hint">Enter a valid email address</small>
           </div>
           
           <div className="form-group">
@@ -99,7 +123,9 @@ const Register: React.FC = () => {
               onChange={handleChange}
               required
               minLength={6}
+              title="Password must be at least 6 characters long"
             />
+            <small className="field-hint">Password must be at least 6 characters long</small>
           </div>
           
           <button type="submit" disabled={loading} className="register-button">

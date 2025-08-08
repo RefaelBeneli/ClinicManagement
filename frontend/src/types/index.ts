@@ -22,13 +22,13 @@ export interface PendingUser {
 }
 
 export interface UserApprovalRequest {
-  userId: number;
-  reason?: string;
+  approvalStatus: string;
+  rejectionReason?: string;
 }
 
 export interface UserRejectionRequest {
-  userId: number;
-  reason: string;
+  approvalStatus: string;
+  rejectionReason: string;
 }
 
 export interface UserApprovalResponse {

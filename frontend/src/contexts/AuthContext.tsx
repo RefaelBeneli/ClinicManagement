@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, AuthResponse, LoginRequest, RegisterRequest } from '../types';
 import { auth } from '../services/api';
 
@@ -30,24 +30,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        setToken(storedToken);
-        try {
-          const userData = await auth.getCurrentUser();
-          setUser(userData);
-        } catch (error) {
-          console.error('Failed to get user data:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
-      }
-      setLoading(false);
-    };
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
 
-    initAuth();
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      
+      const initAuth = async () => {
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+          setToken(storedToken);
+          try {
+            const userData = await auth.getCurrentUser();
+            setUser(userData);
+          } catch (error) {
+            console.error('Failed to get user data:', error);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        }
+        setLoading(false);
+      };
+
+      initAuth();
+    }
   }, []);
 
   const login = async (credentials: LoginRequest) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Meeting, 
   MeetingRequest, 
@@ -66,6 +66,9 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   const [sessionToPay, setSessionToPay] = useState<Meeting | null>(null);
   const [selectedPaymentTypeId, setSelectedPaymentTypeId] = useState<number>(0);
 
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
+
   const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
@@ -126,10 +129,13 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   }, [sessions]);
 
   useEffect(() => {
-    fetchSessions();
-    fetchClients();
-    fetchPaymentTypes();
-    // fetchStats(); // This will be called after sessions are fetched
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchSessions();
+      fetchClients();
+      fetchPaymentTypes();
+      // fetchStats(); // This will be called after sessions are fetched
+    }
   }, [fetchSessions, fetchClients, fetchPaymentTypes]);
 
   // Debug modal state

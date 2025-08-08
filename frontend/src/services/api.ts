@@ -504,7 +504,7 @@ export const personalMeetings = {
   },
 
   getActiveMeetingTypes: async (): Promise<PersonalMeetingTypeEntity[]> => {
-    const response = await adminClient.get('/admin/personal-meeting-types/active');
+    const response = await adminClient.get('/api/admin/personal-meeting-types/active');
     return response.data;
   },
 
@@ -592,22 +592,22 @@ export const calendarIntegration = {
 // Admin – User management (CRUD)
 export const adminUsers = {
   getAll: async (page = 0, size = 20) => {
-    const response = await adminClient.get(`/admin/users?page=${page}&size=${size}`);
+    const response = await adminClient.get(`/api/admin/users?page=${page}&size=${size}`);
     return response.data;
   },
 
   getById: async (id: number) => {
-    const response = await adminClient.get(`/admin/users/${id}`);
+    const response = await adminClient.get(`/api/admin/users/${id}`);
     return response.data;
   },
 
   update: async (id: number, request: any) => {
-    const response = await adminClient.put(`/admin/users/${id}`, request);
+    const response = await adminClient.put(`/api/admin/users/${id}`, request);
     return response.data;
   },
 
   delete: async (id: number) => {
-    const response = await adminClient.delete(`/admin/users/${id}`);
+    const response = await adminClient.delete(`/api/admin/users/${id}`);
     return response.data;
   },
 };
@@ -615,32 +615,32 @@ export const adminUsers = {
 // User Approval API (Admin only)
 export const userApproval = {
   getPendingUsers: async (): Promise<PendingUser[]> => {
-    const response = await adminClient.get('/admin/users/pending');
+    const response = await adminClient.get('/api/admin/users/pending');
     return response.data;
   },
 
   getPendingCount: async (): Promise<{ count: number }> => {
-    const response = await adminClient.get('/admin/users/pending/count');
+    const response = await adminClient.get('/api/admin/users/pending/count');
     return response.data;
   },
 
   approveUser: async (userId: number, request: UserApprovalRequest): Promise<UserApprovalResponse> => {
-    const response = await adminClient.post(`/admin/users/${userId}/approve`, request);
+    const response = await adminClient.post(`/api/admin/users/${userId}/approve`, request);
     return response.data;
   },
 
   rejectUser: async (userId: number, request: UserRejectionRequest): Promise<UserApprovalResponse> => {
-    const response = await adminClient.post(`/admin/users/${userId}/reject`, request);
+    const response = await adminClient.post(`/api/admin/users/${userId}/reject`, request);
     return response.data;
   },
 
   getApprovalHistory: async (): Promise<ApprovalHistoryResponse[]> => {
-    const response = await adminClient.get('/admin/users/approval-history');
+    const response = await adminClient.get('/api/admin/users/approval-history');
     return response.data;
   },
 
   getUserStatus: async (userId: number): Promise<UserApprovalResponse> => {
-    const response = await adminClient.get(`/admin/users/${userId}/status`);
+    const response = await adminClient.get(`/api/admin/users/${userId}/status`);
     return response.data;
   },
 };
@@ -808,37 +808,37 @@ adminClient.interceptors.response.use(
 // Payment Types API
 export const paymentTypes = {
   getAll: async (): Promise<PaymentType[]> => {
-    const response = await adminClient.get('/admin/payment-types');
+    const response = await adminClient.get('/api/admin/payment-types');
     return response.data;
   },
 
   getActive: async (): Promise<PaymentType[]> => {
-    const response = await adminClient.get('/admin/payment-types/active');
+    const response = await adminClient.get('/api/admin/payment-types/active');
     return response.data;
   },
 
   getById: async (id: number): Promise<PaymentType> => {
-    const response = await adminClient.get(`/admin/payment-types/${id}`);
+    const response = await adminClient.get(`/api/admin/payment-types/${id}`);
     return response.data;
   },
 
   create: async (paymentTypeData: { name: string }): Promise<PaymentType> => {
-    const response = await adminClient.post('/admin/payment-types', paymentTypeData);
+    const response = await adminClient.post('/api/admin/payment-types', paymentTypeData);
     return response.data;
   },
 
   update: async (id: number, paymentTypeData: { name?: string; isActive?: boolean }): Promise<PaymentType> => {
-    const response = await adminClient.put(`/admin/payment-types/${id}`, paymentTypeData);
+    const response = await adminClient.put(`/api/admin/payment-types/${id}`, paymentTypeData);
     return response.data;
   },
 
   delete: async (id: number): Promise<MessageResponse> => {
-    const response = await adminClient.delete(`/admin/payment-types/${id}`);
+    const response = await adminClient.delete(`/api/admin/payment-types/${id}`);
     return response.data;
   },
 
   toggleActive: async (id: number): Promise<PaymentType> => {
-    const response = await adminClient.patch(`/admin/payment-types/${id}/toggle`);
+    const response = await adminClient.patch(`/api/admin/payment-types/${id}/toggle`);
     return response.data;
   },
 };

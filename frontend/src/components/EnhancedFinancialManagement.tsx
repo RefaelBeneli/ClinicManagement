@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminSearch, { SearchFilter, FilterPreset } from './AdminSearch';
 import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
@@ -104,6 +104,9 @@ const EnhancedFinancialManagement: React.FC<EnhancedFinancialManagementProps> = 
   const [editingPaymentTypeId, setEditingPaymentTypeId] = useState<number | null>(null);
   const [showFinancialReport, setShowFinancialReport] = useState(false);
   const [selectedReportPeriod, setSelectedReportPeriod] = useState<'month' | 'quarter' | 'year'>('month');
+
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
 
   // API URL configuration
   const apiUrl = useMemo(() => {
@@ -266,7 +269,7 @@ const EnhancedFinancialManagement: React.FC<EnhancedFinancialManagementProps> = 
     } finally {
       setLoading(false);
     }
-  }, [apiUrl, token]);
+  }, [apiUrl, rootUrl, token]);
 
   // Calculate financial statistics
   const calculateFinancialStats = useCallback((
@@ -391,7 +394,10 @@ const EnhancedFinancialManagement: React.FC<EnhancedFinancialManagementProps> = 
 
   // Initialize on mount
   useEffect(() => {
-    fetchFinancialData();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchFinancialData();
+    }
   }, [fetchFinancialData]);
 
   // Initialize filters when data is loaded

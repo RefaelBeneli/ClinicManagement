@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { clients, meetings, personalMeetings, expenses } from '../services/api';
 import { Client, Meeting, PersonalMeeting, Expense } from '../types';
@@ -77,6 +77,9 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
     personalMeetings: [],
     expenses: []
   });
+
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
 
   // Get date range based on period
   const getDateRange = useCallback((period: TimePeriod) => {
@@ -353,7 +356,10 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchData();
+    }
   }, [fetchData]);
 
   const formatCurrency = (amount: number) => {

@@ -62,6 +62,23 @@
   border-color: #667eea;
 }
 
+.form-group input:invalid {
+  border-color: #dc3545;
+}
+
+.form-group input:invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.field-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+}
+
 .register-button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -92,6 +109,12 @@
   border-radius: 5px;
   margin-bottom: 1rem;
   border: 1px solid #fcc;
+  white-space: pre-line;
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.1);
 }
 
 .success-message {

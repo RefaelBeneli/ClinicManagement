@@ -365,7 +365,7 @@ const AdminPanel: React.FC = () => {
                         {user.approvalStatus === 'PENDING' && (
                           <button 
                             className="btn-small btn-approve"
-                            onClick={() => userApproval.approveUser(user.id, { userId: user.id }).then(fetchUsers)}
+                            onClick={() => userApproval.approveUser(user.id, { approvalStatus: 'APPROVED' }).then(fetchUsers)}
                           >
                             Approve
                           </button>

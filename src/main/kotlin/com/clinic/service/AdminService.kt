@@ -5,9 +5,11 @@ import com.clinic.entity.*
 import com.clinic.repository.*
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 @Transactional
@@ -34,6 +36,10 @@ class AdminService(
                 fullName = user.fullName,
                 role = user.role.name,
                 enabled = user.isEnabled,
+                approvalStatus = user.approvalStatus.name,
+                approvedBy = user.approvedBy?.fullName,
+                approvedDate = user.approvedDate,
+                rejectionReason = user.rejectionReason,
                 createdAt = user.createdAt
             )
         }
@@ -50,6 +56,10 @@ class AdminService(
             fullName = user.fullName,
             role = user.role.name,
             enabled = user.isEnabled,
+            approvalStatus = user.approvalStatus.name,
+            approvedBy = user.approvedBy?.fullName,
+            approvedDate = user.approvedDate,
+            rejectionReason = user.rejectionReason,
             createdAt = user.createdAt
         )
     }
@@ -69,11 +79,55 @@ class AdminService(
         return getUserById(saved.id)
     }
 
+    private fun getCurrentUser(): User {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val username = authentication.name
+        return userRepository.findByUsername(username)
+            .orElseThrow { RuntimeException("Current user not found") }
+    }
+
+    fun getPendingUsers(pageable: Pageable): Page<AdminUserResponse> {
+        return userRepository.findByApprovalStatus(UserApprovalStatus.PENDING, pageable).map { user ->
+            AdminUserResponse(
+                id = user.id,
+                username = user.username,
+                email = user.email,
+                fullName = user.fullName,
+                role = user.role.name,
+                enabled = user.isEnabled,
+                approvalStatus = user.approvalStatus.name,
+                approvedBy = user.approvedBy?.fullName,
+                approvedDate = user.approvedDate,
+                rejectionReason = user.rejectionReason,
+                createdAt = user.createdAt
+            )
+        }
+    }
+
     fun deleteUser(id: Long) {
         if (!userRepository.existsById(id)) {
             throw RuntimeException("User not found with id: $id")
         }
         userRepository.deleteById(id)
+    }
+
+    fun approveUser(id: Long, request: ApproveUserRequest): AdminUserResponse {
+        val user = userRepository.findById(id)
+            .orElseThrow { RuntimeException("User not found with id: $id") }
+        
+        val approvalStatus = UserApprovalStatus.valueOf(request.approvalStatus)
+        val currentUser = getCurrentUser()
+        
+        val updatedUser = user.copy(
+            approvalStatus = approvalStatus,
+            approvedBy = if (approvalStatus == UserApprovalStatus.APPROVED) currentUser else null,
+            approvedDate = if (approvalStatus == UserApprovalStatus.APPROVED) LocalDateTime.now() else null,
+            rejectionReason = if (approvalStatus == UserApprovalStatus.REJECTED) request.rejectionReason else null,
+            enabled = if (approvalStatus == UserApprovalStatus.APPROVED) true else user.isEnabled
+        )
+        
+        val saved = userRepository.save(updatedUser)
+        return getUserById(saved.id)
     }
 
     // Client Management

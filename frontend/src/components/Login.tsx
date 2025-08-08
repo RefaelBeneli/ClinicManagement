@@ -41,8 +41,17 @@ const Login: React.FC = () => {
     try {
       await login(formData);
       navigate('/dashboard');
-    } catch (error) {
-      setError('Invalid username or password');
+    } catch (error: any) {
+      // Handle specific error messages from backend
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error.response?.data?.error) {
+        setError(error.response.data.error);
+      } else if (error.message) {
+        setError(error.message);
+      } else {
+        setError('Invalid username or password');
+      }
     } finally {
       setLoading(false);
     }
@@ -105,6 +114,12 @@ const Login: React.FC = () => {
           <button onClick={handleRegisterClick} className="register-button">
             Register
           </button>
+        </div>
+        
+        <div className="approval-info">
+          <p className="approval-note">
+            <strong>Note:</strong> New accounts require admin approval before login access.
+          </p>
         </div>
 
         <div className="cors-test-section">

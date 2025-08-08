@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminSearch, { SearchFilter, FilterPreset } from './AdminSearch';
 import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
@@ -108,6 +108,9 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
   const [showSystemRestore, setShowSystemRestore] = useState(false);
   const [showSystemLogs, setShowSystemLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<'sources' | 'meeting-types' | 'integrations' | 'settings' | 'maintenance'>('sources');
+
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
 
   // API URL configuration
   const apiUrl = useMemo(() => {
@@ -386,7 +389,10 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
 
   // Initialize on mount
   useEffect(() => {
-    fetchSystemData();
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchSystemData();
+    }
   }, [fetchSystemData]);
 
   // Initialize filters when data is loaded

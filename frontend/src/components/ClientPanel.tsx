@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Client, ClientRequest, ClientSourceResponse } from '../types';
 import { clients as clientsApi, clientSources } from '../services/api';
 import './ClientPanel.css';
@@ -41,6 +41,9 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
 
   // Stats state
   const [stats, setStats] = useState<ClientStats | null>(null);
+
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
 
   const fetchClients = useCallback(async () => {
     try {
@@ -96,8 +99,11 @@ const ClientPanel: React.FC<ClientPanelProps> = ({ onClose, onRefresh }) => {
   }, []);
 
   useEffect(() => {
-    fetchClients();
-    fetchSources(); // NEW: Load client sources
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchClients();
+      fetchSources(); // NEW: Load client sources
+    }
   }, [fetchClients, fetchSources]);
 
   // Handle ESC key

@@ -45,6 +45,23 @@ class AdminController(
         return ResponseEntity.ok(MessageResponse("User deleted successfully"))
     }
 
+    @PostMapping("/users/{id}/approve")
+    fun approveUser(
+        @PathVariable id: Long,
+        @RequestBody request: ApproveUserRequest
+    ): ResponseEntity<AdminUserResponse> {
+        return ResponseEntity.ok(adminService.approveUser(id, request))
+    }
+
+    @GetMapping("/users/pending")
+    fun getPendingUsers(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int
+    ): ResponseEntity<Page<AdminUserResponse>> {
+        val pageable: Pageable = PageRequest.of(page, size)
+        return ResponseEntity.ok(adminService.getPendingUsers(pageable))
+    }
+
     // Client Management Endpoints
     @GetMapping("/clients")
     fun getAllClients(

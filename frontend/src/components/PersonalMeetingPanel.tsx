@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingTypeEntity, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
 import { personalMeetings as personalMeetingsApi } from '../services/api';
 import './PersonalMeetingPanel.css';
@@ -61,6 +61,9 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   // Stats state
   const [stats, setStats] = useState<PersonalMeetingStats | null>(null);
 
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
+
   const fetchPersonalMeetings = useCallback(async () => {
     try {
       setLoading(true);
@@ -107,8 +110,11 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   }, []);
 
   useEffect(() => {
-    fetchPersonalMeetings();
-    // fetchStats(); // This will be called after meetings are loaded
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchPersonalMeetings();
+      // fetchStats(); // This will be called after meetings are loaded
+    }
   }, [fetchPersonalMeetings]);
 
   // Handle ESC key

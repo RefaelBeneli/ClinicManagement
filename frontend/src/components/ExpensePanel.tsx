@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Expense, ExpenseRequest } from '../types';
 import { expenses as expensesApi } from '../services/api';
 import './ExpensePanel.css';
@@ -50,6 +50,9 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   // Stats state
   const [stats, setStats] = useState<ExpenseStats | null>(null);
 
+  // Ref to prevent double fetching
+  const hasInitialized = useRef(false);
+
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
@@ -90,8 +93,11 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   }, [expenses]);
 
   useEffect(() => {
-    fetchExpenses();
-    // fetchStats(); // This will be called after expenses are loaded
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      fetchExpenses();
+      // fetchStats(); // This will be called after expenses are loaded
+    }
   }, [fetchExpenses]);
 
   // Handle ESC key
