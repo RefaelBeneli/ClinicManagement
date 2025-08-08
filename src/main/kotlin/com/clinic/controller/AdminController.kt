@@ -147,6 +147,40 @@ class AdminController(
         return ResponseEntity.ok(MessageResponse("Personal meeting deleted successfully"))
     }
 
+    // Expense Management Endpoints
+    @GetMapping("/expenses")
+    fun getAllExpenses(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int
+    ): ResponseEntity<Page<AdminExpenseResponse>> {
+        val pageable: Pageable = PageRequest.of(page, size)
+        return ResponseEntity.ok(adminService.getAllExpenses(pageable))
+    }
+
+    @GetMapping("/expenses/{id}")
+    fun getExpenseById(@PathVariable id: Long): ResponseEntity<AdminExpenseResponse> {
+        return ResponseEntity.ok(adminService.getExpenseById(id))
+    }
+
+    @PostMapping("/expenses")
+    fun createExpense(@RequestBody request: AdminExpenseRequest): ResponseEntity<AdminExpenseResponse> {
+        return ResponseEntity.ok(adminService.createExpense(request))
+    }
+
+    @PutMapping("/expenses/{id}")
+    fun updateExpense(
+        @PathVariable id: Long,
+        @RequestBody request: AdminExpenseRequest
+    ): ResponseEntity<AdminExpenseResponse> {
+        return ResponseEntity.ok(adminService.updateExpense(id, request))
+    }
+
+    @DeleteMapping("/expenses/{id}")
+    fun deleteExpense(@PathVariable id: Long): ResponseEntity<MessageResponse> {
+        adminService.deleteExpense(id)
+        return ResponseEntity.ok(MessageResponse("Expense deleted successfully"))
+    }
+
     // Dashboard Statistics
     @GetMapping("/dashboard/stats")
     fun getDashboardStats(): ResponseEntity<Map<String, Any>> {
@@ -154,7 +188,8 @@ class AdminController(
             "totalUsers" to adminService.getAllUsers(PageRequest.of(0, 1)).totalElements,
             "totalClients" to adminService.getAllClients(PageRequest.of(0, 1)).totalElements,
             "totalMeetings" to adminService.getAllMeetings(PageRequest.of(0, 1)).totalElements,
-            "totalPersonalMeetings" to adminService.getAllPersonalMeetings(PageRequest.of(0, 1)).totalElements
+            "totalPersonalMeetings" to adminService.getAllPersonalMeetings(PageRequest.of(0, 1)).totalElements,
+            "totalExpenses" to adminService.getAllExpenses(PageRequest.of(0, 1)).totalElements
         )
         return ResponseEntity.ok(stats)
     }

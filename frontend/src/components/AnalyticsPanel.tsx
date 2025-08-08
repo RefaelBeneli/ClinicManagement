@@ -224,7 +224,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
 
   // Check if there's any data to display
   const hasData = useMemo(() => {
-    return rawData.meetings.length > 0 || rawData.clients.length > 0 || rawData.expenses.length > 0;
+    return rawData.meetings.length > 0 || rawData.personalMeetings.length > 0 || rawData.clients.length > 0 || rawData.expenses.length > 0;
   }, [rawData]);
 
   // Calculate analytics metrics
@@ -323,12 +323,21 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('📊 Analytics: Starting data fetch...');
+      
       const [clientsData, meetingsData, personalMeetingsData, expensesData] = await Promise.all([
         clients.getAll(),
         meetings.getAll(),
         personalMeetings.getAll(),
         expenses.getAll()
       ]);
+
+      console.log('📊 Analytics: Data fetched successfully:', {
+        clients: clientsData.length,
+        meetings: meetingsData.length,
+        personalMeetings: personalMeetingsData.length,
+        expenses: expensesData.length
+      });
 
       setRawData({
         clients: clientsData,
@@ -337,7 +346,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
         expenses: expensesData
       });
     } catch (error) {
-      console.error('Failed to fetch analytics data:', error);
+      console.error('📊 Analytics: Failed to fetch analytics data:', error);
     } finally {
       setLoading(false);
     }

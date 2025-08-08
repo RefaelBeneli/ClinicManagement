@@ -108,4 +108,46 @@ data class AdminPersonalMeetingRequest(
     val paymentDate: LocalDateTime? = null,
     val status: String = "SCHEDULED",
     val notes: String? = null
+)
+
+// Expense Management DTOs
+data class AdminExpenseResponse(
+    val id: Long,
+    val userId: Long,
+    val userFullName: String,
+    val name: String,
+    val description: String?,
+    val amount: BigDecimal,
+    val currency: String,
+    val categoryId: Long,
+    val categoryName: String,
+    val notes: String?,
+    val expenseDate: LocalDateTime,
+    val isRecurring: Boolean,
+    val recurrenceFrequency: String?,
+    val recurrenceCount: Int?,
+    val nextDueDate: LocalDateTime?,
+    val isPaid: Boolean,
+    val paymentTypeId: Long?,
+    val paymentTypeName: String?,
+    val receiptUrl: String?,
+    val createdAt: LocalDateTime
+)
+
+data class AdminExpenseRequest(
+    val userId: Long,
+    val name: String,
+    val description: String? = null,
+    val amount: BigDecimal,
+    val currency: String = "ILS",
+    val categoryId: Long,
+    val notes: String? = null,
+    val expenseDate: LocalDateTime,
+    val isRecurring: Boolean = false,
+    val recurrenceFrequency: String? = null,
+    val recurrenceCount: Int? = null,
+    val nextDueDate: LocalDateTime? = null,
+    val isPaid: Boolean = false,
+    val paymentTypeId: Long? = null,
+    val receiptUrl: String? = null
 ) 

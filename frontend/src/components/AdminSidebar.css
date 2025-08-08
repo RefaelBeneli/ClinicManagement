@@ -1,3 +1,23 @@
+/* Mobile Overlay */
+.mobile-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 280px;
+  width: calc(100vw - 280px);
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-overlay {
+    left: 0;
+    width: 100vw;
+  }
+}
+
 /* AdminSidebar Styles */
 .admin-sidebar {
   position: fixed;
@@ -229,18 +249,18 @@
 .item-label {
   flex: 1;
   white-space: nowrap;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .collapsed .item-label {
   opacity: 0;
   width: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 
 /* Badges */
-.item-badge,
-.item-badge-collapsed {
+.item-badge {
   background: #ff4757;
   color: white;
   border-radius: 10px;
@@ -250,9 +270,10 @@
   min-width: 18px;
   text-align: center;
   line-height: 1.2;
+  transition: all 0.3s ease;
 }
 
-.item-badge-collapsed {
+.collapsed .item-badge {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -291,17 +312,20 @@
 
 @media (max-width: 768px) {
   .admin-sidebar {
-    width: 100%;
+    width: 280px;
     transform: translateX(-100%);
     transition: transform 0.3s ease, width 0.3s ease;
   }
   
-  .admin-sidebar:not(.collapsed) {
+  .admin-sidebar.mobile-open {
     transform: translateX(0);
   }
   
   .admin-sidebar.collapsed {
     width: 60px;
+  }
+  
+  .admin-sidebar.collapsed.mobile-open {
     transform: translateX(0);
   }
 }

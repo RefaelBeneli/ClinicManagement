@@ -133,8 +133,8 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(meeting =>
-        meeting.therapistName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        meeting.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+        (meeting.therapistName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (meeting.notes || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 

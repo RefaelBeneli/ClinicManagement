@@ -16,6 +16,8 @@ class AdminService(
     private val clientRepository: ClientRepository,
     private val meetingRepository: MeetingRepository,
     private val personalMeetingRepository: PersonalMeetingRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val expenseCategoryRepository: ExpenseCategoryRepository,
     private val clientSourceRepository: ClientSourceRepository,
     private val paymentTypeRepository: PaymentTypeRepository,
     private val personalMeetingTypeRepository: PersonalMeetingTypeRepository,
@@ -374,5 +376,139 @@ class AdminService(
             throw RuntimeException("Personal meeting not found with id: $id")
         }
         personalMeetingRepository.deleteById(id)
+    }
+
+    // Expense Management
+    fun getAllExpenses(pageable: Pageable): Page<AdminExpenseResponse> {
+        return expenseRepository.findAll(pageable).map { expense ->
+            AdminExpenseResponse(
+                id = expense.id,
+                userId = expense.user.id,
+                userFullName = expense.user.fullName,
+                name = expense.name,
+                description = expense.description,
+                amount = expense.amount,
+                currency = expense.currency,
+                categoryId = expense.category.id,
+                categoryName = expense.category.name,
+                notes = expense.notes,
+                expenseDate = expense.expenseDate.atStartOfDay(),
+                isRecurring = expense.isRecurring,
+                recurrenceFrequency = expense.recurrenceFrequency,
+                recurrenceCount = expense.recurrenceCount,
+                nextDueDate = expense.nextDueDate?.atStartOfDay(),
+                isPaid = expense.isPaid,
+                paymentTypeId = expense.paymentType?.id,
+                paymentTypeName = expense.paymentType?.name,
+                receiptUrl = expense.receiptUrl,
+                createdAt = expense.createdAt
+            )
+        }
+    }
+
+    fun getExpenseById(id: Long): AdminExpenseResponse {
+        val expense = expenseRepository.findById(id)
+            .orElseThrow { RuntimeException("Expense not found with id: $id") }
+        
+        return AdminExpenseResponse(
+            id = expense.id,
+            userId = expense.user.id,
+            userFullName = expense.user.fullName,
+            name = expense.name,
+            description = expense.description,
+            amount = expense.amount,
+            currency = expense.currency,
+            categoryId = expense.category.id,
+            categoryName = expense.category.name,
+            notes = expense.notes,
+            expenseDate = expense.expenseDate.atStartOfDay(),
+            isRecurring = expense.isRecurring,
+            recurrenceFrequency = expense.recurrenceFrequency,
+            recurrenceCount = expense.recurrenceCount,
+            nextDueDate = expense.nextDueDate?.atStartOfDay(),
+            isPaid = expense.isPaid,
+            paymentTypeId = expense.paymentType?.id,
+            paymentTypeName = expense.paymentType?.name,
+            receiptUrl = expense.receiptUrl,
+            createdAt = expense.createdAt
+        )
+    }
+
+    fun createExpense(request: AdminExpenseRequest): AdminExpenseResponse {
+        val user = userRepository.findById(request.userId)
+            .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
+
+        val category = expenseCategoryRepository.findById(request.categoryId)
+            .orElseThrow { RuntimeException("Expense category not found with id: ${request.categoryId}") }
+
+        val paymentType = request.paymentTypeId?.let { paymentTypeId ->
+            paymentTypeRepository.findById(paymentTypeId)
+                .orElseThrow { RuntimeException("Payment type not found with id: $paymentTypeId") }
+        }
+
+        val expense = Expense(
+            user = user,
+            name = request.name,
+            description = request.description,
+            amount = request.amount,
+            currency = request.currency,
+            category = category,
+            notes = request.notes,
+            expenseDate = request.expenseDate.toLocalDate(),
+            isRecurring = request.isRecurring,
+            recurrenceFrequency = request.recurrenceFrequency,
+            recurrenceCount = request.recurrenceCount,
+            nextDueDate = request.nextDueDate?.toLocalDate(),
+            isPaid = request.isPaid,
+            paymentType = paymentType,
+            receiptUrl = request.receiptUrl
+        )
+
+        val saved = expenseRepository.save(expense)
+        return getExpenseById(saved.id)
+    }
+
+    fun updateExpense(id: Long, request: AdminExpenseRequest): AdminExpenseResponse {
+        val expense = expenseRepository.findById(id)
+            .orElseThrow { RuntimeException("Expense not found with id: $id") }
+        
+        val user = userRepository.findById(request.userId)
+            .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
+
+        val category = expenseCategoryRepository.findById(request.categoryId)
+            .orElseThrow { RuntimeException("Expense category not found with id: ${request.categoryId}") }
+
+        val paymentType = request.paymentTypeId?.let { paymentTypeId ->
+            paymentTypeRepository.findById(paymentTypeId)
+                .orElseThrow { RuntimeException("Payment type not found with id: $paymentTypeId") }
+        }
+
+        val updatedExpense = expense.copy(
+            user = user,
+            name = request.name,
+            description = request.description,
+            amount = request.amount,
+            currency = request.currency,
+            category = category,
+            notes = request.notes,
+            expenseDate = request.expenseDate.toLocalDate(),
+            isRecurring = request.isRecurring,
+            recurrenceFrequency = request.recurrenceFrequency,
+            recurrenceCount = request.recurrenceCount,
+            nextDueDate = request.nextDueDate?.toLocalDate(),
+            isPaid = request.isPaid,
+            paymentType = paymentType,
+            receiptUrl = request.receiptUrl
+        )
+
+        val saved = expenseRepository.save(updatedExpense)
+        return getExpenseById(saved.id)
+    }
+
+    fun deleteExpense(id: Long) {
+        if (!expenseRepository.existsById(id)) {
+            throw RuntimeException("Expense not found with id: $id")
+        }
+        expenseRepository.deleteById(id)
     }
 } 

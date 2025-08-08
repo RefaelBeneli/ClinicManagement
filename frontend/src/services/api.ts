@@ -155,6 +155,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ||
     ? 'https://web-production-9aa8.up.railway.app/api'
     : 'http://localhost:8085/api');
 
+const ROOT_BASE_URL = API_BASE_URL.endsWith('/api') ? API_BASE_URL.slice(0, -4) : API_BASE_URL;
+
 console.log('🌐 API Base URL:', API_BASE_URL);
 console.log('🌍 Current hostname:', window.location.hostname);
 
@@ -381,11 +383,46 @@ export const meetings = {
 // Personal Meeting API
 export const personalMeetings = {
   getAll: async (): Promise<PersonalMeeting[]> => {
+    // Check if user is admin and use admin endpoint if so
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // Try to get current user to check role
+        const userResponse = await apiClient.get('/auth/me');
+        const user = userResponse.data;
+        
+        if (user.role === 'ADMIN') {
+          // Use admin endpoint for admin users
+          const response = await adminClient.get('/api/admin/personal-meetings?size=1000');
+          return transformPersonalMeetingResponse(response.data.content || response.data);
+        }
+      } catch (error) {
+        console.warn('Could not determine user role, using regular endpoint:', error);
+      }
+    }
+    
+    // Fallback to regular endpoint
     const response = await apiClient.get('/personal-meetings');
     return transformPersonalMeetingResponse(response.data);
   },
 
   getById: async (id: number): Promise<PersonalMeeting> => {
+    // Check if user is admin and use admin endpoint if so
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const userResponse = await apiClient.get('/auth/me');
+        const user = userResponse.data;
+        
+        if (user.role === 'ADMIN') {
+          const response = await adminClient.get(`/api/admin/personal-meetings/${id}`);
+          return transformPersonalMeetingResponse(response.data);
+        }
+      } catch (error) {
+        console.warn('Could not determine user role, using regular endpoint:', error);
+      }
+    }
+    
     const response = await apiClient.get(`/personal-meetings/${id}`);
     return transformPersonalMeetingResponse(response.data);
   },
@@ -440,6 +477,23 @@ export const personalMeetings = {
   },
 
   getStats: async (): Promise<any> => {
+    // Check if user is admin and use admin endpoint if so
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const userResponse = await apiClient.get('/auth/me');
+        const user = userResponse.data;
+        
+        if (user.role === 'ADMIN') {
+          // For admin, get stats from dashboard endpoint
+          const response = await adminClient.get('/api/admin/dashboard/stats');
+          return response.data;
+        }
+      } catch (error) {
+        console.warn('Could not determine user role, using regular endpoint:', error);
+      }
+    }
+    
     const response = await apiClient.get('/personal-meetings/stats');
     return response.data;
   },
@@ -450,7 +504,7 @@ export const personalMeetings = {
   },
 
   getActiveMeetingTypes: async (): Promise<PersonalMeetingTypeEntity[]> => {
-    const response = await apiClient.get('/personal-meetings/types/active');
+    const response = await adminClient.get('/admin/personal-meeting-types/active');
     return response.data;
   },
 
@@ -538,22 +592,22 @@ export const calendarIntegration = {
 // Admin – User management (CRUD)
 export const adminUsers = {
   getAll: async (page = 0, size = 20) => {
-    const response = await apiClient.get(`/admin/users?page=${page}&size=${size}`);
+    const response = await adminClient.get(`/admin/users?page=${page}&size=${size}`);
     return response.data;
   },
 
   getById: async (id: number) => {
-    const response = await apiClient.get(`/admin/users/${id}`);
+    const response = await adminClient.get(`/admin/users/${id}`);
     return response.data;
   },
 
   update: async (id: number, request: any) => {
-    const response = await apiClient.put(`/admin/users/${id}`, request);
+    const response = await adminClient.put(`/admin/users/${id}`, request);
     return response.data;
   },
 
   delete: async (id: number) => {
-    const response = await apiClient.delete(`/admin/users/${id}`);
+    const response = await adminClient.delete(`/admin/users/${id}`);
     return response.data;
   },
 };
@@ -561,32 +615,32 @@ export const adminUsers = {
 // User Approval API (Admin only)
 export const userApproval = {
   getPendingUsers: async (): Promise<PendingUser[]> => {
-    const response = await apiClient.get('/admin/users/pending');
+    const response = await adminClient.get('/admin/users/pending');
     return response.data;
   },
 
   getPendingCount: async (): Promise<{ count: number }> => {
-    const response = await apiClient.get('/admin/users/pending/count');
+    const response = await adminClient.get('/admin/users/pending/count');
     return response.data;
   },
 
   approveUser: async (userId: number, request: UserApprovalRequest): Promise<UserApprovalResponse> => {
-    const response = await apiClient.post(`/admin/users/${userId}/approve`, request);
+    const response = await adminClient.post(`/admin/users/${userId}/approve`, request);
     return response.data;
   },
 
   rejectUser: async (userId: number, request: UserRejectionRequest): Promise<UserApprovalResponse> => {
-    const response = await apiClient.post(`/admin/users/${userId}/reject`, request);
+    const response = await adminClient.post(`/admin/users/${userId}/reject`, request);
     return response.data;
   },
 
   getApprovalHistory: async (): Promise<ApprovalHistoryResponse[]> => {
-    const response = await apiClient.get('/admin/users/approval-history');
+    const response = await adminClient.get('/admin/users/approval-history');
     return response.data;
   },
 
   getUserStatus: async (userId: number): Promise<UserApprovalResponse> => {
-    const response = await apiClient.get(`/admin/users/${userId}/status`);
+    const response = await adminClient.get(`/admin/users/${userId}/status`);
     return response.data;
   },
 };
@@ -594,11 +648,54 @@ export const userApproval = {
 // Expenses API
 export const expenses = {
   getAll: async () => {
+    // Check if user is admin and use admin endpoint if so
+    const token = localStorage.getItem('token');
+    console.log('🔍 Expenses API - Token exists:', !!token);
+    
+    if (token) {
+      try {
+        // Try to get current user to check role
+        const userResponse = await apiClient.get('/auth/me');
+        const user = userResponse.data;
+        console.log('🔍 Expenses API - User role:', user.role);
+        
+        if (user.role === 'ADMIN') {
+          console.log('🔍 Expenses API - Using ADMIN endpoint');
+          // Use admin endpoint for admin users
+          const response = await adminClient.get('/api/admin/expenses?size=1000');
+          console.log('🔍 Expenses API - Admin response data:', response.data);
+          return transformExpenseResponse(response.data.content || response.data);
+        } else {
+          console.log('🔍 Expenses API - Using regular endpoint for non-admin user');
+        }
+      } catch (error) {
+        console.warn('Could not determine user role, using regular endpoint:', error);
+      }
+    }
+    
+    console.log('🔍 Expenses API - Using regular endpoint');
     const response = await apiClient.get('/expenses');
+    console.log('🔍 Expenses API - Regular response data:', response.data);
     return transformExpenseResponse(response.data);
   },
 
   getById: async (id: number) => {
+    // Check if user is admin and use admin endpoint if so
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const userResponse = await apiClient.get('/auth/me');
+        const user = userResponse.data;
+        
+        if (user.role === 'ADMIN') {
+          const response = await adminClient.get(`/api/admin/expenses/${id}`);
+          return transformExpenseResponse(response.data);
+        }
+      } catch (error) {
+        console.warn('Could not determine user role, using regular endpoint:', error);
+      }
+    }
+    
     const response = await apiClient.get(`/expenses/${id}`);
     return transformExpenseResponse(response.data);
   },
@@ -669,40 +766,79 @@ export const expenses = {
   },
 };
 
+// Create a separate axios instance for admin endpoints (without /api)
+const adminClient = axios.create({
+  baseURL: ROOT_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  withCredentials: true,
+  timeout: 30000,
+});
+
+// Add interceptors to admin client
+adminClient.interceptors.request.use(
+  (config) => {
+    console.log('📤 Admin API Request:', config.method?.toUpperCase(), config.url);
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+adminClient.interceptors.response.use(
+  (response) => {
+    console.log('📥 Admin API Response:', response.config.method?.toUpperCase(), response.config.url, '✅', response.status);
+    return response;
+  },
+  (error) => {
+    console.error('📥 Admin API Error:', error.config?.method?.toUpperCase(), error.config?.url);
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Payment Types API
 export const paymentTypes = {
   getAll: async (): Promise<PaymentType[]> => {
-    const response = await apiClient.get('/admin/payment-types');
+    const response = await adminClient.get('/admin/payment-types');
     return response.data;
   },
 
   getActive: async (): Promise<PaymentType[]> => {
-    const response = await apiClient.get('/admin/payment-types/active');
+    const response = await adminClient.get('/admin/payment-types/active');
     return response.data;
   },
 
   getById: async (id: number): Promise<PaymentType> => {
-    const response = await apiClient.get(`/admin/payment-types/${id}`);
+    const response = await adminClient.get(`/admin/payment-types/${id}`);
     return response.data;
   },
 
   create: async (paymentTypeData: { name: string }): Promise<PaymentType> => {
-    const response = await apiClient.post('/admin/payment-types', paymentTypeData);
+    const response = await adminClient.post('/admin/payment-types', paymentTypeData);
     return response.data;
   },
 
   update: async (id: number, paymentTypeData: { name?: string; isActive?: boolean }): Promise<PaymentType> => {
-    const response = await apiClient.put(`/admin/payment-types/${id}`, paymentTypeData);
+    const response = await adminClient.put(`/admin/payment-types/${id}`, paymentTypeData);
     return response.data;
   },
 
   delete: async (id: number): Promise<MessageResponse> => {
-    const response = await apiClient.delete(`/admin/payment-types/${id}`);
+    const response = await adminClient.delete(`/admin/payment-types/${id}`);
     return response.data;
   },
 
   toggleActive: async (id: number): Promise<PaymentType> => {
-    const response = await apiClient.patch(`/admin/payment-types/${id}/toggle`);
+    const response = await adminClient.patch(`/admin/payment-types/${id}/toggle`);
     return response.data;
   },
 };

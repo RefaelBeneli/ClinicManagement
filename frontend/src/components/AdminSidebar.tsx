@@ -22,6 +22,8 @@ interface AdminSidebarProps {
   pendingUsersCount: number;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  mobileOpen?: boolean;
+  onMobileToggle?: () => void;
 }
 
 interface NavigationItem {
@@ -43,6 +45,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   pendingUsersCount,
   isCollapsed,
   onToggleCollapse,
+  mobileOpen = false,
+  onMobileToggle,
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(['overview', 'user-management', 'client-management', 'session-management', 'financial-management', 'system-configuration'])
@@ -161,6 +165,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   ];
 
   const toggleCategory = (categoryLabel: string) => {
+    console.log('Category toggle clicked:', categoryLabel);
     const categoryKey = categoryLabel.toLowerCase().replace(/\s+/g, '-');
     const newExpanded = new Set(expandedCategories);
     if (newExpanded.has(categoryKey)) {
@@ -172,26 +177,44 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   };
 
   const handleItemClick = (section: AdminSection) => {
+    console.log('Sidebar item clicked:', section);
+    console.log('Current activeSection:', activeSection);
     onSectionChange(section);
+    
+    // Close mobile sidebar when item is clicked
+    if (mobileOpen && onMobileToggle) {
+      onMobileToggle();
+    }
   };
 
   return (
-    <div className={`admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      {/* Sidebar Header */}
-      <div className="sidebar-header">
-        <div className="sidebar-brand">
-          <span className="brand-icon">🛡️</span>
-          {!isCollapsed && <span className="brand-text">Admin Panel</span>}
+    <>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div 
+          className="mobile-sidebar-overlay"
+          onClick={onMobileToggle}
+          aria-label="Close sidebar"
+          style={{ pointerEvents: 'auto' }}
+        />
+      )}
+      
+      <div className={`admin-sidebar ${isCollapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
+        {/* Sidebar Header */}
+        <div className="sidebar-header">
+          <div className="sidebar-brand">
+            <span className="brand-icon">🛡️</span>
+            {!isCollapsed && <span className="brand-text">Admin Panel</span>}
+          </div>
+          <button 
+            className="collapse-toggle"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? '→' : '←'}
+          </button>
         </div>
-        <button 
-          className="collapse-toggle"
-          onClick={onToggleCollapse}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? '→' : '←'}
-        </button>
-      </div>
 
       {/* Navigation */}
       <nav className="sidebar-nav" role="navigation" aria-label="Admin navigation">
@@ -230,18 +253,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     aria-current={activeSection === item.id ? 'page' : undefined}
                   >
                     <span className="item-icon" aria-hidden="true">{item.icon}</span>
-                    {!isCollapsed && (
-                      <>
-                        <span className="item-label">{item.label}</span>
-                        {item.badge && item.badge > 0 && (
-                          <span className="item-badge" aria-label={`${item.badge} pending`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </>
-                    )}
-                    {isCollapsed && item.badge && item.badge > 0 && (
-                      <span className="item-badge-collapsed" aria-label={`${item.badge} pending`}>
+                    <span className="item-label">{item.label}</span>
+                    {item.badge && item.badge > 0 && (
+                      <span className="item-badge" aria-label={`${item.badge} pending`}>
                         {item.badge}
                       </span>
                     )}
@@ -263,6 +277,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
 

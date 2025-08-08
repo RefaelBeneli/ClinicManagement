@@ -282,8 +282,8 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
         user.username.toLowerCase().includes(searchTerm) ||
         user.fullName.toLowerCase().includes(searchTerm) ||
         user.email.toLowerCase().includes(searchTerm) ||
-        user.role.toLowerCase().includes(searchTerm) ||
-        user.approvalStatus.toLowerCase().includes(searchTerm)
+        (user.role || '').toLowerCase().includes(searchTerm) ||
+        (user.approvalStatus || '').toLowerCase().includes(searchTerm)
       );
     }
 
@@ -292,13 +292,13 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
       if (filter.value !== undefined && filter.value !== '' && filter.value !== false) {
         switch (filter.id) {
           case 'role':
-            filtered = filtered.filter(user => user.role === filter.value);
+            filtered = filtered.filter(user => (user.role || '') === filter.value);
             break;
           case 'status':
             filtered = filtered.filter(user => user.enabled === (filter.value === 'true'));
             break;
           case 'approvalStatus':
-            filtered = filtered.filter(user => user.approvalStatus === filter.value);
+            filtered = filtered.filter(user => (user.approvalStatus || '') === filter.value);
             break;
           case 'createdAfter':
             filtered = filtered.filter(user => new Date(user.createdAt) >= new Date(filter.value));
@@ -519,7 +519,9 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
   };
 
   // Get role badge class
-  const getRoleBadgeClass = (role: string) => {
+  const getRoleBadgeClass = (role: string | undefined | null) => {
+    if (!role) return 'role-badge unknown';
+    
     switch (role.toLowerCase()) {
       case 'admin': return 'role-badge admin';
       case 'therapist': return 'role-badge therapist';
@@ -533,7 +535,9 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
   };
 
   // Get approval badge class
-  const getApprovalBadgeClass = (status: string) => {
+  const getApprovalBadgeClass = (status: string | undefined | null) => {
+    if (!status) return 'approval-badge unknown';
+    
     switch (status.toLowerCase()) {
       case 'approved': return 'approval-badge approved';
       case 'pending': return 'approval-badge pending';
@@ -669,7 +673,7 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
                   </td>
                   <td>
                     <span className={getRoleBadgeClass(user.role)}>
-                      {user.role}
+                      {user.role || 'Unknown'}
                     </span>
                   </td>
                   <td>
@@ -679,7 +683,7 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({
                   </td>
                   <td>
                     <span className={getApprovalBadgeClass(user.approvalStatus)}>
-                      {user.approvalStatus}
+                      {user.approvalStatus || 'Unknown'}
                     </span>
                   </td>
                   <td className="date-column">

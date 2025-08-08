@@ -467,7 +467,9 @@ const Calendar: React.FC<CalendarProps> = ({
     }).format(amount);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined | null) => {
+    if (!status) return '#3182ce';
+    
     switch (status.toLowerCase()) {
       case 'completed': return '#38a169';
       case 'cancelled': return '#e53e3e';
@@ -658,7 +660,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 {dayEvents.map((event, index) => (
                   <div
                     key={event.id}
-                    className={`event-dot ${event.type} ${event.status.toLowerCase()}`}
+                    className={`event-dot ${event.type} ${(event.status || '').toLowerCase()}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleEventClick(event);
@@ -922,7 +924,7 @@ const Calendar: React.FC<CalendarProps> = ({
             {sortedEvents.map((event, index) => (
               <div 
                 key={event.id} 
-                className={`daily-event-item ${event.type} ${event.status.toLowerCase()}`}
+                className={`daily-event-item ${event.type} ${(event.status || '').toLowerCase()}`}
                 onClick={() => handleEventClick(event)}
               >
                 <div className="event-time-slot">
