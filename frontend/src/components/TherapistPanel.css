@@ -356,38 +356,6 @@
   font-size: 0.9rem;
 }
 
-.btn-primary {
-  padding: 10px 20px;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-  background: #5a6fd8;
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  padding: 10px 20px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-2px);
-}
-
 /* Tables */
 .clients-table,
 .meetings-table,
@@ -1338,70 +1306,7 @@
   border-radius: 0 0 12px 12px;
 }
 
-.modal-actions .btn-primary {
-  background: #667eea;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.modal-actions .btn-primary:hover:not(:disabled) {
-  background: #5a6fd8;
-  transform: translateY(-1px);
-}
-
-.modal-actions .btn-primary:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.modal-actions .btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.modal-actions .btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-/* Responsive adjustments for modal */
-@media (max-width: 768px) {
-  .modal-content {
-    width: 95%;
-    margin: 20px;
-  }
-  
-  .modal-header {
-    padding: 15px 20px;
-  }
-  
-  .modal-body {
-    padding: 20px;
-  }
-  
-  .modal-actions {
-    padding: 15px 20px;
-    flex-direction: column;
-  }
-  
-  .modal-actions button {
-    width: 100%;
-  }
-} 
+/* Remove conflicting modal button styles - let unified design system handle buttons */ 
 
 /* Sortable Table Headers */
 .sortable-header {

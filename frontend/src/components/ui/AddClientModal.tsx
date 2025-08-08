@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { clients, clientSources } from '../../services/api';
 import { ClientRequest, ClientSourceResponse } from '../../types';
-import './ViewClientModal.css';
+import './Modal.css';
 
 interface AddClientModalProps {
   isOpen: boolean;
@@ -19,6 +19,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
   });
   const [sources, setSources] = useState<ClientSourceResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Load sources when modal opens
   useEffect(() => {
@@ -60,11 +61,26 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
       ...prev,
       [name]: name === 'sourceId' ? parseInt(value, 10) : value
     }));
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
+    
+    if (!formData.sourceId) {
+      setError('Please select a source');
+      return;
+    }
+
     setLoading(true);
+    setError('');
 
     try {
       await clients.create(formData);
@@ -78,27 +94,68 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
         notes: '', 
         sourceId: sources.length > 0 ? sources[0].id : 1 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to create client:', error);
-      alert('Failed to create client. Please try again.');
+      setError(error.response?.data?.message || 'Failed to create client. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+      setFormData({ 
+        fullName: '', 
+        email: '', 
+        phone: '', 
+        notes: '', 
+        sourceId: sources.length > 0 ? sources[0].id : 1 
+      });
+      setError('');
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className="modal modal--sm" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
           <h3 className="modal__title">Add New Client</h3>
-          <button className="close-button" onClick={onClose}>&times;</button>
+          <button 
+            className="modal__close-button" 
+            onClick={handleClose}
+            disabled={loading}
+            aria-label="Close modal"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
+        
         <div className="modal__body">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="fullName">Full Name *</label>
+          <form onSubmit={handleSubmit} className="enhanced-group">
+            {error && (
+              <div className="error-message enhanced">
+                <div className="error-icon">⚠</div>
+                <div className="error-content">{error}</div>
+                <button 
+                  type="button" 
+                  className="error-close enhanced"
+                  onClick={() => setError('')}
+                  aria-label="Dismiss error"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            
+            <div className="enhanced-group">
+              <label htmlFor="fullName" className="form-label">
+                Full Name <span className="required">*</span>
+              </label>
               <input
                 type="text"
                 id="fullName"
@@ -106,51 +163,66 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
                 value={formData.fullName}
                 onChange={handleInputChange}
                 required
-                className="form-input"
+                className="enhanced-input"
+                placeholder="Enter client's full name"
+                disabled={loading}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
+            
+            <div className="enhanced-group">
+              <label htmlFor="email" className="form-label">Email</label>
               <input
                 type="email"
                 id="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="form-input"
+                className="enhanced-input"
+                placeholder="Enter client's email address"
+                disabled={loading}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="phone">Phone</label>
+            
+            <div className="enhanced-group">
+              <label htmlFor="phone" className="form-label">Phone</label>
               <input
                 type="tel"
                 id="phone"
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="form-input"
+                className="enhanced-input"
+                placeholder="Enter client's phone number"
+                disabled={loading}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="notes">Notes</label>
+            
+            <div className="enhanced-group">
+              <label htmlFor="notes" className="form-label">Notes</label>
               <textarea
                 id="notes"
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
-                className="form-textarea"
+                className="enhanced-textarea"
                 rows={3}
+                placeholder="Enter any additional notes about the client"
+                disabled={loading}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="sourceId">Source *</label>
+            
+            <div className="enhanced-group">
+              <label htmlFor="sourceId" className="form-label">
+                Source <span className="required">*</span>
+              </label>
               <select
                 id="sourceId"
                 name="sourceId"
                 value={formData.sourceId}
                 onChange={handleInputChange}
                 required
-                className="form-input"
+                className="enhanced-input"
+                disabled={loading}
               >
                 <option value={0}>Select a source</option>
                 {sources.map(source => (
@@ -162,16 +234,37 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose, onSucc
             </div>
           </form>
         </div>
+        
         <div className="modal__footer">
-          <button className="btn btn-secondary" onClick={onClose} disabled={loading}>
+          <button 
+            className="btn btn--secondary" 
+            onClick={handleClose}
+            disabled={loading}
+            type="button"
+          >
             Cancel
           </button>
           <button 
-            className="btn btn-primary" 
+            className="btn btn--primary" 
             onClick={handleSubmit}
             disabled={loading || !formData.fullName.trim() || !formData.sourceId}
+            type="submit"
           >
-            {loading ? 'Creating...' : 'Create Client'}
+            {loading ? (
+              <>
+                <div className="btn__spinner">
+                  <svg className="btn__spinner-icon" viewBox="0 0 24 24">
+                    <circle className="btn__spinner-path" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" strokeDasharray="31.416" strokeDashoffset="31.416">
+                      <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite" />
+                      <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite" />
+                    </circle>
+                  </svg>
+                </div>
+                Creating...
+              </>
+            ) : (
+              'Create Client'
+            )}
           </button>
         </div>
       </div>

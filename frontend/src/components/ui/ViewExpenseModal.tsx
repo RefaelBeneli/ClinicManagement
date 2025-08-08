@@ -1,6 +1,6 @@
 import React from 'react';
 import { Expense } from '../../types';
-import './ViewExpenseModal.css';
+import './Modal.css';
 
 interface ViewExpenseModalProps {
   expense: Expense | null;
@@ -20,13 +20,21 @@ const ViewExpenseModal: React.FC<ViewExpenseModalProps> = ({ expense, isOpen, on
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content view-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Expense Details</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+      <div className="modal modal--lg view-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__header">
+          <h2 className="modal__title">Expense Details</h2>
+          <button 
+            className="modal__close-button" 
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
-        <div className="modal-body">
+        <div className="modal__body">
           <div className="detail-section">
             <h3>Basic Information</h3>
             <div className="detail-grid">
@@ -57,7 +65,7 @@ const ViewExpenseModal: React.FC<ViewExpenseModalProps> = ({ expense, isOpen, on
               
               <div className="detail-item">
                 <label><strong>Payment Status:</strong></label>
-                <span className={`payment-badge ${expense.isPaid ? 'paid' : 'unpaid'}`}>
+                <span className={`status-badge ${expense.isPaid ? 'enabled' : 'disabled'}`}>
                   {expense.isPaid ? 'Paid' : 'Unpaid'}
                 </span>
               </div>
@@ -86,8 +94,6 @@ const ViewExpenseModal: React.FC<ViewExpenseModalProps> = ({ expense, isOpen, on
                     <label><strong>Recurrence Frequency:</strong></label>
                     <p>{expense.recurrenceFrequency}</p>
                   </div>
-                  
-
                 </div>
               </div>
             )}
@@ -95,47 +101,16 @@ const ViewExpenseModal: React.FC<ViewExpenseModalProps> = ({ expense, isOpen, on
             {expense.description && (
               <div className="detail-section">
                 <h3>Description</h3>
-                <p>{expense.description}</p>
+                <div className="notes-content">
+                  <p>{expense.description}</p>
+                </div>
               </div>
             )}
-
-          </div>
-
-          <div className="detail-section">
-            <h3>System Information</h3>
-            <div className="detail-grid">
-              <div className="detail-item">
-                <label><strong>Expense ID:</strong></label>
-                <p>{expense.id}</p>
-              </div>
-              
-              <div className="detail-item">
-                <label><strong>Created:</strong></label>
-                <p>{new Date(expense.createdAt).toLocaleDateString('he-IL', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</p>
-              </div>
-              
-              <div className="detail-item">
-                <label><strong>Last Updated:</strong></label>
-                <p>{new Date(expense.updatedAt).toLocaleDateString('he-IL', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</p>
-              </div>
-            </div>
           </div>
         </div>
         
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>
+        <div className="modal__footer">
+          <button className="btn btn--secondary" onClick={onClose}>
             Close
           </button>
         </div>

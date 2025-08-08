@@ -1,22 +1,16 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  Meeting, 
-  MeetingRequest, 
-  UpdateMeetingRequest,
-  Client, 
-  PaymentType, 
-  MeetingStatus 
-} from '../types';
-import { meetings as meetingsApi, clients as clientsApi, paymentTypes as paymentTypesApi } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { Meeting, MeetingStatus, PaymentType, Client, UpdateMeetingRequest } from '../types';
+import { meetings, clients, paymentTypes as paymentTypesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import AddSessionModal from './ui/AddSessionModal';
 import './SessionPanel.css';
 
 // Helper function to get default payment types
 const getDefaultPaymentTypes = (): PaymentType[] => [
-  { id: 1, name: 'Cash', isActive: true, createdAt: '', updatedAt: '' },
-  { id: 2, name: 'Credit Card', isActive: true, createdAt: '', updatedAt: '' },
-  { id: 3, name: 'Bank Transfer', isActive: true, createdAt: '', updatedAt: '' },
-  { id: 4, name: 'Check', isActive: true, createdAt: '', updatedAt: '' }
+  { id: 1, name: 'Bank Transfer', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 2, name: 'Bit', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 3, name: 'Paybox', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 4, name: 'Cash', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
 ];
 
 interface SessionPanelProps {
@@ -32,973 +26,662 @@ interface SessionStats {
   paidSessions: number;
 }
 
+// Define a type for the session data with editing state
+interface EditableSession extends Meeting {
+  isEditing: boolean;
+  originalData: Meeting; // To revert changes if cancelled
+}
+
 const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<Meeting[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Meeting[]>([]);
+  const [sessions, setSessions] = useState<EditableSession[]>([]); // Use EditableSession
+  const [clientList, setClientList] = useState<Client[]>([]);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | MeetingStatus>('ALL');
-  const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
-  const [sortBy, setSortBy] = useState<'date' | 'client' | 'status' | 'price'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  
-  // Form states
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingSession, setEditingSession] = useState<Meeting | null>(null);
-  const [formData, setFormData] = useState<MeetingRequest>({
-    clientId: 0,
-    meetingDate: '',
-    duration: 60,
-    price: 0,
-    notes: '',
-    summary: ''
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<SessionStats>({
+    sessionsToday: 0,
+    unpaidSessions: 0,
+    monthlyRevenue: 0,
+    totalSessions: 0,
+    paidSessions: 0
   });
 
-  // Data states
-  const [clients, setClients] = useState<Client[]>([]);
-  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
-  const [stats, setStats] = useState<SessionStats | null>(null);
+  // Modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSession, setEditingSession] = useState<Meeting | null>(null);
 
-  // Payment type selection state
-  const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
-  const [sessionToPay, setSessionToPay] = useState<Meeting | null>(null);
-  const [selectedPaymentTypeId, setSelectedPaymentTypeId] = useState<number>(0);
+  // Filters and search
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<MeetingStatus | 'ALL'>('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
+  const [sortBy, setSortBy] = useState<'date' | 'client' | 'price'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Ref to prevent double fetching
-  const hasInitialized = useRef(false);
+  // Payment type selection
+  const [showPaymentTypeSelection, setShowPaymentTypeSelection] = useState(false);
+  const [selectedSessionForPayment, setSelectedSessionForPayment] = useState<Meeting | null>(null);
 
-  const fetchSessions = useCallback(async () => {
-    try {
-      setLoading(true);
-      const sessionData = await meetingsApi.getAll();
-      setSessions(sessionData);
-      setError('');
-      
-      // Calculate stats after sessions are loaded
-      await fetchStats(sessionData);
-    } catch (error: any) {
-      console.error('Error fetching sessions:', error);
-      setError('Failed to load sessions');
-    } finally {
-      setLoading(false);
-    }
+  // Load data on mount
+  useEffect(() => {
+    loadData();
   }, []);
 
-  const fetchClients = useCallback(async () => {
-    try {
-      const clientData = await clientsApi.getAll();
-      setClients(clientData);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-    }
-  }, []);
-
-  const fetchPaymentTypes = useCallback(async () => {
-    if (user?.role === 'ADMIN') {
-      try {
-        const paymentTypeData = await paymentTypesApi.getActive();
-        setPaymentTypes(paymentTypeData);
-      } catch (error) {
-        console.warn('Failed to load payment types from API:', error);
-        setPaymentTypes(getDefaultPaymentTypes());
-      }
-    } else {
-      // Non-admin users get default payment types without API call
-      console.log('Using default payment types for non-admin user');
-      setPaymentTypes(getDefaultPaymentTypes());
-    }
-  }, [user?.role]);
-
-  const fetchStats = useCallback(async (sessionData?: Meeting[]) => {
-    try {
-      const statsData = await meetingsApi.getDashboardStats();
-      const sessionsToUse = sessionData || sessions;
-      
-      setStats({
-        sessionsToday: statsData.meetingsToday,
-        unpaidSessions: statsData.unpaidSessions,
-        monthlyRevenue: statsData.monthlyRevenue,
-        totalSessions: sessionsToUse.length,
-        paidSessions: sessionsToUse.filter(s => s.isPaid).length
-      });
-    } catch (error) {
-      console.warn('Failed to fetch session stats:', error);
-    }
-  }, [sessions]);
-
-  useEffect(() => {
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      fetchSessions();
-      fetchClients();
-      fetchPaymentTypes();
-      // fetchStats(); // This will be called after sessions are fetched
-    }
-  }, [fetchSessions, fetchClients, fetchPaymentTypes]);
-
-  // Debug modal state
-  useEffect(() => {
-    console.log('🔍 Modal state changed:', { 
-      showPaymentTypeModal, 
-      sessionToPay: sessionToPay?.id, 
-      paymentTypesCount: paymentTypes.length 
-    });
-  }, [showPaymentTypeModal, sessionToPay, paymentTypes.length]);
-
-  // Handle ESC key
+  // Handle Escape key press
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (showPaymentTypeSelection) {
+          setShowPaymentTypeSelection(false);
+          setSelectedSessionForPayment(null);
+        } else {
+          onClose();
+        }
       }
     };
 
     document.addEventListener('keydown', handleEscape);
-
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [onClose]);
+  }, [onClose, showPaymentTypeSelection]);
 
-  const filterAndSortSessions = useCallback(() => {
-    let filtered = [...sessions];
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(session =>
-        session.client?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        session.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        session.summary?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(session => session.status === statusFilter);
-    }
-
-    // Apply payment filter
-    if (paymentFilter !== 'ALL') {
-      filtered = filtered.filter(session => 
-        paymentFilter === 'PAID' ? session.isPaid : !session.isPaid
-      );
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let comparison = 0;
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [sessionsData, clientsData] = await Promise.all([
+        meetings.getAll(),
+        clients.getAll()
+      ]);
       
-      switch (sortBy) {
-        case 'date':
-          comparison = new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime();
-          break;
-        case 'client':
-          comparison = (a.client?.fullName || '').localeCompare(b.client?.fullName || '');
-          break;
-        case 'status':
-          comparison = a.status.localeCompare(b.status);
-          break;
-        case 'price':
-          comparison = a.price - b.price;
-          break;
+      // Initialize sessions with editing state
+      setSessions(sessionsData.map(session => ({
+        ...session,
+        isEditing: false,
+        originalData: { ...session } // Store a copy of original data
+      })));
+      setClientList(clientsData);
+      
+      // Load payment types based on user role
+      if (user?.role === 'ADMIN') {
+        try {
+          const paymentTypesData = await paymentTypesApi.getActive();
+          setPaymentTypes(paymentTypesData);
+        } catch (paymentTypeError: any) {
+          console.warn('Failed to load payment types from API:', paymentTypeError);
+          setPaymentTypes(getDefaultPaymentTypes());
+        }
+      } else {
+        // Non-admin users get default payment types without API call
+        console.log('Using default payment types for non-admin user');
+        setPaymentTypes(getDefaultPaymentTypes());
       }
       
-      return sortOrder === 'asc' ? comparison : -comparison;
+      calculateStats(sessionsData);
+    } catch (error: any) {
+      console.error('Error loading sessions:', error);
+      setError('Failed to load sessions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (sessionsData: Meeting[]) => {
+    const today = new Date().toDateString();
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    const sessionsToday = sessionsData.filter(session => 
+      new Date(session.meetingDate).toDateString() === today
+    ).length;
+
+    const unpaidSessions = sessionsData.filter(session => !session.isPaid).length;
+    const paidSessions = sessionsData.filter(session => session.isPaid).length;
+
+    const monthlyRevenue = sessionsData
+      .filter(session => {
+        const sessionDate = new Date(session.meetingDate);
+        return session.isPaid && 
+               sessionDate.getMonth() === currentMonth && 
+               sessionDate.getFullYear() === currentYear;
+      })
+      .reduce((total, session) => total + session.price, 0);
+
+    setStats({
+      sessionsToday,
+      unpaidSessions,
+      monthlyRevenue,
+      totalSessions: sessionsData.length,
+      paidSessions
     });
-
-    setFilteredSessions(filtered);
-  }, [sessions, searchTerm, statusFilter, paymentFilter, sortBy, sortOrder]);
-
-  useEffect(() => {
-    filterAndSortSessions();
-  }, [filterAndSortSessions]);
-
-  const handleStatusUpdate = async (sessionId: number, newStatus: MeetingStatus) => {
-    try {
-      const updateData: UpdateMeetingRequest = { status: newStatus };
-      await meetingsApi.update(sessionId, updateData);
-      
-      const updatedSessions = sessions.map(session =>
-        session.id === sessionId
-          ? { ...session, status: newStatus }
-          : session
-      );
-      
-      setSessions(updatedSessions);
-      
-      // Recalculate stats with updated session data
-      await fetchStats(updatedSessions);
-    } catch (error: any) {
-      console.error('Error updating session status:', error);
-      setError('Failed to update session status');
-    }
   };
 
-  const handlePaymentToggle = async (sessionId: number, currentPaidStatus: boolean) => {
-    console.log('🔍 Payment toggle clicked:', { sessionId, currentPaidStatus });
-    
-    if (!currentPaidStatus) {
-      // Marking as paid - show payment type selection
-      console.log('💰 Marking as paid - showing payment type modal');
-      const session = sessions.find(s => s.id === sessionId);
-      if (session) {
-        console.log('✅ Session found:', session.client.fullName);
-        setSessionToPay(session);
-        setSelectedPaymentTypeId(0);
-        setShowPaymentTypeModal(true);
-      }
-    } else {
-      // Marking as unpaid
-      try {
-        const updateData: UpdateMeetingRequest = { 
-          isPaid: false,
-          paymentDate: undefined,
-          paymentTypeId: undefined
-        };
-        await meetingsApi.update(sessionId, updateData);
-        
-        const updatedSessions = sessions.map(session =>
-          session.id === sessionId
-            ? { ...session, isPaid: false, paymentDate: undefined, paymentType: undefined }
-            : session
-        );
-        
-        setSessions(updatedSessions);
-        
-        // Recalculate stats with updated session data
-        await fetchStats(updatedSessions);
-        
-        onRefresh?.();
-      } catch (error: any) {
-        console.error('Error updating session payment status:', error);
-        setError('Failed to update session payment status');
-      }
-    }
+  // --- Inline Editing Handlers ---
+  const toggleEditing = (sessionId: number) => {
+    setSessions(prev => prev.map(session => 
+      session.id === sessionId ? { ...session, isEditing: !session.isEditing } : session
+    ));
   };
 
-  const handleClientUpdate = async (sessionId: number, clientId: number) => {
-    try {
-      const updatedSession = await meetingsApi.update(sessionId, { clientId });
-      
-      // Update the session locally instead of fetching all sessions
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId ? updatedSession : session
-        )
-      );
-      
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating client:', error);
-      setError('Failed to update client');
-    }
+  const handleFieldChange = (sessionId: number, field: keyof Meeting, value: any) => {
+    setSessions(prev => prev.map(session => 
+      session.id === sessionId ? { ...session, [field]: value } : session
+    ));
   };
 
-  const handleDateUpdate = async (sessionId: number, meetingDate: string) => {
+  const handleSave = async (sessionToSave: EditableSession) => {
     try {
-      const updatedSession = await meetingsApi.update(sessionId, { meetingDate });
-      
-      // Update the session locally instead of fetching all sessions
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId ? updatedSession : session
-        )
-      );
-      
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating session date:', error);
-      setError('Failed to update session date');
-    }
-  };
+      const updatedFields: UpdateMeetingRequest = {
+        clientId: sessionToSave.client.id,
+        meetingDate: sessionToSave.meetingDate,
+        duration: sessionToSave.duration,
+        price: sessionToSave.price,
+        status: sessionToSave.status,
+        isPaid: sessionToSave.isPaid,
+        notes: sessionToSave.notes,
+        summary: sessionToSave.summary,
+        paymentTypeId: sessionToSave.paymentType?.id || undefined
+      };
 
-  const handleDurationUpdate = async (sessionId: number, duration: number) => {
-    try {
-      const updatedSession = await meetingsApi.update(sessionId, { duration });
-      
-      // Update the session locally instead of fetching all sessions
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId ? updatedSession : session
-        )
-      );
-      
-      onRefresh?.();
+      const updatedSession = await meetings.update(sessionToSave.id, updatedFields);
+      setSessions(prev => prev.map(session => 
+        session.id === updatedSession.id ? { ...updatedSession, isEditing: false, originalData: { ...updatedSession } } : session
+      ));
+      calculateStats(sessions); // Recalculate stats after save
+      console.log('✅ Session updated successfully');
     } catch (error: any) {
-      console.error('Error updating duration:', error);
-      setError('Failed to update duration');
-    }
-  };
-
-  const handlePriceUpdate = async (sessionId: number, price: number) => {
-    try {
-      const updatedSession = await meetingsApi.update(sessionId, { price });
-      
-      // Update the session locally instead of fetching all sessions
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId ? updatedSession : session
-        )
-      );
-      
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating price:', error);
-      setError('Failed to update price');
-    }
-  };
-
-  const handleNotesUpdate = async (sessionId: number, notes: string) => {
-    try {
-      const updatedSession = await meetingsApi.update(sessionId, { notes });
-      
-      // Update the session locally instead of fetching all sessions
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId ? updatedSession : session
-        )
-      );
-      
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating notes:', error);
-      setError('Failed to update notes');
-    }
-  };
-
-  const handleSummaryUpdate = async (sessionId: number, summary: string) => {
-    try {
-      const updatedSession = await meetingsApi.update(sessionId, { summary });
-      
-      // Update the session locally instead of fetching all sessions
-      setSessions(prevSessions =>
-        prevSessions.map(session =>
-          session.id === sessionId ? updatedSession : session
-        )
-      );
-      
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating summary:', error);
-      setError('Failed to update summary');
-    }
-  };
-
-  const handleAddSession = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const newSession = await meetingsApi.create(formData);
-      const updatedSessions = [...sessions, newSession];
-      setSessions(updatedSessions);
-      
-      // Recalculate stats with new session
-      await fetchStats(updatedSessions);
-      
-      setShowAddForm(false);
-      resetForm();
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error creating session:', error);
-      setError('Failed to create session');
-    }
-  };
-
-  const handleEditSession = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingSession) return;
-
-    try {
-      const updatedSession = await meetingsApi.update(editingSession.id, formData);
-      setSessions(prev =>
-        prev.map(session => session.id === editingSession.id ? updatedSession : session)
-      );
-      setEditingSession(null);
-      resetForm();
-      await fetchStats();
-    } catch (error: any) {
-      console.error('Error updating session:', error);
+      console.error('❌ Error updating session:', error);
       setError('Failed to update session');
     }
   };
 
+  const handleCancelEdit = (sessionId: number) => {
+    setSessions(prev => prev.map(session => 
+      session.id === sessionId ? { ...session.originalData, isEditing: false, originalData: session.originalData } : session
+    ));
+  };
+
+  const handleStatusToggle = async (sessionId: number, currentStatus: MeetingStatus) => {
+    let nextStatus: MeetingStatus;
+    switch (currentStatus) {
+      case MeetingStatus.SCHEDULED:
+        nextStatus = MeetingStatus.COMPLETED;
+        break;
+      case MeetingStatus.COMPLETED:
+        nextStatus = MeetingStatus.CANCELLED;
+        break;
+      case MeetingStatus.CANCELLED:
+        nextStatus = MeetingStatus.NO_SHOW;
+        break;
+      case MeetingStatus.NO_SHOW:
+        nextStatus = MeetingStatus.SCHEDULED;
+        break;
+      default:
+        nextStatus = MeetingStatus.SCHEDULED;
+    }
+    handleFieldChange(sessionId, 'status', nextStatus);
+  };
+
+  const handlePaymentStatusToggle = (sessionId: number, currentPaidStatus: boolean) => {
+    handleFieldChange(sessionId, 'isPaid', !currentPaidStatus);
+  };
+
   const handleDeleteSession = async (sessionId: number) => {
-    if (window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-      try {
-        await meetingsApi.disable(sessionId);
-        const updatedSessions = sessions.map(session => 
-          session.id === sessionId ? { ...session, active: false } : session
-        );
-        setSessions(updatedSessions);
-        
-        // Recalculate stats after deletion
-        await fetchStats(updatedSessions);
-        
-        onRefresh?.();
-      } catch (error) {
-        console.error('Failed to delete session:', error);
-        setError('Failed to delete session');
-      }
+    if (!window.confirm('Are you sure you want to delete this session?')) {
+      return;
+    }
+
+    try {
+      await meetings.delete(sessionId);
+      setSessions(prev => prev.filter(session => session.id !== sessionId));
+      calculateStats(sessions.filter(session => session.id !== sessionId));
+      console.log('✅ Session deleted successfully');
+    } catch (error: any) {
+      console.error('❌ Error deleting session:', error);
+      setError('Failed to delete session');
     }
   };
 
   const handleRestoreSession = async (sessionId: number) => {
     try {
-      await meetingsApi.activate(sessionId);
-      const updatedSessions = sessions.map(session => 
-        session.id === sessionId ? { ...session, active: true } : session
-      );
-      setSessions(updatedSessions);
-      
-      // Recalculate stats after restoration
-      await fetchStats(updatedSessions);
-      
-      onRefresh?.();
-    } catch (error) {
-      console.error('Failed to restore session:', error);
+      const updatedSession = await meetings.update(sessionId, {
+        status: MeetingStatus.SCHEDULED
+      });
+      setSessions(prev => prev.map(session => 
+        session.id === sessionId ? { ...updatedSession, isEditing: false, originalData: { ...updatedSession } } : session
+      ));
+      console.log('✅ Session restored successfully');
+    } catch (error: any) {
+      console.error('❌ Error restoring session:', error);
       setError('Failed to restore session');
     }
   };
 
   const resetForm = () => {
-    setFormData({
-      clientId: 0,
-      meetingDate: '',
-      duration: 60,
-      price: 0,
-      notes: '',
-      summary: ''
-    });
+    setEditingSession(null);
+    setError('');
   };
 
-  const startEditing = (session: Meeting) => {
+  const startAddSession = () => {
+    setEditingSession(null);
+    setShowAddModal(true);
+  };
+
+  const startEditingModal = (session: Meeting) => {
     setEditingSession(session);
-    setFormData({
-      clientId: session.client?.id || 0,
-      meetingDate: session.meetingDate.split('T')[0] + 'T' + session.meetingDate.split('T')[1]?.substring(0, 5) || '',
-      duration: session.duration,
-      price: session.price,
-      notes: session.notes || '',
-      summary: session.summary || ''
-    });
-    setShowAddForm(true);
+    setShowAddModal(true);
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }) + ' ' + date.toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     });
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('he-IL', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'ILS'
     }).format(amount);
   };
 
-  const getStatusColor = (status: MeetingStatus) => {
+  const getStatusColorClass = (status: MeetingStatus) => {
     switch (status) {
-      case 'COMPLETED': return '#28a745';
-      case 'CANCELLED': return '#dc3545';
-      case 'NO_SHOW': return '#ffc107';
-      default: return '#007bff';
+      case MeetingStatus.COMPLETED:
+        return 'status-badge--success';
+      case MeetingStatus.CANCELLED:
+        return 'status-badge--danger';
+      case MeetingStatus.SCHEDULED:
+        return 'status-badge--primary';
+      case MeetingStatus.NO_SHOW:
+        return 'status-badge--warning';
+      default:
+        return 'status-badge--secondary';
     }
   };
 
-  const handlePaymentTypeSelection = async () => {
-    console.log('🔍 Payment type selection confirmed:', { sessionToPay: sessionToPay?.id, selectedPaymentTypeId });
-    
-    if (!sessionToPay) {
-      console.error('❌ No session to pay');
-      return;
-    }
+  // Filter and sort sessions
+  const filteredSessions = sessions
+    .filter(session => {
+      const matchesSearch = searchTerm === '' || 
+        session.client.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (session.notes && session.notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (session.summary && session.summary.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    try {
-      // Update the meeting with payment type and mark as paid
-      const updateData: UpdateMeetingRequest = {
-        isPaid: true,
-        paymentTypeId: selectedPaymentTypeId === 0 ? undefined : selectedPaymentTypeId
-      };
+      const matchesStatus = statusFilter === 'ALL' || session.status === statusFilter;
+      const matchesPayment = paymentFilter === 'ALL' || 
+        (paymentFilter === 'PAID' && session.isPaid) ||
+        (paymentFilter === 'UNPAID' && !session.isPaid);
 
-      console.log('📤 Sending update data:', updateData);
-      const updatedSession = await meetingsApi.update(sessionToPay.id, updateData);
-      console.log('✅ Session updated successfully:', updatedSession);
-      
-      const updatedSessions = sessions.map(session =>
-        session.id === sessionToPay.id ? updatedSession : session
-      );
-      
-      setSessions(updatedSessions);
-      
-      // Recalculate stats with updated session data
-      await fetchStats(updatedSessions);
-      
-      // Close modal and reset state
-      setShowPaymentTypeModal(false);
-      setSessionToPay(null);
-      setSelectedPaymentTypeId(0);
-    } catch (error: any) {
-      console.error('❌ Error updating payment with type:', error);
-      setError('Failed to update payment with type');
-    }
-  };
+      return matchesSearch && matchesStatus && matchesPayment;
+    })
+    .sort((a, b) => {
+      let aValue: any, bValue: any;
 
-  const handleCancelPaymentTypeSelection = () => {
-    setShowPaymentTypeModal(false);
-    setSessionToPay(null);
-    setSelectedPaymentTypeId(0);
-  };
+      switch (sortBy) {
+        case 'date':
+          aValue = new Date(a.meetingDate).getTime();
+          bValue = new Date(b.meetingDate).getTime();
+          break;
+        case 'client':
+          aValue = a.client.fullName.toLowerCase();
+          bValue = b.client.fullName.toLowerCase();
+          break;
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        default:
+          aValue = new Date(a.meetingDate).getTime();
+          bValue = new Date(b.meetingDate).getTime();
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
 
   return (
     <div className="session-panel-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="session-panel">
         <div className="session-panel-header">
           <div>
-            <h2>Client Session Management</h2>
-            <p>Manage your therapy sessions with clients</p>
+            <h2>Sessions Management</h2>
+            <p>Manage your client therapy sessions and appointments</p>
           </div>
           <button 
             className="session-close-button" 
             onClick={onClose}
           >X</button>
         </div>
-
-        {/* Stats Dashboard */}
-        {stats && (
+        
+        <div className="session-panel-body">
+          {/* Stats Overview */}
           <div className="session-stats-section">
+            <div className="stat-card">
+              <div className="stat-value">{stats.sessionsToday}</div>
+              <div className="stat-label">Today's Sessions</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{formatCurrency(stats.monthlyRevenue)}</div>
+              <div className="stat-label">Monthly Revenue</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{stats.unpaidSessions}</div>
+              <div className="stat-label">Unpaid Sessions</div>
+            </div>
             <div className="stat-card">
               <div className="stat-value">{stats.totalSessions}</div>
               <div className="stat-label">Total Sessions</div>
             </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.sessionsToday}</div>
-              <div className="stat-label">Today</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.unpaidSessions}</div>
-              <div className="stat-label">Unpaid</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{formatCurrency(stats.monthlyRevenue)}</div>
-              <div className="stat-label">This Month</div>
-            </div>
-          </div>
-        )}
-
-        {/* Controls */}
-        <div className="session-controls">
-          <div className="controls-left">
-            <button 
-              className="add-button"
-              onClick={() => {
-                setShowAddForm(true);
-                setEditingSession(null);
-                resetForm();
-              }}
-            >
-              + Add New Session
-            </button>
-            
-            <div className="search-container">
-              <input
-                type="text"
-                placeholder="Search client, notes, or summary..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-              />
-            </div>
           </div>
 
-          <div className="controls-right">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as MeetingStatus | 'ALL')}
-              className="filter-select"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-              <option value="NO_SHOW">No Show</option>
-            </select>
-
-            <select
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value as 'ALL' | 'PAID' | 'UNPAID')}
-              className="filter-select"
-            >
-              <option value="ALL">All Payments</option>
-              <option value="PAID">Paid</option>
-              <option value="UNPAID">Unpaid</option>
-            </select>
-
-            <select
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [newSortBy, newSortOrder] = e.target.value.split('-');
-                setSortBy(newSortBy as any);
-                setSortOrder(newSortOrder as 'asc' | 'desc');
-              }}
-              className="sort-select"
-            >
-              <option value="date-desc">Latest First</option>
-              <option value="date-asc">Oldest First</option>
-              <option value="client-asc">Client A-Z</option>
-              <option value="client-desc">Client Z-A</option>
-              <option value="price-desc">Highest Price</option>
-              <option value="price-asc">Lowest Price</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Add/Edit Form */}
-        {showAddForm && (
-          <div className="session-form-section">
-            <form onSubmit={editingSession ? handleEditSession : handleAddSession} className="session-form">
-              <h3>{editingSession ? 'Edit Session' : 'Add New Session'}</h3>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Client *</label>
-                  <select
-                    required
-                    value={formData.clientId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, clientId: parseInt(e.target.value) }))}
-                  >
-                    <option value={0}>Select a client</option>
-                    {clients.map(client => (
-                      <option key={client.id} value={client.id}>
-                        {client.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.meetingDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, meetingDate: e.target.value }))}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Duration (minutes)</label>
-                  <input
-                    type="number"
-                    min="15"
-                    max="300"
-                    value={formData.duration}
-                    onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 60 }))}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Price *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                    placeholder="120.00"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Session goals, topics to discuss, etc."
-                  rows={3}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Session Summary</label>
-                <textarea
-                  value={formData.summary}
-                  onChange={(e) => setFormData(prev => ({ ...prev, summary: e.target.value }))}
-                  placeholder="Detailed summary of the session (can be added after the meeting)"
-                  rows={4}
-                />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="save-button">
-                  {editingSession ? 'Update Session' : 'Add Session'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingSession(null);
-                    resetForm();
-                  }}
-                  className="cancel-button"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <div className="error-message">
-            {error}
-            <button onClick={() => setError('')} className="error-close">×</button>
-          </div>
-        )}
-
-        {/* Sessions List */}
-        <div className="sessions-content">
-          {loading ? (
-            <div className="loading-spinner">Loading sessions...</div>
-          ) : filteredSessions.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">📅</div>
-              <h3>No Sessions Found</h3>
-              <p>Start managing your practice by adding your first client session.</p>
-              <button 
-                className="add-button"
-                onClick={() => {
-                  setShowAddForm(true);
-                  setEditingSession(null);
-                  resetForm();
-                }}
-              >
-                Add Your First Session
-              </button>
-            </div>
-          ) : (
-            <div className="sessions-list">
-              {filteredSessions.map((session) => (
-                <div key={session.id} className={`session-card ${session.active === false ? 'disabled-card' : ''}`}>
-                  <div className="session-header">
-                    <div className="session-info">
-                      <select
-                        value={session.client?.id || 0}
-                        onChange={(e) => handleClientUpdate(session.id, parseInt(e.target.value))}
-                        className="inline-input session-client-name"
-                        disabled={session.active === false}
-                      >
-                        {clients.map(client => (
-                          <option key={client.id} value={client.id}>
-                            {client.fullName}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="session-meta">
-                        <span>Source: {session.client?.source?.name || 'No source'}</span>
-                      </div>
-                    </div>
-                    <div className="session-actions">
-                      {session.active !== false ? (
-                        <>
-                          <button
-                            className="delete-button"
-                            onClick={() => handleDeleteSession(session.id)}
-                            title="Delete session"
-                          >
-                            🗑️
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          className="restore-button"
-                          onClick={() => handleRestoreSession(session.id)}
-                          title="Restore session"
-                        >
-                          🔄 Restore
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="session-details">
-                    <div className="detail-item">
-                      <span className="label">Duration:</span>
-                      <input
-                        type="number"
-                        min="15"
-                        max="300"
-                        value={session.duration}
-                        onChange={(e) => handleDurationUpdate(session.id, parseInt(e.target.value) || 60)}
-                        className="inline-input"
-                        disabled={session.active === false}
-                      />
-                      <span>min</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Price:</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={session.price}
-                        onChange={(e) => handlePriceUpdate(session.id, parseFloat(e.target.value) || 0)}
-                        className="inline-input"
-                        disabled={session.active === false}
-                      />
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Status:</span>
-                      <select
-                        value={session.status}
-                        onChange={(e) => handleStatusUpdate(session.id, e.target.value as MeetingStatus)}
-                        className="status-select"
-                        style={{ color: getStatusColor(session.status) }}
-                        disabled={session.active === false}
-                      >
-                        <option value="SCHEDULED">Scheduled</option>
-                        <option value="COMPLETED">Completed</option>
-                        <option value="CANCELLED">Cancelled</option>
-                        <option value="NO_SHOW">No Show</option>
-                      </select>
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Payment:</span>
-                      <button
-                        className={`payment-toggle ${session.isPaid ? 'paid' : 'unpaid'}`}
-                        onClick={() => handlePaymentToggle(session.id, session.isPaid)}
-                        disabled={session.active === false}
-                      >
-                        {session.isPaid ? '✅ Paid' : '❌ Unpaid'}
-                      </button>
-                    </div>
-                    <div className="detail-item">
-                      <span className="label">Date:</span>
-                      <input
-                        type="datetime-local"
-                        value={session.meetingDate.split('T')[0] + 'T' + session.meetingDate.split('T')[1]?.substring(0, 5) || ''}
-                        onChange={(e) => handleDateUpdate(session.id, e.target.value)}
-                        className="inline-input"
-                        disabled={session.active === false}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="detail-item">
-                    <span className="label">Notes:</span>
-                    <textarea
-                      value={session.notes || ''}
-                      onChange={(e) => handleNotesUpdate(session.id, e.target.value)}
-                      className="inline-textarea"
-                      disabled={session.active === false}
-                      placeholder="Add notes..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="detail-item">
-                    <span className="label">Summary:</span>
-                    <textarea
-                      value={session.summary || ''}
-                      onChange={(e) => handleSummaryUpdate(session.id, e.target.value)}
-                      className="inline-textarea"
-                      disabled={session.active === false}
-                      placeholder="Add session summary..."
-                      rows={3}
-                    />
-                  </div>
-
-                  {/* Enhanced Payment Type Display - More Prominent */}
-                  {session.isPaid && (
-                    <div className="payment-date-section enhanced">
-                      <div className="payment-date-header">
-                        <span className="payment-date-label">💰 Payment Type:</span>
-                        <span className="payment-date-value">
-                          {session.paymentType ? session.paymentType.name : 'No payment type recorded'}
-                        </span>
-                      </div>
-                      {session.paymentDate && (
-                        <div className="payment-date-details">
-                          <small>Payment processed on {formatDate(session.paymentDate)}</small>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+          {/* Error Display */}
+          {error && (
+            <div className="error-message enhanced">
+              {error}
+              <button onClick={() => setError(null)} className="error-close">×</button>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Payment Type Selection Modal */}
-      {showPaymentTypeModal && sessionToPay && (
-        <div className="modal-overlay" onClick={handleCancelPaymentTypeSelection}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Select Payment Type</h3>
+          {/* Controls */}
+          <div className="session-controls">
+            <div className="controls-left">
               <button 
-                className="modal-close-button" 
-                onClick={handleCancelPaymentTypeSelection}
+                className="add-button"
+                onClick={startAddSession}
               >
-                ×
+                ➕ Add New Session
               </button>
+              
+              <div className="search-container">
+                <input
+                  type="text"
+                  placeholder="Search client, notes, or summary..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
             </div>
-            <div className="modal-body">
-              <p>Please select a payment type for the session with <strong>{sessionToPay.client.fullName}</strong>:</p>
-              <div className="payment-type-selection">
-                <select
-                  value={selectedPaymentTypeId}
-                  onChange={(e) => setSelectedPaymentTypeId(parseInt(e.target.value) || 0)}
-                  className="payment-type-select"
-                >
-                  <option value={0}>Select Payment Type</option>
-                  {paymentTypes.map(paymentType => (
-                    <option key={paymentType.id} value={paymentType.id}>
-                      {paymentType.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="modal-actions">
-                <button 
-                  className="btn-secondary" 
-                  onClick={handleCancelPaymentTypeSelection}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="btn-primary" 
-                  onClick={handlePaymentTypeSelection}
-                  disabled={selectedPaymentTypeId === 0}
-                >
-                  Mark as Paid
-                </button>
-              </div>
+
+            <div className="controls-right">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as MeetingStatus | 'ALL')}
+                className="filter-select"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="NO_SHOW">No Show</option>
+              </select>
+
+              <select
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value as 'ALL' | 'PAID' | 'UNPAID')}
+                className="filter-select"
+              >
+                <option value="ALL">All Payments</option>
+                <option value="PAID">Paid</option>
+                <option value="UNPAID">Unpaid</option>
+              </select>
+
+              <select
+                value={`${sortBy}-${sortOrder}`}
+                onChange={(e) => {
+                  const [newSortBy, newSortOrder] = e.target.value.split('-');
+                  setSortBy(newSortBy as any);
+                  setSortOrder(newSortOrder as 'asc' | 'desc');
+                }}
+                className="sort-select"
+              >
+                <option value="date-desc">Latest First</option>
+                <option value="date-asc">Oldest First</option>
+                <option value="client-asc">Client A-Z</option>
+                <option value="client-desc">Client Z-A</option>
+                <option value="price-desc">Highest Price</option>
+                <option value="price-asc">Lowest Price</option>
+              </select>
             </div>
           </div>
+
+          {/* Sessions List */}
+          <div className="sessions-content">
+            {loading ? (
+              <div className="loading-spinner">Loading sessions...</div>
+            ) : filteredSessions.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📅</div>
+                <h3>No Sessions Found</h3>
+                <p>Start managing your practice by adding your first client session.</p>
+                <button 
+                  className="add-button"
+                  onClick={startAddSession}
+                >
+                  Add Your First Session
+                </button>
+              </div>
+            ) : (
+              <div className="sessions-list">
+                {filteredSessions.map(session => (
+                  <div key={session.id} className={`session-card ${session.status === MeetingStatus.CANCELLED || session.status === MeetingStatus.NO_SHOW ? 'disabled-card' : ''}`}>
+                    <div className="session-header">
+                      <div className="session-info">
+                        {session.isEditing ? (
+                          <select
+                            className="inline-select client-name-select"
+                            value={session.client.id}
+                            onChange={(e) => handleFieldChange(session.id, 'client', { ...session.client, id: parseInt(e.target.value) })}
+                          >
+                            {clientList.map(client => (
+                              <option key={client.id} value={client.id}>{client.fullName}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <h4 className="session-client-name">{session.client.fullName}</h4>
+                        )}
+                        <div className="session-meta">
+                          <span>ID: {session.id}</span>
+                          <span>Created: {formatDate(session.createdAt)}</span>
+                        </div>
+                      </div>
+                      <div className="session-actions">
+                        {session.isEditing ? (
+                          <>
+                            <button 
+                              className="save-button"
+                              onClick={() => handleSave(session)}
+                              title="Save changes"
+                            >
+                              💾 Save
+                            </button>
+                            <button 
+                              className="cancel-button"
+                              onClick={() => handleCancelEdit(session.id)}
+                              title="Cancel editing"
+                            >
+                              ❌ Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button 
+                              className="edit-button"
+                              onClick={() => toggleEditing(session.id)}
+                              title="Edit session"
+                            >
+                              ✏️ Edit
+                            </button>
+                            {session.status === MeetingStatus.CANCELLED || session.status === MeetingStatus.NO_SHOW ? (
+                              <button 
+                                className="restore-button"
+                                onClick={() => handleRestoreSession(session.id)}
+                                title="Restore session"
+                              >
+                                🔄 Restore
+                              </button>
+                            ) : (
+                              <button 
+                                className="delete-button"
+                                onClick={() => handleDeleteSession(session.id)}
+                                title="Delete session"
+                              >
+                                🗑️ Delete
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="session-details">
+                      <div className="detail-item">
+                        <span className="label">Date:</span>
+                        {session.isEditing ? (
+                          <input
+                            type="datetime-local"
+                            className="inline-input"
+                            value={session.meetingDate.substring(0, 16)}
+                            onChange={(e) => handleFieldChange(session.id, 'meetingDate', e.target.value)}
+                          />
+                        ) : (
+                          <span className="detail-value">{formatDateTime(session.meetingDate)}</span>
+                        )}
+                      </div>
+                      <div className="detail-item">
+                        <span className="label">Duration:</span>
+                        {session.isEditing ? (
+                          <input
+                            type="number"
+                            className="inline-input"
+                            value={session.duration}
+                            onChange={(e) => handleFieldChange(session.id, 'duration', parseInt(e.target.value))}
+                          />
+                        ) : (
+                          <span className="detail-value">{session.duration} minutes</span>
+                        )}
+                      </div>
+                      <div className="detail-item">
+                        <span className="label">Price:</span>
+                        {session.isEditing ? (
+                          <input
+                            type="number"
+                            className="inline-input"
+                            value={session.price}
+                            onChange={(e) => handleFieldChange(session.id, 'price', parseFloat(e.target.value))}
+                          />
+                        ) : (
+                          <span className="detail-value">{formatCurrency(session.price)}</span>
+                        )}
+                      </div>
+                      <div className="detail-item">
+                        <span className="label">Status:</span>
+                        {session.isEditing ? (
+                          <select
+                            className="inline-select"
+                            value={session.status}
+                            onChange={(e) => handleFieldChange(session.id, 'status', e.target.value as MeetingStatus)}
+                          >
+                            {Object.values(MeetingStatus).map(status => (
+                              <option key={status} value={status}>{status}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <button 
+                            className={`status-toggle ${getStatusColorClass(session.status)}`}
+                            onClick={() => handleStatusToggle(session.id, session.status)}
+                            disabled={session.status === MeetingStatus.CANCELLED || session.status === MeetingStatus.NO_SHOW}
+                          >
+                            {session.status}
+                          </button>
+                        )}
+                      </div>
+                      <div className="detail-item">
+                        <span className="label">Payment:</span>
+                        {session.isEditing ? (
+                          <button 
+                            className={`status-toggle ${session.isPaid ? 'active' : 'inactive'}`}
+                            onClick={() => handlePaymentStatusToggle(session.id, session.isPaid)}
+                          >
+                            {session.isPaid ? 'Paid' : 'Unpaid'}
+                          </button>
+                        ) : (
+                          <span className={`status-badge ${session.isPaid ? 'enabled' : 'disabled'}`}>
+                            {session.isPaid ? 'Paid' : 'Unpaid'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="detail-item">
+                      <span className="label">Notes:</span>
+                      {session.isEditing ? (
+                        <textarea
+                          className="inline-textarea"
+                          placeholder="Add notes..."
+                          rows={2}
+                          value={session.notes || ''}
+                          onChange={(e) => handleFieldChange(session.id, 'notes', e.target.value)}
+                        />
+                      ) : (
+                        <span className="detail-value notes-content">{session.notes || 'No notes'}</span>
+                      )}
+                    </div>
+
+                    <div className="detail-item">
+                      <span className="label">Summary:</span>
+                      {session.isEditing ? (
+                        <textarea
+                          className="inline-textarea"
+                          placeholder="Add summary..."
+                          rows={2}
+                          value={session.summary || ''}
+                          onChange={(e) => handleFieldChange(session.id, 'summary', e.target.value)}
+                        />
+                      ) : (
+                        <span className="detail-value summary-content">{session.summary || 'No summary'}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Add/Edit Session Modal */}
+        <AddSessionModal
+          session={editingSession}
+          isOpen={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingSession(null);
+          }}
+          onSuccess={() => {
+            loadData();
+            onRefresh?.();
+          }}
+        />
+      </div>
     </div>
   );
 };

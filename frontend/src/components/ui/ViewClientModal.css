@@ -1,3 +1,5 @@
+/* 🎭 View Client Modal - Unified Design System */
+
 /* Modal Overlay and Content Styles */
 .modal-overlay {
   position: fixed;
@@ -10,99 +12,122 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  z-index: 1000;
+  padding: var(--space-4);
+  z-index: var(--z-modal-backdrop);
 }
 
 .modal {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
   width: 100%;
-  max-height: calc(100vh - 2rem);
+  max-height: calc(100vh - var(--space-8));
   overflow-y: auto;
   position: relative;
-  z-index: 1001;
+  z-index: var(--z-modal);
 }
 
 .modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--secondary-200);
 }
 
 .modal__title {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #111827;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-900);
+  line-height: var(--line-height-tight);
 }
 
 .modal__body {
-  padding: 1.5rem;
+  padding: var(--space-6);
   flex: 1;
 }
 
 .modal__footer {
   display: flex;
   justify-content: flex-end;
-  padding: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  gap: 0.75rem;
+  padding: var(--space-6);
+  border-top: 1px solid var(--secondary-200);
+  gap: var(--space-3);
 }
 
-.close-button {
+.modal__close-button {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: var(--text-lg);
   cursor: pointer;
-  color: #6b7280;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: color 0.2s ease;
+  color: var(--secondary-500);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.close-button:hover {
-  color: #374151;
+.modal__close-button:hover {
+  color: var(--secondary-700);
+  background-color: var(--secondary-100);
 }
 
+.modal__close-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Unified Button Styles */
 .btn {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-base);
   border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  line-height: var(--line-height-tight);
+  min-height: 2.5rem;
 }
 
-.modal .btn-secondary {
-  background-color: #6b7280 !important;
-  color: white !important;
-  border-color: #6b7280 !important;
+.btn--secondary {
+  background-color: var(--secondary-100);
+  color: var(--secondary-900);
+  border-color: var(--secondary-200);
 }
 
-.modal .btn-secondary:hover {
-  background-color: #4b5563 !important;
-  border-color: #4b5563 !important;
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--secondary-200);
+  border-color: var(--secondary-300);
+  transform: translateY(-1px);
 }
 
-.modal .btn-primary {
-  background-color: #3b82f6 !important;
-  color: white !important;
-  border-color: #3b82f6 !important;
+.btn--primary {
+  background-color: var(--primary-600);
+  color: white;
+  border-color: var(--primary-600);
+  box-shadow: var(--shadow-sm);
 }
 
-.modal .btn-primary:hover:not(:disabled) {
-  background-color: #2563eb !important;
-  border-color: #2563eb !important;
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--primary-700);
+  border-color: var(--primary-700);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
-.modal .btn-primary:disabled {
-  background-color: #9ca3af !important;
-  border-color: #9ca3af !important;
-  cursor: not-allowed !important;
+.btn--primary:disabled {
+  background-color: var(--secondary-400);
+  border-color: var(--secondary-400);
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* View Modal Specific Styles */
@@ -114,75 +139,156 @@
 }
 
 .detail-section {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .detail-section h3 {
-  color: #333;
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--secondary-200);
 }
 
 .detail-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .detail-item label {
-  font-size: 0.9rem;
-  color: #666;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
 }
 
 .detail-item p {
   margin: 0;
-  font-size: 1rem;
-  color: #333;
+  font-size: var(--text-base);
+  color: var(--text-primary);
   word-break: break-word;
+  line-height: var(--line-height-normal);
 }
 
 .status-badge {
   display: inline-block;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
 .status-badge.enabled {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: var(--success-100);
+  color: var(--success-700);
 }
 
 .status-badge.disabled {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: var(--error-100);
+  color: var(--error-700);
 }
 
 .notes-content {
-  background-color: #f8f9fa;
-  padding: 12px;
-  border-radius: 6px;
-  border-left: 4px solid #007bff;
+  background-color: var(--secondary-50);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--primary-500);
 }
 
 .notes-content p {
   margin: 0;
-  line-height: 1.5;
-  color: #333;
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
 }
 
+/* Personal Meeting Form Styles */
+.personal-meeting-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.personal-meeting-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.personal-meeting-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.personal-meeting-form .form-group label {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.personal-meeting-form .form-input,
+.personal-meeting-form .form-textarea {
+  padding: var(--space-3);
+  border: 2px solid var(--secondary-200);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  transition: var(--transition-base);
+  background-color: var(--secondary-50);
+}
+
+.personal-meeting-form .form-input:focus,
+.personal-meeting-form .form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  background-color: white;
+  box-shadow: 0 0 0 3px var(--primary-100);
+}
+
+.personal-meeting-form .form-input:hover,
+.personal-meeting-form .form-textarea:hover {
+  border-color: var(--secondary-300);
+  background-color: white;
+}
+
+.personal-meeting-form .form-textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: var(--font-family-base);
+}
+
+.personal-meeting-form .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.personal-meeting-form .form-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--primary-500);
+  cursor: pointer;
+}
+
+.personal-meeting-form .form-checkbox:checked {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .detail-grid {
     grid-template-columns: 1fr;
@@ -190,96 +296,43 @@
   
   .view-modal {
     width: 95%;
-    margin: 20px;
+    margin: var(--space-5);
   }
-}
-
-/* Personal Meeting Form Styles */
-.personal-meeting-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.personal-meeting-form .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.personal-meeting-form .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.personal-meeting-form .form-group label {
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-}
-
-.personal-meeting-form .form-input,
-.personal-meeting-form .form-textarea {
-  padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-  background-color: #f9fafb;
-}
-
-.personal-meeting-form .form-input:focus,
-.personal-meeting-form .form-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.personal-meeting-form .form-input:hover,
-.personal-meeting-form .form-textarea:hover {
-  border-color: #d1d5db;
-  background-color: white;
-}
-
-.personal-meeting-form .form-textarea {
-  resize: vertical;
-  min-height: 100px;
-  font-family: inherit;
-}
-
-.personal-meeting-form .checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-weight: 500;
-  color: #374151;
-}
-
-.personal-meeting-form .form-checkbox {
-  width: 1.25rem;
-  height: 1.25rem;
-  accent-color: #3b82f6;
-  cursor: pointer;
-}
-
-.personal-meeting-form .form-checkbox:checked {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-}
-
-/* Responsive Design for Personal Meeting Form */
-@media (max-width: 768px) {
+  
   .personal-meeting-form .form-row {
     grid-template-columns: 1fr;
   }
   
   .personal-meeting-form .form-input,
   .personal-meeting-form .form-textarea {
-    font-size: 1rem;
+    font-size: var(--text-base);
+  }
+  
+  .modal__header,
+  .modal__body,
+  .modal__footer {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: var(--space-2);
+  }
+  
+  .modal {
+    max-height: 90vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  
+  .modal__title {
+    font-size: var(--text-lg);
+  }
+  
+  .btn {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    min-height: 2rem;
   }
 } 

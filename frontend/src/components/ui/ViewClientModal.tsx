@@ -34,7 +34,15 @@ const ViewClientModal: React.FC<ViewClientModalProps> = ({ client, isOpen, onClo
       <div className="modal modal--lg view-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
           <h2 className="modal__title">Client Details</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button 
+            className="modal__close-button" 
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
         <div className="modal__body">
@@ -98,7 +106,7 @@ const ViewClientModal: React.FC<ViewClientModalProps> = ({ client, isOpen, onClo
         </div>
         
         <div className="modal__footer">
-          <button className="btn btn-secondary" onClick={onClose}>
+          <button className="btn btn--secondary" onClick={onClose}>
             Close
           </button>
         </div>

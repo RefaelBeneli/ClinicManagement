@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { PersonalMeeting } from '../../types';
-import './ViewPersonalMeetingModal.css';
 import './Modal.css';
 
 interface ViewPersonalMeetingModalProps {
@@ -36,12 +35,45 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
     }).format(amount);
   };
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }) + ' ' + date.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'enabled';
+      case 'CANCELLED':
+        return 'disabled';
+      case 'SCHEDULED':
+        return 'enabled';
+      default:
+        return 'disabled';
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal--lg view-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
           <h2 className="modal__title">Personal Meeting Details</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button 
+            className="modal__close-button" 
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
         <div className="modal__body">
@@ -77,14 +109,7 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
             <div className="detail-grid">
               <div className="detail-item">
                 <label><strong>Date & Time:</strong></label>
-                <p>{new Date(meeting.meetingDate).toLocaleDateString('en-GB', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                })} {new Date(meeting.meetingDate).toLocaleTimeString('en-GB', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</p>
+                <p>{formatDateTime(meeting.meetingDate)}</p>
               </div>
               
               <div className="detail-item">
@@ -94,24 +119,19 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
               
               <div className="detail-item">
                 <label><strong>Price:</strong></label>
-                <p className="price-text">{formatCurrency(meeting.price)}</p>
+                <p className="amount-text">{formatCurrency(meeting.price)}</p>
               </div>
               
               <div className="detail-item">
                 <label><strong>Status:</strong></label>
-                <span className={`status-badge ${meeting.status.toLowerCase()}`}>
+                <span className={`status-badge ${getStatusColor(meeting.status)}`}>
                   {meeting.status}
                 </span>
               </div>
-            </div>
-          </div>
-
-          <div className="detail-section">
-            <h3>Payment Information</h3>
-            <div className="detail-grid">
+              
               <div className="detail-item">
                 <label><strong>Payment Status:</strong></label>
-                <span className={`payment-badge ${meeting.isPaid ? 'paid' : 'unpaid'}`}>
+                <span className={`status-badge ${meeting.isPaid ? 'enabled' : 'disabled'}`}>
                   {meeting.isPaid ? 'Paid' : 'Unpaid'}
                 </span>
               </div>
@@ -119,14 +139,7 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
               {meeting.paymentDate && (
                 <div className="detail-item">
                   <label><strong>Payment Date:</strong></label>
-                  <p>{new Date(meeting.paymentDate).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                  })} {new Date(meeting.paymentDate).toLocaleTimeString('en-GB', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
+                  <p>{new Date(meeting.paymentDate).toLocaleDateString()}</p>
                 </div>
               )}
             </div>
@@ -137,25 +150,14 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
               <h3>Recurrence Information</h3>
               <div className="detail-grid">
                 <div className="detail-item">
-                  <label><strong>Recurring:</strong></label>
-                  <span className="recurring-badge">🔄 Yes</span>
+                  <label><strong>Recurrence Frequency:</strong></label>
+                  <p>{meeting.recurrenceFrequency}</p>
                 </div>
-                
-                {meeting.recurrenceFrequency && (
-                  <div className="detail-item">
-                    <label><strong>Frequency:</strong></label>
-                    <p>{meeting.recurrenceFrequency}</p>
-                  </div>
-                )}
                 
                 {meeting.nextDueDate && (
                   <div className="detail-item">
                     <label><strong>Next Due Date:</strong></label>
-                    <p>{new Date(meeting.nextDueDate).toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    })}</p>
+                    <p>{new Date(meeting.nextDueDate).toLocaleDateString()}</p>
                   </div>
                 )}
               </div>
@@ -173,7 +175,7 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
 
           {meeting.summary && (
             <div className="detail-section">
-              <h3>Session Summary</h3>
+              <h3>Summary</h3>
               <div className="notes-content">
                 <p>{meeting.summary}</p>
               </div>
@@ -190,21 +192,14 @@ const ViewPersonalMeetingModal: React.FC<ViewPersonalMeetingModalProps> = ({ mee
               
               <div className="detail-item">
                 <label><strong>Created:</strong></label>
-                <p>{new Date(meeting.createdAt).toLocaleDateString('en-GB', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                })} {new Date(meeting.createdAt).toLocaleTimeString('en-GB', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</p>
+                <p>{formatDateTime(meeting.createdAt)}</p>
               </div>
             </div>
           </div>
         </div>
         
         <div className="modal__footer">
-          <button className="btn btn-secondary" onClick={onClose}>
+          <button className="btn btn--secondary" onClick={onClose}>
             Close
           </button>
         </div>

@@ -1555,13 +1555,13 @@ const TherapistPanel: React.FC = () => {
               </div>
               <div className="section-actions">
                 <button 
-                  className="btn-primary"
+                  className="btn btn--primary"
                   onClick={handleAddClient}
                 >
                   ➕ Add New Client
                 </button>
                 <button 
-                  className="btn-secondary"
+                  className="btn btn--secondary"
                   onClick={() => setShowClientPanel(true)}
                 >
                   📊 Client Management
@@ -1782,14 +1782,16 @@ const TherapistPanel: React.FC = () => {
               </div>
               <div className="button-group">
                 <button 
-                  className="btn-primary"
+                  className="btn btn--primary"
                   onClick={handleAddSession}
                 >
                   ➕ Add New Session
                 </button>
                 <button 
-                  className="btn-secondary"
-                  onClick={() => setShowSessionPanel(true)}
+                  className="btn btn--secondary"
+                  onClick={() => {
+                    setShowSessionPanel(true);
+                  }}
                 >
                   📊 Sessions Management
                 </button>
@@ -2170,13 +2172,13 @@ const TherapistPanel: React.FC = () => {
               </div>
               <div className="button-group">
                 <button 
-                  className="btn-primary"
+                  className="btn btn--primary"
                   onClick={handleAddPersonalMeeting}
                 >
                   ➕ Add New Personal Session
                 </button>
                 <button 
-                  className="btn-secondary"
+                  className="btn btn--secondary"
                   onClick={() => setShowPersonalMeetingPanel(true)}
                 >
                   📊 Personal Sessions Manager
@@ -2544,13 +2546,13 @@ const TherapistPanel: React.FC = () => {
               </div>
               <div className="section-actions">
                 <button 
-                  className="btn-primary"
+                  className="btn btn--primary"
                   onClick={handleAddExpense}
                 >
                   ➕ Add New Expense
                 </button>
                 <button 
-                  className="btn-secondary"
+                  className="btn btn--secondary"
                   onClick={() => setShowExpensePanel(true)}
                 >
                   📊 Expense Management
@@ -2897,9 +2899,10 @@ const TherapistPanel: React.FC = () => {
       />
 
       <AddSessionModal
+        session={null}
         isOpen={showAddSessionModal}
         onClose={closeAddModals}
-        onSessionAdded={handleRefreshData}
+        onSuccess={handleRefreshData}
       />
 
       <AddPersonalMeetingModal
@@ -2942,9 +2945,9 @@ const TherapistPanel: React.FC = () => {
               </div>
             </div>
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={handleCancelPaymentType}>Cancel</button>
+              <button className="btn btn--secondary" onClick={handleCancelPaymentType}>Cancel</button>
               <button 
-                className="btn-primary" 
+                className="btn btn--primary" 
                 onClick={handleConfirmPaymentType}
                 disabled={!selectedPaymentType}
               >

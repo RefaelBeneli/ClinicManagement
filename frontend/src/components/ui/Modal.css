@@ -52,24 +52,28 @@
 
 /* 📏 Modal Sizes */
 .modal--sm {
-  max-width: 400px;
+  max-width: 400px !important;
+  width: 400px !important;
 }
 
 .modal--md {
-  max-width: 500px;
+  max-width: 500px !important;
+  width: 500px !important;
 }
 
 .modal--lg {
-  max-width: 800px;
+  max-width: 800px !important;
+  width: 800px !important;
 }
 
 .modal--xl {
-  max-width: 1200px;
+  max-width: 1200px !important;
+  width: 1200px !important;
 }
 
 .modal--full {
-  max-width: calc(100vw - var(--space-8));
-  max-height: calc(100vh - var(--space-8));
+  max-width: calc(100vw - var(--space-8)) !important;
+  max-height: calc(100vh - var(--space-8)) !important;
 }
 
 /* 🎯 Modal Header */
