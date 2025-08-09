@@ -465,7 +465,7 @@ const Dashboard: React.FC = () => {
             <div className="actions-grid">
               <button className="action-button" onClick={handleAddClient}>Add New Client</button>
               <button className="action-button" onClick={handleScheduleMeeting}>Schedule Meeting</button>
-              <button className="action-button" onClick={handleManageMeetings}>Manage Meetings</button>
+
               <button className="action-button" onClick={handleAddPersonalSession}>My Personal Sessions</button>
               <button className="action-button" onClick={handleViewCalendar}>View Calendar</button>
               <button className="action-button" onClick={handleManageExpenses} style={{backgroundColor: 'red'}}>💰 Manage Expenses</button>

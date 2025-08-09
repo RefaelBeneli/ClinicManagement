@@ -8,6 +8,7 @@ import ClientPanel from './ClientPanel';
 import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
 import AnalyticsPanel from './AnalyticsPanel';
+import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
 import { clients, meetings, personalMeetings, expenses, paymentTypes as paymentTypesApi } from '../services/api';
 import { 
   Client, 
@@ -31,6 +32,7 @@ import EditExpenseModal from './ui/EditExpenseModal';
 import AddClientModal from './ui/AddClientModal';
 import AddSessionModal from './ui/AddSessionModal';
 import AddPersonalMeetingModal from './ui/AddPersonalMeetingModal';
+import AddExpenseModal from './ui/AddExpenseModal';
 import './TherapistPanel.css';
 
 // Sortable table header component
@@ -143,7 +145,7 @@ const TherapistPanel: React.FC = () => {
   const [meetingTypes, setMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'meetings' | 'personal-meetings' | 'expenses' | 'analytics' | 'calendar'>('dashboard');
-  const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
+  // const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false); // Temporarily commented out to fix unused variable warning
   
   // Sorting state for each table
   const [clientSortBy, setClientSortBy] = useState<'id' | 'fullName' | 'email' | 'phone' | 'active' | 'createdAt' | 'source'>('id');
@@ -188,6 +190,40 @@ const TherapistPanel: React.FC = () => {
     expenseDate: ''
   });
 
+  // Bulk operations for meetings
+  const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
+  const [bulkProgress, setBulkProgress] = useState<BulkOperationProgress | undefined>();
+  const [showMeetingStatusSelector, setShowMeetingStatusSelector] = useState(false);
+  const [pendingMeetingStatusChange, setPendingMeetingStatusChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+  const [showMeetingPaymentSelector, setShowMeetingPaymentSelector] = useState(false);
+  const [pendingMeetingPaymentChange, setPendingMeetingPaymentChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+  const [showMeetingActivationSelector, setShowMeetingActivationSelector] = useState(false);
+  const [pendingMeetingActivationChange, setPendingMeetingActivationChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+
+  // Bulk operations for clients
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [clientBulkProgress, setClientBulkProgress] = useState<BulkOperationProgress | undefined>();
+  const [showClientActivationSelector, setShowClientActivationSelector] = useState(false);
+  const [pendingClientActivationChange, setPendingClientActivationChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+
+  // Bulk operations for personal meetings
+  const [selectedPersonalMeetings, setSelectedPersonalMeetings] = useState<string[]>([]);
+  const [personalMeetingBulkProgress, setPersonalMeetingBulkProgress] = useState<BulkOperationProgress | undefined>();
+  const [showStatusSelector, setShowStatusSelector] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+  const [pendingPaymentChange, setPendingPaymentChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+  const [showActivationSelector, setShowActivationSelector] = useState(false);
+  const [pendingActivationChange, setPendingActivationChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+
+  // Bulk operations for expenses
+  const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
+  const [expenseBulkProgress, setExpenseBulkProgress] = useState<BulkOperationProgress | undefined>();
+  const [showExpensePaymentSelector, setShowExpensePaymentSelector] = useState(false);
+  const [pendingExpensePaymentChange, setPendingExpensePaymentChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+  const [showExpenseActivationSelector, setShowExpenseActivationSelector] = useState(false);
+  const [pendingExpenseActivationChange, setPendingExpenseActivationChange] = useState<{actionId: string, selectedIds: string[]} | null>(null);
+
   // Panel states
   const [showMeetingPanel, setShowMeetingPanel] = useState(false);
   const [showPersonalMeetingPanel, setShowPersonalMeetingPanel] = useState(false);
@@ -212,8 +248,8 @@ const TherapistPanel: React.FC = () => {
 
   // Add modal states
   const [addClientModal, setAddClientModal] = useState(false);
-  const [addMeetingModal, setAddMeetingModal] = useState(false);
-  const [addPersonalMeetingModal, setAddPersonalMeetingModal] = useState(false);
+  // const [addMeetingModal, setAddMeetingModal] = useState(false); // Temporarily commented out to fix unused variable warning
+  // const [addPersonalMeetingModal, setAddPersonalMeetingModal] = useState(false); // Temporarily commented out to fix unused variable warning
   const [addExpenseModal, setAddExpenseModal] = useState(false);
 
   // Payment type selection state
@@ -243,16 +279,16 @@ const TherapistPanel: React.FC = () => {
   });
 
   // Analytics state
-  const [analytics, setAnalytics] = useState<any>({
-    revenueStats: null,
-    meetingStats: null,
-    clientStats: null,
-    expenseStats: null,
-    personalMeetingStats: null
-  });
+  // const [analytics, setAnalytics] = useState<any>({ // Temporarily commented out to fix unused variable warning
+  //   revenueStats: null,
+  //   meetingStats: null,
+  //   clientStats: null,
+  //   expenseStats: null,
+  //   personalMeetingStats: null
+  // });
 
   // Analytics period state
-  const [analyticsPeriod, setAnalyticsPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  // const [analyticsPeriod, setAnalyticsPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly'); // Temporarily commented out to fix unused variable warning
 
   // Sorting handlers
   const handleClientSort = (column: string) => {
@@ -655,7 +691,7 @@ const TherapistPanel: React.FC = () => {
   const fetchAnalytics = useCallback(async () => {
     try {
       // Revenue analytics
-      const revenueStats = await meetings.getRevenueStats(analyticsPeriod);
+      // const revenueStats = await meetings.getRevenueStats(analyticsPeriod); // Temporarily commented out to fix unused variable warning
       
       // Meeting analytics
       const meetingStats = {
@@ -714,17 +750,17 @@ const TherapistPanel: React.FC = () => {
         totalSpent: personalMeetingList.reduce((sum, m) => sum + m.price, 0)
       };
 
-      setAnalytics({
-        revenueStats,
-        meetingStats,
-        clientStats,
-        expenseStats,
-        personalMeetingStats
-      });
+      // setAnalytics({ // Temporarily commented out to fix unused variable warning
+      //   revenueStats,
+      //   meetingStats,
+      //   clientStats,
+      //   expenseStats,
+      //   personalMeetingStats
+      // });
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
     }
-  }, [meetingList, clientList, expenseList, personalMeetingList, analyticsPeriod]);
+  }, [meetingList, clientList, expenseList, personalMeetingList]); // Temporarily removed analyticsPeriod to fix unused variable warning
 
   const loadTherapistData = useCallback(async () => {
     setLoading(true);
@@ -774,6 +810,692 @@ const TherapistPanel: React.FC = () => {
     }
   }, [loading, fetchDashboardStats, fetchAnalytics]);
 
+  // Bulk operations handlers for meetings
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'changePayment',
+      label: 'Change Payment Status',
+      icon: '💰',
+      color: '#28a745',
+      requiresConfirmation: false
+    },
+    {
+      id: 'changeStatus',
+      label: 'Change Status',
+      icon: '📝',
+      color: '#17a2b8',
+      requiresConfirmation: false
+    },
+    {
+      id: 'changeActivation',
+      label: 'Change Activation Status',
+      icon: '🔄',
+      color: '#17a2b8',
+      requiresConfirmation: false
+    }
+  ];
+
+  const handleMeetingSelect = (meetingId: number, selected: boolean) => {
+    const meetingKey = meetingId.toString();
+    if (selected) {
+      setSelectedMeetings(prev => [...prev, meetingKey]);
+    } else {
+      setSelectedMeetings(prev => prev.filter(id => id !== meetingKey));
+    }
+  };
+
+  const handleSelectAllMeetings = (selected: boolean) => {
+    if (selected) {
+      const allMeetingIds = sortedMeetingList.map(m => m.id.toString());
+      setSelectedMeetings(allMeetingIds);
+    } else {
+      setSelectedMeetings([]);
+    }
+  };
+
+  const handleClearMeetingSelection = () => {
+    setSelectedMeetings([]);
+  };
+
+  const handleBulkMeetingActionExecute = async (actionId: string, selectedIds: string[]) => {
+    // Handle selector actions
+    if (actionId === 'changePayment') {
+      setPendingMeetingPaymentChange({ actionId, selectedIds });
+      setShowMeetingPaymentSelector(true);
+      return;
+    }
+    
+    if (actionId === 'changeStatus') {
+      setPendingMeetingStatusChange({ actionId, selectedIds });
+      setShowMeetingStatusSelector(true);
+      return;
+    }
+    
+    if (actionId === 'changeActivation') {
+      setPendingMeetingActivationChange({ actionId, selectedIds });
+      setShowMeetingActivationSelector(true);
+      return;
+    }
+
+    setBulkProgress({
+      id: actionId,
+      total: selectedIds.length,
+      completed: 0,
+      failed: 0,
+      status: 'running',
+      message: `Processing ${selectedIds.length} meetings...`
+    });
+
+    try {
+      for (let i = 0; i < selectedIds.length; i++) {
+        const meetingId = parseInt(selectedIds[i]);
+        
+        switch (actionId) {
+          // Handle payment changes from selector
+          case 'PAID':
+            await meetings.update(meetingId, { isPaid: true });
+            break;
+          case 'UNPAID':
+            await meetings.update(meetingId, { isPaid: false });
+            break;
+          // Handle status changes from selector  
+          case 'COMPLETED':
+            await meetings.update(meetingId, { status: MeetingStatus.COMPLETED });
+            break;
+          case 'CANCELLED':
+            await meetings.update(meetingId, { status: MeetingStatus.CANCELLED });
+            break;
+          case 'NO_SHOW':
+            await meetings.update(meetingId, { status: MeetingStatus.NO_SHOW });
+            break;
+          // Handle activation changes from selector
+          case 'ACTIVATE':
+            await meetings.activate(meetingId);
+            break;
+          case 'DEACTIVATE':
+            await meetings.deactivate(meetingId);
+            break;
+        }
+
+        setBulkProgress(prev => prev ? {
+          ...prev,
+          completed: i + 1,
+          message: `Processed ${i + 1} of ${selectedIds.length} meetings`
+        } : undefined);
+      }
+
+      setBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'completed',
+        message: `Successfully processed ${selectedIds.length} meetings`
+      } : undefined);
+
+      // Refresh data and clear selection
+      await fetchMeetings();
+      handleClearMeetingSelection();
+
+      setTimeout(() => {
+        setBulkProgress(undefined);
+      }, 2000);
+
+    } catch (error) {
+      setBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'failed',
+        message: 'Failed to process meetings'
+      } : undefined);
+
+      setTimeout(() => {
+        setBulkProgress(undefined);
+      }, 3000);
+    }
+  };
+
+  const handleProgressCancel = () => {
+    setBulkProgress(prev => prev ? {
+      ...prev,
+      status: 'cancelled',
+      message: 'Operation cancelled'
+    } : undefined);
+    
+    setTimeout(() => {
+      setBulkProgress(undefined);
+    }, 2000);
+  };
+
+  // Sessions selector handlers
+  const handleMeetingPaymentSelect = async (isPaid: boolean) => {
+    if (!pendingMeetingPaymentChange) return;
+    
+    setShowMeetingPaymentSelector(false);
+    
+    const paymentStatus = isPaid ? 'PAID' : 'UNPAID';
+    await handleBulkMeetingActionExecute(paymentStatus, pendingMeetingPaymentChange.selectedIds);
+    
+    setPendingMeetingPaymentChange(null);
+  };
+
+  const handleMeetingPaymentSelectorCancel = () => {
+    setShowMeetingPaymentSelector(false);
+    setPendingMeetingPaymentChange(null);
+  };
+
+  const handleMeetingStatusSelect = async (status: MeetingStatus) => {
+    if (!pendingMeetingStatusChange) return;
+    
+    setShowMeetingStatusSelector(false);
+    
+    await handleBulkMeetingActionExecute(status, pendingMeetingStatusChange.selectedIds);
+    
+    setPendingMeetingStatusChange(null);
+  };
+
+  const handleMeetingStatusSelectorCancel = () => {
+    setShowMeetingStatusSelector(false);
+    setPendingMeetingStatusChange(null);
+  };
+
+  const handleMeetingActivationSelect = async (isActive: boolean) => {
+    if (!pendingMeetingActivationChange) return;
+    
+    setShowMeetingActivationSelector(false);
+    
+    const activationStatus = isActive ? 'ACTIVATE' : 'DEACTIVATE';
+    await handleBulkMeetingActionExecute(activationStatus, pendingMeetingActivationChange.selectedIds);
+    
+    setPendingMeetingActivationChange(null);
+  };
+
+  const handleMeetingActivationSelectorCancel = () => {
+    setShowMeetingActivationSelector(false);
+    setPendingMeetingActivationChange(null);
+  };
+
+  // Client selector handlers
+  const handleClientActivationSelect = async (isActive: boolean) => {
+    if (!pendingClientActivationChange) return;
+    
+    setShowClientActivationSelector(false);
+    
+    const activationStatus = isActive ? 'ACTIVATE' : 'DEACTIVATE';
+    await handleBulkClientActionExecute(activationStatus, pendingClientActivationChange.selectedIds);
+    
+    setPendingClientActivationChange(null);
+  };
+
+  // Expense selector handlers
+  const handleExpensePaymentSelect = async (isPaid: boolean) => {
+    if (!pendingExpensePaymentChange) return;
+    
+    setShowExpensePaymentSelector(false);
+    
+    const paymentStatus = isPaid ? 'PAID' : 'UNPAID';
+    await handleBulkExpenseActionExecute(paymentStatus, pendingExpensePaymentChange.selectedIds);
+    
+    setPendingExpensePaymentChange(null);
+  };
+
+  const handleExpenseActivationSelect = async (isActive: boolean) => {
+    if (!pendingExpenseActivationChange) return;
+    
+    setShowExpenseActivationSelector(false);
+    
+    const activationStatus = isActive ? 'ACTIVATE' : 'DEACTIVATE';
+    await handleBulkExpenseActionExecute(activationStatus, pendingExpenseActivationChange.selectedIds);
+    
+    setPendingExpenseActivationChange(null);
+  };
+
+  // Bulk operations for clients
+  const clientBulkActions: BulkAction[] = [
+    {
+      id: 'changeActivation',
+      label: 'Change Activation Status',
+      icon: '🔄',
+      color: '#17a2b8',
+      requiresConfirmation: false
+    }
+  ];
+
+  const handleClientSelect = (clientId: number, selected: boolean) => {
+    const clientKey = clientId.toString();
+    if (selected) {
+      setSelectedClients(prev => [...prev, clientKey]);
+    } else {
+      setSelectedClients(prev => prev.filter(id => id !== clientKey));
+    }
+  };
+
+  const handleSelectAllClients = (selected: boolean) => {
+    if (selected) {
+      const allClientIds = sortedClientList.map(c => c.id.toString());
+      setSelectedClients(allClientIds);
+    } else {
+      setSelectedClients([]);
+    }
+  };
+
+  const handleClearClientSelection = () => {
+    setSelectedClients([]);
+  };
+
+  const handleBulkClientActionExecute = async (actionId: string, selectedIds: string[]) => {
+    // Handle selector actions
+    if (actionId === 'changeActivation') {
+      setPendingClientActivationChange({ actionId, selectedIds });
+      setShowClientActivationSelector(true);
+      return;
+    }
+
+    setClientBulkProgress({
+      id: actionId,
+      total: selectedIds.length,
+      completed: 0,
+      failed: 0,
+      status: 'running',
+      message: `Processing ${selectedIds.length} clients...`
+    });
+
+    try {
+      for (let i = 0; i < selectedIds.length; i++) {
+        const clientId = parseInt(selectedIds[i]);
+        
+        switch (actionId) {
+          case 'ACTIVATE':
+            await clients.activate(clientId);
+            break;
+          case 'DEACTIVATE':
+            await clients.deactivate(clientId);
+            break;
+        }
+
+        setClientBulkProgress(prev => prev ? {
+          ...prev,
+          completed: i + 1,
+          message: `Processed ${i + 1} of ${selectedIds.length} clients`
+        } : undefined);
+      }
+
+      setClientBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'completed',
+        message: `Successfully processed ${selectedIds.length} clients`
+      } : undefined);
+
+      // Refresh data and clear selection
+      await fetchClients();
+      handleClearClientSelection();
+
+      setTimeout(() => {
+        setClientBulkProgress(undefined);
+      }, 2000);
+
+    } catch (error) {
+      setClientBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'failed',
+        message: 'Failed to process clients'
+      } : undefined);
+
+      setTimeout(() => {
+        setClientBulkProgress(undefined);
+      }, 3000);
+    }
+  };
+
+  const handleClientProgressCancel = () => {
+    setClientBulkProgress(prev => prev ? {
+      ...prev,
+      status: 'cancelled',
+      message: 'Operation cancelled'
+    } : undefined);
+    
+    setTimeout(() => {
+      setClientBulkProgress(undefined);
+    }, 2000);
+  };
+
+  // Bulk operations for personal meetings
+  const personalMeetingBulkActions: BulkAction[] = [
+    {
+      id: 'changePayment',
+      label: 'Change Payment Status',
+      icon: '💰',
+      color: '#28a745',
+      requiresConfirmation: false
+    },
+    {
+      id: 'changeStatus',
+      label: 'Change Status',
+      icon: '📝',
+      color: '#17a2b8',
+      requiresConfirmation: false
+    },
+    {
+      id: 'changeActivation',
+      label: 'Change Activation Status',
+      icon: '🔄',
+      color: '#17a2b8',
+      requiresConfirmation: false
+    },
+    {
+      id: 'export',
+      label: 'Export Data',
+      icon: '📋',
+      color: '#6c757d'
+    }
+  ];
+
+  const handlePersonalMeetingSelect = (meetingId: number, selected: boolean) => {
+    const meetingKey = meetingId.toString();
+    if (selected) {
+      setSelectedPersonalMeetings(prev => [...prev, meetingKey]);
+    } else {
+      setSelectedPersonalMeetings(prev => prev.filter(id => id !== meetingKey));
+    }
+  };
+
+  const handleSelectAllPersonalMeetings = (selected: boolean) => {
+    if (selected) {
+      const allMeetingIds = sortedPersonalMeetingList.map(m => m.id.toString());
+      setSelectedPersonalMeetings(allMeetingIds);
+    } else {
+      setSelectedPersonalMeetings([]);
+    }
+  };
+
+  const handleClearPersonalMeetingSelection = () => {
+    setSelectedPersonalMeetings([]);
+  };
+
+  const handleBulkPersonalMeetingActionExecute = async (actionId: string, selectedIds: string[]) => {
+    // If it's a status change action, show the status selector instead
+    if (actionId === 'changeStatus') {
+      setPendingStatusChange({ actionId, selectedIds });
+      setShowStatusSelector(true);
+      return;
+    }
+    
+    // If it's a payment change action, show the payment selector instead
+    if (actionId === 'changePayment') {
+      setPendingPaymentChange({ actionId, selectedIds });
+      setShowPaymentSelector(true);
+      return;
+    }
+    
+    // If it's an activation change action, show the activation selector instead
+    if (actionId === 'changeActivation') {
+      setPendingActivationChange({ actionId, selectedIds });
+      setShowActivationSelector(true);
+      return;
+    }
+
+    setPersonalMeetingBulkProgress({
+      id: actionId,
+      total: selectedIds.length,
+      completed: 0,
+      failed: 0,
+      status: 'running',
+      message: `Processing ${selectedIds.length} personal meetings...`
+    });
+
+    try {
+      for (let i = 0; i < selectedIds.length; i++) {
+        const meetingId = parseInt(selectedIds[i]);
+        
+        switch (actionId) {
+          // Handle status changes from the selector
+          case 'SCHEDULED':
+          case 'COMPLETED':
+          case 'CANCELLED':
+          case 'NO_SHOW':
+            await personalMeetings.update(meetingId, { status: actionId as PersonalMeetingStatus });
+            break;
+          // Handle payment changes from the selector
+          case 'PAID':
+            await personalMeetings.updatePayment(meetingId, true);
+            break;
+          case 'UNPAID':
+            await personalMeetings.updatePayment(meetingId, false);
+            break;
+          // Handle activation changes from the selector
+          case 'ACTIVATE':
+            await personalMeetings.activate(meetingId);
+            break;
+          case 'DEACTIVATE':
+            await personalMeetings.deactivate(meetingId);
+            break;
+        }
+
+        setPersonalMeetingBulkProgress(prev => prev ? {
+          ...prev,
+          completed: i + 1,
+          message: `Processed ${i + 1} of ${selectedIds.length} personal meetings`
+        } : undefined);
+      }
+
+      setPersonalMeetingBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'completed',
+        message: `Successfully processed ${selectedIds.length} personal meetings`
+      } : undefined);
+
+      // Refresh data and clear selection
+      await fetchPersonalMeetings();
+      handleClearPersonalMeetingSelection();
+
+      setTimeout(() => {
+        setPersonalMeetingBulkProgress(undefined);
+      }, 2000);
+
+    } catch (error) {
+      setPersonalMeetingBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'failed',
+        message: 'Failed to process personal meetings'
+      } : undefined);
+
+      setTimeout(() => {
+        setPersonalMeetingBulkProgress(undefined);
+      }, 3000);
+    }
+  };
+
+  // Handle status selection from the dropdown
+  const handleStatusSelect = async (status: PersonalMeetingStatus) => {
+    if (!pendingStatusChange) return;
+    
+    setShowStatusSelector(false);
+    
+    // Execute the status change with the selected status
+    await handleBulkPersonalMeetingActionExecute(status, pendingStatusChange.selectedIds);
+    
+    setPendingStatusChange(null);
+  };
+
+  const handleStatusSelectorCancel = () => {
+    setShowStatusSelector(false);
+    setPendingStatusChange(null);
+  };
+
+  // Handle payment selection from the dropdown
+  const handlePaymentSelect = async (isPaid: boolean) => {
+    if (!pendingPaymentChange) return;
+    
+    setShowPaymentSelector(false);
+    
+    // Execute the payment change with the selected status
+    const paymentStatus = isPaid ? 'PAID' : 'UNPAID';
+    await handleBulkPersonalMeetingActionExecute(paymentStatus, pendingPaymentChange.selectedIds);
+    
+    setPendingPaymentChange(null);
+  };
+
+  const handlePaymentSelectorCancel = () => {
+    setShowPaymentSelector(false);
+    setPendingPaymentChange(null);
+  };
+
+  // Handle activation selection from the dropdown
+  const handleActivationSelect = async (isActive: boolean) => {
+    if (!pendingActivationChange) return;
+    
+    setShowActivationSelector(false);
+    
+    // Execute the activation change with the selected status
+    const activationStatus = isActive ? 'ACTIVATE' : 'DEACTIVATE';
+    await handleBulkPersonalMeetingActionExecute(activationStatus, pendingActivationChange.selectedIds);
+    
+    setPendingActivationChange(null);
+  };
+
+  const handleActivationSelectorCancel = () => {
+    setShowActivationSelector(false);
+    setPendingActivationChange(null);
+  };
+
+  const handlePersonalMeetingProgressCancel = () => {
+    setPersonalMeetingBulkProgress(prev => prev ? {
+      ...prev,
+      status: 'cancelled',
+      message: 'Operation cancelled'
+    } : undefined);
+    
+    setTimeout(() => {
+      setPersonalMeetingBulkProgress(undefined);
+    }, 2000);
+  };
+
+  // Bulk operations for expenses
+  const expenseBulkActions: BulkAction[] = [
+    {
+      id: 'changePayment',
+      label: 'Change Payment Status',
+      icon: '💰',
+      color: '#28a745',
+      requiresConfirmation: false
+    },
+    {
+      id: 'changeActivation',
+      label: 'Change Activation Status',
+      icon: '🔄',
+      color: '#17a2b8',
+      requiresConfirmation: false
+    }
+  ];
+
+  const handleExpenseSelect = (expenseId: number, selected: boolean) => {
+    const expenseKey = expenseId.toString();
+    if (selected) {
+      setSelectedExpenses(prev => [...prev, expenseKey]);
+    } else {
+      setSelectedExpenses(prev => prev.filter(id => id !== expenseKey));
+    }
+  };
+
+  const handleSelectAllExpenses = (selected: boolean) => {
+    if (selected) {
+      const allExpenseIds = sortedExpenseList.map(e => e.id.toString());
+      setSelectedExpenses(allExpenseIds);
+    } else {
+      setSelectedExpenses([]);
+    }
+  };
+
+  const handleClearExpenseSelection = () => {
+    setSelectedExpenses([]);
+  };
+
+  const handleBulkExpenseActionExecute = async (actionId: string, selectedIds: string[]) => {
+    // Handle selector actions
+    if (actionId === 'changePayment') {
+      setPendingExpensePaymentChange({ actionId, selectedIds });
+      setShowExpensePaymentSelector(true);
+      return;
+    }
+    
+    if (actionId === 'changeActivation') {
+      setPendingExpenseActivationChange({ actionId, selectedIds });
+      setShowExpenseActivationSelector(true);
+      return;
+    }
+
+    setExpenseBulkProgress({
+      id: actionId,
+      total: selectedIds.length,
+      completed: 0,
+      failed: 0,
+      status: 'running',
+      message: `Processing ${selectedIds.length} expenses...`
+    });
+
+    try {
+      for (let i = 0; i < selectedIds.length; i++) {
+        const expenseId = parseInt(selectedIds[i]);
+        
+        switch (actionId) {
+          // Handle payment changes from selector
+          case 'PAID':
+            await expenses.update(expenseId, { isPaid: true });
+            break;
+          case 'UNPAID':
+            await expenses.update(expenseId, { isPaid: false });
+            break;
+          // Handle activation changes from selector
+          case 'ACTIVATE':
+            await expenses.activate(expenseId);
+            break;
+          case 'DEACTIVATE':
+            await expenses.deactivate(expenseId);
+            break;
+        }
+
+        setExpenseBulkProgress(prev => prev ? {
+          ...prev,
+          completed: i + 1,
+          message: `Processed ${i + 1} of ${selectedIds.length} expenses`
+        } : undefined);
+      }
+
+      setExpenseBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'completed',
+        message: `Successfully processed ${selectedIds.length} expenses`
+      } : undefined);
+
+      // Refresh data and clear selection
+      await fetchExpenses();
+      handleClearExpenseSelection();
+
+      setTimeout(() => {
+        setExpenseBulkProgress(undefined);
+      }, 2000);
+
+    } catch (error) {
+      setExpenseBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'failed',
+        message: 'Failed to process expenses'
+      } : undefined);
+
+      setTimeout(() => {
+        setExpenseBulkProgress(undefined);
+      }, 3000);
+    }
+  };
+
+  const handleExpenseProgressCancel = () => {
+    setExpenseBulkProgress(prev => prev ? {
+      ...prev,
+      status: 'cancelled',
+      message: 'Operation cancelled'
+    } : undefined);
+    
+    setTimeout(() => {
+      setExpenseBulkProgress(undefined);
+    }, 2000);
+  };
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -805,35 +1527,35 @@ const TherapistPanel: React.FC = () => {
     }).format(amount);
   };
 
-  const formatPaymentDate = (meeting: Meeting) => {
-    if (meeting.isPaid && meeting.paymentDate) {
-      return new Date(meeting.paymentDate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } else if (meeting.isPaid) {
-      return 'Paid (No date)';
-    } else {
-      return '-';
-    }
-  };
+  // const formatPaymentDate = (meeting: Meeting) => { // Temporarily commented out to fix unused variable warning
+  //   if (meeting.isPaid && meeting.paymentDate) {
+  //     return new Date(meeting.paymentDate).toLocaleDateString('en-US', {
+  //       year: 'numeric',
+  //       month: 'short',
+  //       day: 'numeric',
+  //       hour: '2-digit',
+  //       minute: '2-digit'
+  //     });
+  //   } else if (meeting.isPaid) {
+  //     return 'Paid (No date)';
+  //   } else {
+  //     return '-';
+  //   }
+  // };
 
-  const getPaymentDateStyle = (meeting: Meeting) => {
-    if (meeting.isPaid && meeting.paymentDate) {
-      return { fontSize: '0.75rem', color: '#059669', fontWeight: '500' };
-    } else if (meeting.isPaid) {
-      return { fontSize: '0.75rem', color: '#f59e0b', fontStyle: 'italic' };
-    } else {
-      return { fontSize: '0.75rem', color: '#6b7280', fontStyle: 'italic' };
-    }
-  };
+  // const getPaymentDateStyle = (meeting: Meeting) => { // Temporarily commented out to fix unused variable warning
+  //   if (meeting.isPaid && meeting.paymentDate) {
+  //     return { fontSize: '0.75rem', color: '#059669', fontWeight: '500' };
+  //   } else if (meeting.isPaid) {
+  //     return { fontSize: '0.75rem', color: '#f59e0b', fontStyle: 'italic' };
+  //   } else {
+  //     return { fontSize: '0.75rem', color: '#6b7280', fontStyle: 'italic' };
+  //   }
+  // };
 
-  const getSourceName = (meeting: Meeting) => {
-    return meeting.source?.name || 'Unknown Source';
-  };
+  // const getSourceName = (meeting: Meeting) => { // Temporarily commented out to fix unused variable warning
+  //   return meeting.source?.name || 'Unknown Source';
+  // };
 
   // Payment toggle functions
   const handleMeetingPaymentToggle = async (meetingId: number, currentPaidStatus: boolean) => {
@@ -1097,9 +1819,9 @@ const TherapistPanel: React.FC = () => {
     setViewPersonalMeetingModal({ isOpen: true, meeting });
   };
 
-  const handleViewExpense = (expense: Expense) => {
-    setViewExpenseModal({ isOpen: true, expense });
-  };
+  // const handleViewExpense = (expense: Expense) => { // Temporarily commented out to fix unused variable warning
+  //   setViewExpenseModal({ isOpen: true, expense });
+  // };
 
   // Edit handlers
   const handleEditClient = (client: Client) => {
@@ -1137,9 +1859,9 @@ const TherapistPanel: React.FC = () => {
     setAddClientModal(true);
   };
 
-  const handleAddMeeting = () => {
-    setShowMeetingPanel(true);
-  };
+  // const handleAddMeeting = () => { // Temporarily commented out to fix unused variable warning
+  //   setShowMeetingPanel(true);
+  // };
 
   const handleAddSession = () => {
     setShowAddSessionModal(true);
@@ -1352,30 +2074,30 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
-  const formatPaymentType = (meeting: Meeting) => {
-    if (meeting.isPaid && meeting.paymentType) {
-      return meeting.paymentType.name;
-    } else if (meeting.isPaid) {
-      return 'Paid (No type)';
-    } else {
-      return 'Unpaid';
-    }
-  };
+  // const formatPaymentType = (meeting: Meeting) => { // Temporarily commented out to fix unused variable warning
+  //   if (meeting.isPaid && meeting.paymentType) {
+  //     return meeting.paymentType.name;
+  //   } else if (meeting.isPaid) {
+  //     return 'Paid (No type)';
+  //   } else {
+  //     return 'Unpaid';
+  //   }
+  // };
 
-  const getPaymentTypeStyle = (meeting: Meeting) => {
-    if (meeting.isPaid && meeting.paymentType) {
-      return 'paid';
-    } else if (meeting.isPaid) {
-      return 'paid-no-type';
-    } else {
-      return 'unpaid';
-    }
-  };
+  // const getPaymentTypeStyle = (meeting: Meeting) => { // Temporarily commented out to fix unused variable warning
+  //   if (meeting.isPaid && meeting.paymentType) {
+  //     return 'paid';
+  //   } else if (meeting.isPaid) {
+  //     return 'paid-no-type';
+  //   } else {
+  //     return 'unpaid';
+  //   }
+  // };
 
   // Payment type selection modal state
-  const handlePaymentTypeSelect = (type: PaymentType) => {
-    setSelectedPaymentType(type);
-  };
+  // const handlePaymentTypeSelect = (type: PaymentType) => { // Temporarily commented out to fix unused variable warning
+  //   setSelectedPaymentType(type);
+  // };
 
   const handleConfirmPaymentType = async () => {
     if (selectedPaymentType && meetingToPay) {
@@ -1560,12 +2282,7 @@ const TherapistPanel: React.FC = () => {
                 >
                   ➕ Add New Client
                 </button>
-                <button 
-                  className="btn btn--secondary"
-                  onClick={() => setShowClientPanel(true)}
-                >
-                  📊 Client Management
-                </button>
+
               </div>
             </div>
             <div className="clients-table">
@@ -1573,12 +2290,23 @@ const TherapistPanel: React.FC = () => {
                 <div className="filter-count">
                   Showing {sortedClientList.length} of {clientList.length} clients
                 </div>
-                <button 
-                  onClick={clearClientFilters}
-                  className="clear-filters-btn"
-                >
-                  Clear Filters
-                </button>
+                <div className="table-controls-right">
+                  {sortedClientList.length > 0 && (
+                    <button 
+                      className="select-all-button"
+                      onClick={() => handleSelectAllClients(selectedClients.length === 0)}
+                      title={selectedClients.length === 0 ? "Select all clients" : "Clear selection"}
+                    >
+                      {selectedClients.length === 0 ? "☐ Select All" : "☑ Clear All"} ({sortedClientList.length})
+                    </button>
+                  )}
+                  <button 
+                    onClick={clearClientFilters}
+                    className="clear-filters-btn"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
               
               {/* Filter Panel */}
@@ -1615,6 +2343,14 @@ const TherapistPanel: React.FC = () => {
               <table>
                 <thead>
                   <tr>
+                    <th style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedClients.length > 0 && selectedClients.length === sortedClientList.length}
+                        onChange={(e) => handleSelectAllClients(e.target.checked)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
                     <SortableHeader
                       column="id"
                       currentSortBy={clientSortBy}
@@ -1678,6 +2414,14 @@ const TherapistPanel: React.FC = () => {
                 <tbody>
                   {sortedClientList.map((client) => (
                     <tr key={client.id} className={!client.active ? 'disabled-item' : ''}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedClients.includes(client.id.toString())}
+                          onChange={(e) => handleClientSelect(client.id, e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
                       <td>{client.id}</td>
                       <td>
                         <input
@@ -1769,6 +2513,19 @@ const TherapistPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Bulk Operations for Clients */}
+            <BulkOperations
+              selectedItems={selectedClients}
+              totalItems={sortedClientList.length}
+              onSelectAll={handleSelectAllClients}
+              onClearSelection={handleClearClientSelection}
+              actions={clientBulkActions}
+              onActionExecute={handleBulkClientActionExecute}
+              progress={clientBulkProgress}
+              onProgressCancel={handleClientProgressCancel}
+              isVisible={true}
+            />
           </div>
         )}
 
@@ -1787,14 +2544,7 @@ const TherapistPanel: React.FC = () => {
                 >
                   ➕ Add New Session
                 </button>
-                <button 
-                  className="btn btn--secondary"
-                  onClick={() => {
-                    setShowSessionPanel(true);
-                  }}
-                >
-                  📊 Sessions Management
-                </button>
+
               </div>
             </div>
             <div className="meetings-table">
@@ -1802,12 +2552,23 @@ const TherapistPanel: React.FC = () => {
                 <div className="filter-count">
                   Showing {sortedMeetingList.length} of {meetingList.length} meetings
                 </div>
-                <button 
-                  onClick={clearMeetingFilters}
-                  className="clear-filters-btn"
-                >
-                  Clear Filters
-                </button>
+                <div className="table-controls-right">
+                  {sortedMeetingList.length > 0 && (
+                    <button 
+                      className="select-all-button"
+                      onClick={() => handleSelectAllMeetings(selectedMeetings.length === 0)}
+                      title={selectedMeetings.length === 0 ? "Select all meetings" : "Clear selection"}
+                    >
+                      {selectedMeetings.length === 0 ? "☐ Select All" : "☑ Clear All"} ({sortedMeetingList.length})
+                    </button>
+                  )}
+                  <button 
+                    onClick={clearMeetingFilters}
+                    className="clear-filters-btn"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
               
               {/* Filter Panel */}
@@ -1882,6 +2643,14 @@ const TherapistPanel: React.FC = () => {
               <table>
                 <thead>
                   <tr>
+                    <th style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedMeetings.length > 0 && selectedMeetings.length === sortedMeetingList.length}
+                        onChange={(e) => handleSelectAllMeetings(e.target.checked)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
                     <SortableHeader
                       column="id"
                       currentSortBy={meetingSortBy}
@@ -1954,6 +2723,14 @@ const TherapistPanel: React.FC = () => {
                 <tbody>
                   {sortedMeetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedMeetings.includes(meeting.id.toString())}
+                          onChange={(e) => handleMeetingSelect(meeting.id, e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
                       <td>{meeting.id}</td>
                       <td>
                         <select
@@ -2159,6 +2936,19 @@ const TherapistPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Bulk Operations for Meetings */}
+            <BulkOperations
+              selectedItems={selectedMeetings}
+              totalItems={sortedMeetingList.length}
+              onSelectAll={handleSelectAllMeetings}
+              onClearSelection={handleClearMeetingSelection}
+              actions={bulkActions}
+              onActionExecute={handleBulkMeetingActionExecute}
+              progress={bulkProgress}
+              onProgressCancel={handleProgressCancel}
+              isVisible={true}
+            />
           </div>
         )}
 
@@ -2177,12 +2967,7 @@ const TherapistPanel: React.FC = () => {
                 >
                   ➕ Add New Personal Session
                 </button>
-                <button 
-                  className="btn btn--secondary"
-                  onClick={() => setShowPersonalMeetingPanel(true)}
-                >
-                  📊 Personal Sessions Manager
-                </button>
+
               </div>
             </div>
             <div className="personal-meetings-table">
@@ -2190,12 +2975,23 @@ const TherapistPanel: React.FC = () => {
                 <div className="filter-count">
                   Showing {sortedPersonalMeetingList.length} of {personalMeetingList.length} personal meetings
                 </div>
-                <button 
-                  onClick={clearPersonalMeetingFilters}
-                  className="clear-filters-btn"
-                >
-                  Clear Filters
-                </button>
+                <div className="table-controls-right">
+                  {sortedPersonalMeetingList.length > 0 && (
+                    <button 
+                      className="select-all-button"
+                      onClick={() => handleSelectAllPersonalMeetings(selectedPersonalMeetings.length === 0)}
+                      title={selectedPersonalMeetings.length === 0 ? "Select all personal meetings" : "Clear selection"}
+                    >
+                      {selectedPersonalMeetings.length === 0 ? "☐ Select All" : "☑ Clear All"} ({sortedPersonalMeetingList.length})
+                    </button>
+                  )}
+                  <button 
+                    onClick={clearPersonalMeetingFilters}
+                    className="clear-filters-btn"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
               
               {/* Filter Panel */}
@@ -2263,6 +3059,14 @@ const TherapistPanel: React.FC = () => {
               <table>
                 <thead>
                   <tr>
+                    <th style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedPersonalMeetings.length > 0 && selectedPersonalMeetings.length === sortedPersonalMeetingList.length}
+                        onChange={(e) => handleSelectAllPersonalMeetings(e.target.checked)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
                     <SortableHeader
                       column="id"
                       currentSortBy={personalMeetingSortBy}
@@ -2334,6 +3138,14 @@ const TherapistPanel: React.FC = () => {
                 <tbody>
                   {sortedPersonalMeetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedPersonalMeetings.includes(meeting.id.toString())}
+                          onChange={(e) => handlePersonalMeetingSelect(meeting.id, e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
                       <td>{meeting.id}</td>
                       <td>
                         <input
@@ -2533,6 +3345,290 @@ const TherapistPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Bulk Operations for Personal Meetings */}
+            <BulkOperations
+              selectedItems={selectedPersonalMeetings}
+              totalItems={sortedPersonalMeetingList.length}
+              onSelectAll={handleSelectAllPersonalMeetings}
+              onClearSelection={handleClearPersonalMeetingSelection}
+              actions={personalMeetingBulkActions}
+              onActionExecute={handleBulkPersonalMeetingActionExecute}
+              progress={personalMeetingBulkProgress}
+              onProgressCancel={handlePersonalMeetingProgressCancel}
+              isVisible={true}
+            />
+
+            {/* Status Selector Modal */}
+            {showStatusSelector && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000
+              }}>
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  padding: '2rem',
+                  minWidth: '400px',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                }}>
+                  <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+                    Select New Status for {pendingStatusChange?.selectedIds.length} Personal Meetings
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                    <button
+                      onClick={() => handleStatusSelect(PersonalMeetingStatus.SCHEDULED)}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      📅 Scheduled
+                    </button>
+                    <button
+                      onClick={() => handleStatusSelect(PersonalMeetingStatus.COMPLETED)}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      ✅ Completed
+                    </button>
+                    <button
+                      onClick={() => handleStatusSelect(PersonalMeetingStatus.CANCELLED)}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      ❌ Cancelled
+                    </button>
+                    <button
+                      onClick={() => handleStatusSelect(PersonalMeetingStatus.NO_SHOW)}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      👻 No Show
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={handleStatusSelectorCancel}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                                 </div>
+               </div>
+             )}
+
+             {/* Payment Selector Modal */}
+             {showPaymentSelector && (
+               <div style={{
+                 position: 'fixed',
+                 top: 0,
+                 left: 0,
+                 right: 0,
+                 bottom: 0,
+                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 zIndex: 1000
+               }}>
+                 <div style={{
+                   backgroundColor: 'white',
+                   borderRadius: '8px',
+                   padding: '2rem',
+                   minWidth: '400px',
+                   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                 }}>
+                   <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+                     Select Payment Status for {pendingPaymentChange?.selectedIds.length} Personal Meetings
+                   </h3>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                     <button
+                       onClick={() => handlePaymentSelect(true)}
+                       style={{
+                         padding: '0.75rem 1rem',
+                         backgroundColor: '#28a745',
+                         color: 'white',
+                         border: 'none',
+                         borderRadius: '4px',
+                         cursor: 'pointer',
+                         fontSize: '1rem',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem'
+                       }}
+                     >
+                       💰 Mark as Paid
+                     </button>
+                     <button
+                       onClick={() => handlePaymentSelect(false)}
+                       style={{
+                         padding: '0.75rem 1rem',
+                         backgroundColor: '#ffc107',
+                         color: 'white',
+                         border: 'none',
+                         borderRadius: '4px',
+                         cursor: 'pointer',
+                         fontSize: '1rem',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem'
+                       }}
+                     >
+                       💸 Mark as Unpaid
+                     </button>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                     <button
+                       onClick={handlePaymentSelectorCancel}
+                       style={{
+                         padding: '0.5rem 1rem',
+                         backgroundColor: '#6c757d',
+                         color: 'white',
+                         border: 'none',
+                         borderRadius: '4px',
+                         cursor: 'pointer'
+                       }}
+                     >
+                       Cancel
+                     </button>
+                   </div>
+                 </div>
+               </div>
+             )}
+
+             {/* Activation Selector Modal */}
+             {showActivationSelector && (
+               <div style={{
+                 position: 'fixed',
+                 top: 0,
+                 left: 0,
+                 right: 0,
+                 bottom: 0,
+                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 zIndex: 1000
+               }}>
+                 <div style={{
+                   backgroundColor: 'white',
+                   borderRadius: '8px',
+                   padding: '2rem',
+                   minWidth: '400px',
+                   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                 }}>
+                   <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+                     Select Activation Status for {pendingActivationChange?.selectedIds.length} Personal Meetings
+                   </h3>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                     <button
+                       onClick={() => handleActivationSelect(true)}
+                       style={{
+                         padding: '0.75rem 1rem',
+                         backgroundColor: '#28a745',
+                         color: 'white',
+                         border: 'none',
+                         borderRadius: '4px',
+                         cursor: 'pointer',
+                         fontSize: '1rem',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem'
+                       }}
+                     >
+                       ✅ Activate Meetings
+                     </button>
+                     <button
+                       onClick={() => handleActivationSelect(false)}
+                       style={{
+                         padding: '0.75rem 1rem',
+                         backgroundColor: '#dc3545',
+                         color: 'white',
+                         border: 'none',
+                         borderRadius: '4px',
+                         cursor: 'pointer',
+                         fontSize: '1rem',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.5rem'
+                       }}
+                     >
+                       ❌ Deactivate Meetings
+                     </button>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                     <button
+                       onClick={handleActivationSelectorCancel}
+                       style={{
+                         padding: '0.5rem 1rem',
+                         backgroundColor: '#6c757d',
+                         color: 'white',
+                         border: 'none',
+                         borderRadius: '4px',
+                         cursor: 'pointer'
+                       }}
+                     >
+                       Cancel
+                     </button>
+                   </div>
+                 </div>
+               </div>
+             )}
           </div>
         )}
 
@@ -2551,12 +3647,7 @@ const TherapistPanel: React.FC = () => {
                 >
                   ➕ Add New Expense
                 </button>
-                <button 
-                  className="btn btn--secondary"
-                  onClick={() => setShowExpensePanel(true)}
-                >
-                  📊 Expense Management
-                </button>
+
               </div>
             </div>
             <div className="expenses-table">
@@ -2564,12 +3655,23 @@ const TherapistPanel: React.FC = () => {
                 <div className="filter-count">
                   Showing {sortedExpenseList.length} of {expenseList.length} expenses
                 </div>
-                <button 
-                  onClick={clearExpenseFilters}
-                  className="clear-filters-btn"
-                >
-                  Clear Filters
-                </button>
+                <div className="table-controls-right">
+                  {sortedExpenseList.length > 0 && (
+                    <button 
+                      className="select-all-button"
+                      onClick={() => handleSelectAllExpenses(selectedExpenses.length === 0)}
+                      title={selectedExpenses.length === 0 ? "Select all expenses" : "Clear selection"}
+                    >
+                      {selectedExpenses.length === 0 ? "☐ Select All" : "☑ Clear All"} ({sortedExpenseList.length})
+                    </button>
+                  )}
+                  <button 
+                    onClick={clearExpenseFilters}
+                    className="clear-filters-btn"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
               
               {/* Filter Panel */}
@@ -2617,6 +3719,14 @@ const TherapistPanel: React.FC = () => {
               <table>
                 <thead>
                   <tr>
+                    <th style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedExpenses.length > 0 && selectedExpenses.length === sortedExpenseList.length}
+                        onChange={(e) => handleSelectAllExpenses(e.target.checked)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
                     <SortableHeader
                       column="id"
                       currentSortBy={expenseSortBy}
@@ -2672,6 +3782,14 @@ const TherapistPanel: React.FC = () => {
                 <tbody>
                   {sortedExpenseList.map((expense) => (
                     <tr key={expense.id} className={expense.isActive === false ? 'disabled-item' : ''} style={expense.isActive === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedExpenses.includes(expense.id.toString())}
+                          onChange={(e) => handleExpenseSelect(expense.id, e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
                       <td>{expense.id}</td>
                       <td>
                         <input
@@ -2751,6 +3869,19 @@ const TherapistPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Bulk Operations for Expenses */}
+            <BulkOperations
+              selectedItems={selectedExpenses}
+              totalItems={sortedExpenseList.length}
+              onSelectAll={handleSelectAllExpenses}
+              onClearSelection={handleClearExpenseSelection}
+              actions={expenseBulkActions}
+              onActionExecute={handleBulkExpenseActionExecute}
+              progress={expenseBulkProgress}
+              onProgressCancel={handleExpenseProgressCancel}
+              isVisible={true}
+            />
           </div>
         )}
 
@@ -2819,6 +3950,8 @@ const TherapistPanel: React.FC = () => {
           onRefresh={fetchExpenses}
         />
       )}
+
+
 
       {showCalendar && (
         <Calendar 
@@ -2911,8 +4044,7 @@ const TherapistPanel: React.FC = () => {
         onSuccess={handleRefreshData}
       />
 
-      <EditExpenseModal
-        expense={null}
+      <AddExpenseModal
         isOpen={addExpenseModal}
         onClose={closeAddModals}
         onSuccess={handleRefreshData}
@@ -2957,8 +4089,541 @@ const TherapistPanel: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Sessions/Meetings Selector Modals */}
+      {showMeetingPaymentSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '2rem',
+            minWidth: '400px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+              Select Payment Status for {pendingMeetingPaymentChange?.selectedIds.length} Sessions
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => handleMeetingPaymentSelect(true)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                💰 Mark as Paid
+              </button>
+              <button
+                onClick={() => handleMeetingPaymentSelect(false)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#ffc107',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                💸 Mark as Unpaid
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleMeetingPaymentSelectorCancel}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMeetingStatusSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '2rem',
+            minWidth: '400px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+              Select Status for {pendingMeetingStatusChange?.selectedIds.length} Sessions
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => handleMeetingStatusSelect('COMPLETED' as any)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ✅ Completed
+              </button>
+              <button
+                onClick={() => handleMeetingStatusSelect('CANCELLED' as any)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ❌ Cancelled
+              </button>
+              <button
+                onClick={() => handleMeetingStatusSelect('NO_SHOW' as any)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#6f42c1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                👻 No Show
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleMeetingStatusSelectorCancel}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMeetingActivationSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '2rem',
+            minWidth: '400px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+              Select Activation Status for {pendingMeetingActivationChange?.selectedIds.length} Sessions
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => handleMeetingActivationSelect(true)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                🔄 Activate
+              </button>
+              <button
+                onClick={() => handleMeetingActivationSelect(false)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#ffc107',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ❌ Deactivate
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleMeetingActivationSelectorCancel}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clients Selector Modals */}
+      {showClientActivationSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '2rem',
+            minWidth: '400px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+              Select Activation Status for {pendingClientActivationChange?.selectedIds.length} Clients
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => handleClientActivationSelect(true)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ✅ Activate
+              </button>
+              <button
+                onClick={() => handleClientActivationSelect(false)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#ffc107',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ❌ Deactivate
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowClientActivationSelector(false);
+                  setPendingClientActivationChange(null);
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expenses Selector Modals */}
+      {showExpensePaymentSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '2rem',
+            minWidth: '400px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+              Select Payment Status for {pendingExpensePaymentChange?.selectedIds.length} Expenses
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => handleExpensePaymentSelect(true)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                💰 Mark as Paid
+              </button>
+              <button
+                onClick={() => handleExpensePaymentSelect(false)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#ffc107',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                💸 Mark as Unpaid
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowExpensePaymentSelector(false);
+                  setPendingExpensePaymentChange(null);
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExpenseActivationSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '2rem',
+            minWidth: '400px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+              Select Activation Status for {pendingExpenseActivationChange?.selectedIds.length} Expenses
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => handleExpenseActivationSelect(true)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                🔄 Activate
+              </button>
+              <button
+                onClick={() => handleExpenseActivationSelect(false)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#ffc107',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ❌ Deactivate
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowExpenseActivationSelector(false);
+                  setPendingExpenseActivationChange(null);
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+// Add some quick CSS for the new controls
+const style = document.createElement('style');
+style.textContent = `
+  .table-controls-right {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .select-all-button {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .select-all-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+`;
+document.head.appendChild(style);
 
 export default TherapistPanel; 

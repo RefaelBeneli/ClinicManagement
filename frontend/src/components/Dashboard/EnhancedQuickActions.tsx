@@ -65,15 +65,7 @@ const EnhancedQuickActions: React.FC<EnhancedQuickActionsProps> = ({
       shortcut: 'V',
       onClick: onViewCalendar
     },
-    {
-      id: 'manage-meetings',
-      title: 'Manage Sessions',
-      description: 'View and manage client sessions',
-      icon: '📋',
-      color: 'warning',
-      shortcut: 'M',
-      onClick: onManageMeetings
-    },
+
     {
       id: 'personal-meetings',
       title: 'Personal Sessions',

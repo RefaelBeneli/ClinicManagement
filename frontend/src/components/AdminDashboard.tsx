@@ -70,7 +70,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         title: 'No Meetings Scheduled',
         message: 'Consider scheduling meetings for your clients',
         action: {
-          label: 'Manage Sessions',
+          label: 'View Sessions',
           onClick: () => onQuickAction('sessions')
         }
       });

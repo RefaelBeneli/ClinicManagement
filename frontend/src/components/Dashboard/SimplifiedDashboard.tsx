@@ -366,7 +366,7 @@ const SimplifiedDashboard: React.FC<SimplifiedDashboardProps> = () => {
         <Modal
           isOpen={activeModal === 'meetings'}
           onClose={closeModal}
-          title="Manage Sessions"
+                        title="View Sessions"
           size="xl"
         >
           <MeetingPanel onClose={closeModal} onRefresh={fetchData} />

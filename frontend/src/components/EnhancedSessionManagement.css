@@ -260,6 +260,8 @@
 /* Sessions Table */
 .sessions-table {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 60vh; /* Allows vertical scrolling when content exceeds viewport */
 }
 
 .sessions-table table {

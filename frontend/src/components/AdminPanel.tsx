@@ -298,7 +298,7 @@ const AdminPanel: React.FC = () => {
               <h4>🚀 Quick Actions</h4>
               <div className="action-buttons">
                 <button onClick={() => setActiveTab('users')}>Manage Users</button>
-                <button onClick={() => setShowMeetingPanel(true)}>Manage Meetings</button>
+                <button onClick={() => setShowMeetingPanel(true)}>View Sessions</button>
                 <button onClick={() => setShowExpensePanel(true)}>Manage Expenses</button>
                 <button onClick={() => setShowCalendar(true)}>View Calendar</button>
               </div>

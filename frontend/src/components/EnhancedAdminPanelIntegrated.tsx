@@ -5,7 +5,7 @@ import AdminSidebar, { AdminSection } from './AdminSidebar';
 import AdminDashboard from './AdminDashboard';
 import EnhancedUserManagement from './EnhancedUserManagement';
 import EnhancedClientManagement from './EnhancedClientManagement';
-import EnhancedSessionManagement from './EnhancedSessionManagement';
+import SessionPanel from './SessionPanel';
 import EnhancedPersonalMeetingManagement from './EnhancedPersonalMeetingManagement';
 import EnhancedFinancialManagement from './EnhancedFinancialManagement';
 import EnhancedSystemConfiguration from './EnhancedSystemConfiguration';
@@ -210,7 +210,8 @@ const EnhancedAdminPanelIntegrated: React.FC = () => {
       
       case 'sessions':
         return (
-          <EnhancedSessionManagement
+          <SessionPanel
+            onClose={() => {}} // Admin panel doesn't need close functionality
             onRefresh={handleRefresh}
           />
         );

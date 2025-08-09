@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { createPortal } from 'react-dom';
+// import { useAuth } from '../contexts/AuthContext'; // Temporarily commented out to fix unused variable warning
 import { clients, meetings, personalMeetings, expenses } from '../services/api';
 import { Client, Meeting, PersonalMeeting, Expense } from '../types';
 import SimpleChart from './SimpleChart';
@@ -10,6 +11,227 @@ interface AnalyticsPanelProps {
 }
 
 type TimePeriod = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'specific-month' | 'custom-range';
+
+// Reusable Period Selector Component
+interface PeriodSelectorProps {
+  period: TimePeriod;
+  setPeriod: (period: TimePeriod) => void;
+  selectedMonth: string;
+  setSelectedMonth: (month: string) => void;
+  customStartDate: string;
+  setCustomStartDate: (date: string) => void;
+  customEndDate: string;
+  setCustomEndDate: (date: string) => void;
+}
+
+const PeriodSelector: React.FC<PeriodSelectorProps> = ({
+  period,
+  setPeriod,
+  selectedMonth,
+  setSelectedMonth,
+  customStartDate,
+  setCustomStartDate,
+  customEndDate,
+  setCustomEndDate
+}) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const periodOptions = [
+    { value: 'day', label: 'Today' },
+    { value: 'week', label: 'This Week' },
+    { value: 'month', label: 'This Month' },
+    { value: 'quarter', label: 'This Quarter' },
+    { value: 'year', label: 'This Year' },
+    { value: 'specific-month', label: 'Specific Month' },
+    { value: 'custom-range', label: 'Custom Range' }
+  ];
+
+  const currentPeriodLabel = periodOptions.find(option => option.value === period)?.label || 'This Month';
+
+  const dropdownStyle = {
+    position: 'relative' as const,
+    display: 'inline-block',
+    width: '100%',
+    maxWidth: '200px',
+    zIndex: 1001 // Higher than the container to ensure proper stacking
+  };
+
+  const buttonStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '8px',
+    backgroundColor: '#ffffff',
+    color: '#1a202c',
+    fontSize: '14px',
+    fontWeight: '500' as const,
+    cursor: 'pointer' as const,
+    display: 'flex' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.2s ease'
+  };
+
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  };
+
+  const dropdownMenuStyle = {
+    position: 'fixed' as const,
+    top: dropdownPosition.top,
+    left: dropdownPosition.left,
+    width: dropdownPosition.width,
+    backgroundColor: '#ffffff',
+    border: '2px solid #e2e8f0',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    zIndex: 99999, // Extremely high z-index to ensure it appears above everything
+    maxHeight: '200px',
+    overflowY: 'auto' as const
+  };
+
+  const optionStyle = {
+    padding: '10px 16px',
+    cursor: 'pointer' as const,
+    fontSize: '14px',
+    color: '#1a202c',
+    borderBottom: '1px solid #f1f5f9',
+    transition: 'background-color 0.2s ease'
+  };
+
+  const dateInputStyle = {
+    padding: '10px 12px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '6px',
+    backgroundColor: '#ffffff',
+    color: '#1a202c',
+    fontSize: '14px',
+    fontWeight: '500' as const,
+    cursor: 'pointer' as const,
+    minWidth: '140px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.2s ease'
+  };
+
+  return (
+    <div className="period-selector">
+      <div className="period-main-controls">
+        <label htmlFor="period-select">Time Period:</label>
+        <div style={dropdownStyle}>
+          <button
+            ref={buttonRef}
+            type="button"
+            style={buttonStyle}
+            onClick={() => {
+              updateDropdownPosition();
+              setIsDropdownOpen(!isDropdownOpen);
+            }}
+            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+          >
+            <span>{currentPeriodLabel}</span>
+            <svg 
+              width="16" 
+              height="16" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+              style={{ 
+                transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease'
+              }}
+            >
+              <path d="M5.5 7.5l4.5 4.5 4.5-4.5" />
+            </svg>
+          </button>
+          
+          {isDropdownOpen && createPortal(
+            <div style={dropdownMenuStyle}>
+              {periodOptions.map((option) => (
+                <div
+                  key={option.value}
+                  style={{
+                    ...optionStyle,
+                    backgroundColor: period === option.value ? '#f1f5f9' : 'transparent',
+                    fontWeight: period === option.value ? '600' : '400'
+                  }}
+                  onClick={() => {
+                    setPeriod(option.value as TimePeriod);
+                    setIsDropdownOpen(false);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = period === option.value ? '#f1f5f9' : 'transparent';
+                  }}
+                >
+                  {option.label}
+                </div>
+              ))}
+            </div>,
+            document.body
+          )}
+        </div>
+      </div>
+      
+      {/* Specific Month Selector */}
+      {period === 'specific-month' && (
+        <div className="period-additional-controls">
+          <div className="date-input-group">
+            <label htmlFor="month-select">Month:</label>
+            <input
+              type="month"
+              id="month-select"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              style={dateInputStyle}
+              title="Select the specific month to analyze"
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Custom Range Selectors */}
+      {period === 'custom-range' && (
+        <div className="period-additional-controls">
+          <div className="date-range-inputs">
+            <div className="date-input-group">
+              <label htmlFor="start-date">From:</label>
+              <input
+                type="date"
+                id="start-date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                style={dateInputStyle}
+                title="Select the start date for the range"
+              />
+            </div>
+            <div className="date-input-group">
+              <label htmlFor="end-date">To:</label>
+              <input
+                type="date"
+                id="end-date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                style={dateInputStyle}
+                title="Select the end date for the range"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface FilteredData {
   meetings: Meeting[];
@@ -51,7 +273,7 @@ interface AnalyticsMetrics {
 }
 
 const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Temporarily commented out to fix unused variable warning
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<TimePeriod>('month');
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -232,12 +454,13 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
 
   // Calculate analytics metrics
   const analytics = useMemo((): AnalyticsMetrics => {
-    const { meetings, personalMeetings, expenses, clients } = filteredData;
+    const { meetings, expenses, clients } = filteredData;
+    // const { personalMeetings } = filteredData; // Temporarily commented out to fix unused variable warning
     
     // Previous period data for growth calculations
     const { startDate: prevStart, endDate: prevEnd } = getPreviousDateRange(period);
     const prevMeetings = filterDataByPeriod(rawData.meetings, 'meetingDate', prevStart, prevEnd);
-    const prevClients = filterDataByPeriod(rawData.clients, 'createdAt', prevStart, prevEnd);
+    // const prevClients = filterDataByPeriod(rawData.clients, 'createdAt', prevStart, prevEnd); // Temporarily commented out to fix unused variable warning
     
     // Revenue calculations
     const totalRevenue = meetings.reduce((sum, m) => sum + m.price, 0);
@@ -411,102 +634,73 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
   if (loading) {
     return (
       <div className="analytics-panel">
-        <div className="analytics-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading analytics data...</p>
+        {/* Header */}
+        <div className="analytics-header">
+          <div className="analytics-header-left">
+            <h2>📊 Practice Analytics</h2>
+            <p>Performance insights for {getPeriodLabel(period).toLowerCase()}</p>
+          </div>
+          <div className="analytics-header-right">
+            <PeriodSelector
+              period={period}
+              setPeriod={setPeriod}
+              selectedMonth={selectedMonth}
+              setSelectedMonth={setSelectedMonth}
+              customStartDate={customStartDate}
+              setCustomStartDate={setCustomStartDate}
+              customEndDate={customEndDate}
+              setCustomEndDate={setCustomEndDate}
+            />
+            {onClose && (
+              <button className="btn-close" onClick={onClose}>
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Loading Content */}
+        <div className="analytics-content">
+          <div className="analytics-loading">
+            <div className="loading-spinner"></div>
+            <p>Loading analytics data...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Show no data message
+    // Show no data message
   if (!hasData) {
-  return (
-    <div className="analytics-panel">
-      {/* Header */}
-      <div className="analytics-header">
-        <div className="analytics-header-left">
-          <h2>📊 Practice Analytics</h2>
+    return (
+      <div className="analytics-panel">
+        {/* Header */}
+        <div className="analytics-header">
+          <div className="analytics-header-left">
+            <h2>📊 Practice Analytics</h2>
             <p>Performance insights for {getPeriodLabel(period).toLowerCase()}</p>
-        </div>
-        <div className="analytics-header-right">
-          <div className="period-selector">
-            <div className="period-main-controls">
-              <label htmlFor="period-select">Time Period:</label>
-              <select 
-                id="period-select"
-                value={period} 
-                onChange={(e) => setPeriod(e.target.value as TimePeriod)}
-                className="period-select-dropdown"
-                title="Select the time period for analytics data"
-              >
-                <option value="day" title="Today only">Today</option>
-                <option value="week" title="Last 7 days">This Week</option>
-                <option value="month" title="Last 30 days">This Month</option>
-                <option value="quarter" title="Last 90 days">This Quarter</option>
-                <option value="year" title="Last 365 days">This Year</option>
-                <option value="specific-month" title="Choose a specific month">Specific Month</option>
-                <option value="custom-range" title="Choose a custom date range">Custom Range</option>
-              </select>
-            </div>
-            
-            {/* Specific Month Selector */}
-            {period === 'specific-month' && (
-              <div className="period-additional-controls">
-                <div className="date-input-group">
-                  <label htmlFor="month-select">Month:</label>
-                  <input
-                    type="month"
-                    id="month-select"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="date-input"
-                    title="Select the specific month to analyze"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Custom Range Selectors */}
-            {period === 'custom-range' && (
-              <div className="period-additional-controls">
-                <div className="date-range-inputs">
-                  <div className="date-input-group">
-                    <label htmlFor="start-date">From:</label>
-                    <input
-                      type="date"
-                      id="start-date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
-                      className="date-input"
-                      title="Select the start date for the range"
-                    />
-                  </div>
-                  <div className="date-input-group">
-                    <label htmlFor="end-date">To:</label>
-                    <input
-                      type="date"
-                      id="end-date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                      className="date-input"
-                      title="Select the end date for the range"
-                    />
-                  </div>
-                </div>
-              </div>
+          </div>
+          <div className="analytics-header-right">
+            <PeriodSelector
+              period={period}
+              setPeriod={setPeriod}
+              selectedMonth={selectedMonth}
+              setSelectedMonth={setSelectedMonth}
+              customStartDate={customStartDate}
+              setCustomStartDate={setCustomStartDate}
+              customEndDate={customEndDate}
+              setCustomEndDate={setCustomEndDate}
+            />
+            {onClose && (
+              <button className="btn-close" onClick={onClose}>
+                ✕
+              </button>
             )}
           </div>
-          {onClose && (
-            <button className="btn-close" onClick={onClose}>
-              ✕
-            </button>
-          )}
         </div>
-      </div>
 
         {/* No Data Message */}
-      <div className="analytics-content">
+        <div className="analytics-content">
           <div className="no-data-message">
             <div className="no-data-icon">📊</div>
             <h3>No Data Available</h3>
@@ -518,10 +712,10 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                 <li>Scheduling meetings</li>
                 <li>Recording business expenses</li>
               </ul>
-                      </div>
-                    </div>
-                  </div>
-                      </div>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -539,73 +733,16 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
           <p>Performance insights for {getPeriodLabel(period).toLowerCase()}</p>
                       </div>
         <div className="analytics-header-right">
-          <div className="period-selector">
-            <div className="period-main-controls">
-              <label htmlFor="period-select">Time Period:</label>
-              <select 
-                id="period-select"
-                value={period} 
-                onChange={(e) => setPeriod(e.target.value as TimePeriod)}
-                className="period-select-dropdown"
-                title="Select the time period for analytics data"
-              >
-                <option value="day" title="Today only">Today</option>
-                <option value="week" title="Last 7 days">This Week</option>
-                <option value="month" title="Last 30 days">This Month</option>
-                <option value="quarter" title="Last 90 days">This Quarter</option>
-                <option value="year" title="Last 365 days">This Year</option>
-                <option value="specific-month" title="Choose a specific month">Specific Month</option>
-                <option value="custom-range" title="Choose a custom date range">Custom Range</option>
-              </select>
-            </div>
-            
-            {/* Specific Month Selector */}
-            {period === 'specific-month' && (
-              <div className="period-additional-controls">
-                <div className="date-input-group">
-                  <label htmlFor="month-select">Month:</label>
-                  <input
-                    type="month"
-                    id="month-select"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="date-input"
-                    title="Select the specific month to analyze"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Custom Range Selectors */}
-            {period === 'custom-range' && (
-              <div className="period-additional-controls">
-                <div className="date-range-inputs">
-                  <div className="date-input-group">
-                    <label htmlFor="start-date">From:</label>
-                    <input
-                      type="date"
-                      id="start-date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
-                      className="date-input"
-                      title="Select the start date for the range"
-                    />
-                  </div>
-                  <div className="date-input-group">
-                    <label htmlFor="end-date">To:</label>
-                    <input
-                      type="date"
-                      id="end-date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                      className="date-input"
-                      title="Select the end date for the range"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <PeriodSelector
+            period={period}
+            setPeriod={setPeriod}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            customStartDate={customStartDate}
+            setCustomStartDate={setCustomStartDate}
+            customEndDate={customEndDate}
+            setCustomEndDate={setCustomEndDate}
+          />
           {onClose && (
             <button className="btn-close" onClick={onClose}>
               ✕

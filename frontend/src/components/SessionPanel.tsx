@@ -3,6 +3,7 @@ import { Meeting, MeetingStatus, PaymentType, Client, UpdateMeetingRequest } fro
 import { meetings, clients, paymentTypes as paymentTypesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import AddSessionModal from './ui/AddSessionModal';
+import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
 import './SessionPanel.css';
 
 // Helper function to get default payment types
@@ -29,6 +30,7 @@ interface SessionStats {
 // Define a type for the session data with editing state
 interface EditableSession extends Meeting {
   isEditing: boolean;
+  isSelected: boolean;
   originalData: Meeting; // To revert changes if cancelled
 }
 
@@ -61,6 +63,40 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   // Payment type selection
   const [showPaymentTypeSelection, setShowPaymentTypeSelection] = useState(false);
   const [selectedSessionForPayment, setSelectedSessionForPayment] = useState<Meeting | null>(null);
+
+    // Bulk operations
+  const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+  const [bulkProgress, setBulkProgress] = useState<BulkOperationProgress | undefined>();
+
+  // Filter and sort sessions
+  const filteredSessions = sessions
+    .filter(session => {
+      const matchesSearch = searchTerm === '' || 
+        session.client.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (session.notes && session.notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (session.summary && session.summary.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesStatus = statusFilter === 'ALL' || session.status === statusFilter;
+      const matchesPayment = paymentFilter === 'ALL' || 
+        (paymentFilter === 'PAID' && session.isPaid) ||
+        (paymentFilter === 'UNPAID' && !session.isPaid);
+
+      return matchesSearch && matchesStatus && matchesPayment;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'client':
+          const comparison = a.client.fullName.localeCompare(b.client.fullName);
+          return sortOrder === 'asc' ? comparison : -comparison;
+        case 'price':
+          return sortOrder === 'asc' ? a.price - b.price : b.price - a.price;
+        case 'date':
+        default:
+          const dateA = new Date(a.meetingDate).getTime();
+          const dateB = new Date(b.meetingDate).getTime();
+          return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+    });
 
   // Load data on mount
   useEffect(() => {
@@ -98,6 +134,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
       setSessions(sessionsData.map(session => ({
         ...session,
         isEditing: false,
+        isSelected: false,
         originalData: { ...session } // Store a copy of original data
       })));
       setClientList(clientsData);
@@ -185,7 +222,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
 
       const updatedSession = await meetings.update(sessionToSave.id, updatedFields);
       setSessions(prev => prev.map(session => 
-        session.id === updatedSession.id ? { ...updatedSession, isEditing: false, originalData: { ...updatedSession } } : session
+        session.id === updatedSession.id ? { ...updatedSession, isEditing: false, isSelected: session.isSelected, originalData: { ...updatedSession } } : session
       ));
       calculateStats(sessions); // Recalculate stats after save
       console.log('✅ Session updated successfully');
@@ -197,7 +234,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
 
   const handleCancelEdit = (sessionId: number) => {
     setSessions(prev => prev.map(session => 
-      session.id === sessionId ? { ...session.originalData, isEditing: false, originalData: session.originalData } : session
+      session.id === sessionId ? { ...session.originalData, isEditing: false, isSelected: session.isSelected, originalData: session.originalData } : session
     ));
   };
 
@@ -248,7 +285,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
         status: MeetingStatus.SCHEDULED
       });
       setSessions(prev => prev.map(session => 
-        session.id === sessionId ? { ...updatedSession, isEditing: false, originalData: { ...updatedSession } } : session
+        session.id === sessionId ? { ...updatedSession, isEditing: false, isSelected: session.isSelected, originalData: { ...updatedSession } } : session
       ));
       console.log('✅ Session restored successfully');
     } catch (error: any) {
@@ -300,6 +337,148 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     }).format(amount);
   };
 
+  // Bulk operations handlers
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'markPaid',
+      label: 'Mark as Paid',
+      icon: '💰',
+      color: '#28a745',
+      requiresConfirmation: true,
+      confirmationMessage: 'Mark the selected sessions as paid?'
+    },
+    {
+      id: 'markCompleted',
+      label: 'Mark Completed',
+      icon: '✅',
+      color: '#28a745',
+      requiresConfirmation: true,
+      confirmationMessage: 'Mark the selected sessions as completed?'
+    },
+    {
+      id: 'export',
+      label: 'Export Data',
+      icon: '📋',
+      color: '#6c757d'
+    },
+    {
+      id: 'delete',
+      label: 'Delete Sessions',
+      icon: '🗑️',
+      color: '#dc3545',
+      requiresConfirmation: true,
+      confirmationMessage: 'Are you sure you want to delete the selected sessions? This action cannot be undone.',
+      isDestructive: true
+    }
+  ];
+
+  const handleSessionSelect = (sessionId: number, selected: boolean) => {
+    const sessionKey = sessionId.toString();
+    if (selected) {
+      setSelectedSessions(prev => [...prev, sessionKey]);
+    } else {
+      setSelectedSessions(prev => prev.filter(id => id !== sessionKey));
+    }
+    
+    // Update session selection state
+    setSessions(prev => prev.map(session => 
+      session.id === sessionId ? { ...session, isSelected: selected } : session
+    ));
+  };
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      const allSessionIds = filteredSessions.map(s => s.id.toString());
+      setSelectedSessions(allSessionIds);
+    } else {
+      setSelectedSessions([]);
+    }
+    
+    // Update all session selection states
+    setSessions(prev => prev.map(session => ({
+      ...session,
+      isSelected: selected && filteredSessions.some(fs => fs.id === session.id)
+    })));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedSessions([]);
+    setSessions(prev => prev.map(session => ({ ...session, isSelected: false })));
+  };
+
+  const handleBulkActionExecute = async (actionId: string, selectedIds: string[]) => {
+    setBulkProgress({
+      id: actionId,
+      total: selectedIds.length,
+      completed: 0,
+      failed: 0,
+      status: 'running',
+      message: `Processing ${selectedIds.length} sessions...`
+    });
+
+    try {
+      for (let i = 0; i < selectedIds.length; i++) {
+        const sessionId = parseInt(selectedIds[i]);
+        
+        switch (actionId) {
+          case 'markPaid':
+            await meetings.update(sessionId, { isPaid: true });
+            break;
+          case 'markCompleted':
+            await meetings.update(sessionId, { status: MeetingStatus.COMPLETED });
+            break;
+          case 'delete':
+            await meetings.delete(sessionId);
+            break;
+        }
+
+        setBulkProgress(prev => prev ? {
+          ...prev,
+          completed: i + 1,
+          message: `Processed ${i + 1} of ${selectedIds.length} sessions`
+        } : undefined);
+      }
+
+      setBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'completed',
+        message: `Successfully processed ${selectedIds.length} sessions`
+      } : undefined);
+
+      // Refresh data and clear selection
+      await loadData();
+      handleClearSelection();
+      onRefresh?.();
+
+      setTimeout(() => {
+        setBulkProgress(undefined);
+      }, 2000);
+
+    } catch (error) {
+      setBulkProgress(prev => prev ? {
+        ...prev,
+        status: 'failed',
+        message: 'Failed to process sessions'
+      } : undefined);
+
+      setTimeout(() => {
+        setBulkProgress(undefined);
+      }, 3000);
+    }
+  };
+
+  const handleProgressCancel = () => {
+    setBulkProgress(prev => prev ? {
+      ...prev,
+      status: 'cancelled',
+      message: 'Operation cancelled'
+    } : undefined);
+    
+    setTimeout(() => {
+      setBulkProgress(undefined);
+    }, 2000);
+  };
+
   const getStatusColorClass = (status: MeetingStatus) => {
     switch (status) {
       case MeetingStatus.COMPLETED:
@@ -315,48 +494,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     }
   };
 
-  // Filter and sort sessions
-  const filteredSessions = sessions
-    .filter(session => {
-      const matchesSearch = searchTerm === '' || 
-        session.client.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (session.notes && session.notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (session.summary && session.summary.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesStatus = statusFilter === 'ALL' || session.status === statusFilter;
-      const matchesPayment = paymentFilter === 'ALL' || 
-        (paymentFilter === 'PAID' && session.isPaid) ||
-        (paymentFilter === 'UNPAID' && !session.isPaid);
-
-      return matchesSearch && matchesStatus && matchesPayment;
-    })
-    .sort((a, b) => {
-      let aValue: any, bValue: any;
-
-      switch (sortBy) {
-        case 'date':
-          aValue = new Date(a.meetingDate).getTime();
-          bValue = new Date(b.meetingDate).getTime();
-          break;
-        case 'client':
-          aValue = a.client.fullName.toLowerCase();
-          bValue = b.client.fullName.toLowerCase();
-          break;
-        case 'price':
-          aValue = a.price;
-          bValue = b.price;
-          break;
-        default:
-          aValue = new Date(a.meetingDate).getTime();
-          bValue = new Date(b.meetingDate).getTime();
-      }
-
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
 
   return (
     <div className="session-panel-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -409,6 +547,15 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                 onClick={startAddSession}
               >
                 ➕ Add New Session
+              </button>
+              
+              <button 
+                className="select-all-button"
+                onClick={() => handleSelectAll(selectedSessions.length === 0)}
+                title={selectedSessions.length === 0 ? "Select all sessions" : "Clear selection"}
+                style={{ opacity: filteredSessions.length > 0 ? 1 : 0.5 }}
+              >
+                {selectedSessions.length === 0 ? "☐ Select All" : "☑ Clear All"} ({filteredSessions.length})
               </button>
               
               <div className="search-container">
@@ -485,6 +632,14 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                 {filteredSessions.map(session => (
                   <div key={session.id} className={`session-card ${session.status === MeetingStatus.CANCELLED || session.status === MeetingStatus.NO_SHOW ? 'disabled-card' : ''}`}>
                     <div className="session-header">
+                      <div className="session-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={session.isSelected}
+                          onChange={(e) => handleSessionSelect(session.id, e.target.checked)}
+                          className="session-select-checkbox"
+                        />
+                      </div>
                       <div className="session-info">
                         {session.isEditing ? (
                           <select
@@ -667,6 +822,19 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
             )}
           </div>
         </div>
+
+        {/* Bulk Operations */}
+        <BulkOperations
+          selectedItems={selectedSessions}
+          totalItems={filteredSessions.length}
+          onSelectAll={handleSelectAll}
+          onClearSelection={handleClearSelection}
+          actions={bulkActions}
+          onActionExecute={handleBulkActionExecute}
+          progress={bulkProgress}
+          onProgressCancel={handleProgressCancel}
+          isVisible={true}
+        />
 
         {/* Add/Edit Session Modal */}
         <AddSessionModal
