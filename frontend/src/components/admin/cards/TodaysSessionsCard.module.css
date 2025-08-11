@@ -1,0 +1,91 @@
+.sessionsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sessionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sessionsCount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+}
+
+.sessionsLabel {
+  font-size: 0.875rem;
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+.sessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sessionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--admin-bg-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--admin-primary);
+}
+
+.sessionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sessionTime {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--admin-text-primary);
+}
+
+.sessionClient {
+  font-size: 0.75rem;
+  color: var(--admin-text-secondary);
+}
+
+.sessionStatus {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.sessionStatus.confirmed {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.sessionStatus.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.sessionStatus.cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+@media (max-width: 768px) {
+  .sessionsHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .sessionItem {
+    padding: 6px 8px;
+  }
+} 

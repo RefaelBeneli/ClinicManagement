@@ -1,0 +1,145 @@
+.quickActionModal {
+  width: 100%;
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-lg);
+}
+
+.placeholderContent {
+  text-align: center;
+  padding: var(--admin-space-xl) var(--admin-space-lg);
+}
+
+.iconContainer {
+  margin-bottom: var(--admin-space-lg);
+}
+
+.actionIcon {
+  font-size: 3rem;
+  display: block;
+}
+
+.placeholderTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin: 0 0 var(--admin-space-md) 0;
+}
+
+.placeholderDescription {
+  font-size: 1rem;
+  color: var(--admin-text-muted);
+  line-height: 1.5;
+  margin: 0 0 var(--admin-space-lg) 0;
+}
+
+.formPlaceholder {
+  background: var(--admin-bg);
+  border: 2px dashed var(--admin-border);
+  border-radius: 8px;
+  padding: var(--admin-space-lg);
+  margin: var(--admin-space-lg) 0;
+}
+
+.formPlaceholder p {
+  font-size: 0.875rem;
+  color: var(--admin-text-muted);
+  line-height: 1.5;
+  margin: 0 0 var(--admin-space-sm) 0;
+}
+
+.formPlaceholder p:last-child {
+  margin-bottom: 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: var(--admin-space-md);
+  justify-content: flex-end;
+  padding-top: var(--admin-space-lg);
+  border-top: 1px solid var(--admin-border);
+}
+
+.cancelButton,
+.submitButton {
+  padding: var(--admin-space-sm) var(--admin-space-lg);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.cancelButton {
+  background: transparent;
+  color: var(--admin-text-muted);
+  border-color: var(--admin-border);
+}
+
+.cancelButton:hover {
+  background: var(--admin-hover);
+  color: var(--admin-text);
+}
+
+.submitButton {
+  background: var(--admin-primary);
+  color: white;
+  border-color: var(--admin-primary);
+}
+
+.submitButton:hover {
+  background: var(--admin-primary-dark);
+  border-color: var(--admin-primary-dark);
+}
+
+/* Fallback modal styles when Modal component doesn't exist */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--admin-space-md);
+}
+
+.modalDialog {
+  background: var(--admin-surface);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--admin-space-xl);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modalActions {
+    flex-direction: column;
+  }
+  
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .placeholderContent {
+    padding: var(--admin-space-lg) var(--admin-space-md);
+  }
+  
+  .modalDialog {
+    padding: var(--admin-space-lg);
+    margin: var(--admin-space-sm);
+  }
+} 

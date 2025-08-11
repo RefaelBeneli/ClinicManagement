@@ -1,0 +1,250 @@
+.clickable-status-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  justify-content: space-between;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+}
+
+.status-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.status-badge.active {
+  box-shadow: 0 0 0 2px var(--admin-focus, #3b82f6);
+}
+
+.status-badge.loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.status-badge.loading .loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.status-text {
+  flex: 1;
+  text-align: center;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.status-badge.active .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+/* Status Badge Variants */
+.status-badge.status-active {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.status-badge.status-inactive {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.status-badge.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.status-badge.status-approved {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.status-badge.status-rejected {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.status-badge.status-scheduled {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.status-badge.status-in-progress {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.status-badge.status-completed {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.status-badge.status-cancelled {
+  background-color: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.status-badge.status-default {
+  background-color: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+/* Dropdown Menu */
+.status-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1000;
+  animation: dropdownSlideIn 0.2s ease;
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  border-radius: 8px 8px 0 0;
+}
+
+.current-status {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.dropdown-options {
+  padding: 8px 0;
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.dropdown-option:hover:not(:disabled) {
+  background-color: #f1f5f9;
+}
+
+.dropdown-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown-option.current {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.option-icon {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+}
+
+.option-label {
+  flex: 1;
+}
+
+/* Loading Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .status-dropdown-menu {
+    left: 0;
+    transform: none;
+    min-width: 180px;
+  }
+  
+  .status-badge {
+    min-width: 70px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .status-dropdown-menu {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  
+  .dropdown-header {
+    background-color: #334155;
+    border-color: #475569;
+  }
+  
+  .dropdown-option {
+    color: #e2e8f0;
+  }
+  
+  .dropdown-option:hover:not(:disabled) {
+    background-color: #475569;
+  }
+  
+  .dropdown-option.current {
+    background-color: #1e40af;
+    color: #dbeafe;
+  }
+} 

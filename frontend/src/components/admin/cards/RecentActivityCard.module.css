@@ -1,0 +1,131 @@
+.recentActivityContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activitiesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.activityItem {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background-color: var(--admin-bg-secondary);
+  border-radius: 8px;
+  border-left: 3px solid var(--admin-primary);
+  transition: all 0.2s ease;
+}
+
+.activityItem:hover {
+  background-color: var(--admin-bg-hover);
+  transform: translateX(2px);
+}
+
+.activityIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--admin-bg);
+  border-radius: 6px;
+}
+
+.activityDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.activityAction {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--admin-text-primary);
+}
+
+.activityDescription {
+  font-size: 13px;
+  color: var(--admin-text-secondary);
+  line-height: 1.4;
+}
+
+.activityMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.activityUser {
+  font-size: 12px;
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+.activityTime {
+  font-size: 11px;
+  color: var(--admin-text-tertiary);
+  font-style: italic;
+}
+
+/* Scrollbar Styling */
+.activitiesList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.activitiesList::-webkit-scrollbar-track {
+  background: var(--admin-bg);
+  border-radius: 2px;
+}
+
+.activitiesList::-webkit-scrollbar-thumb {
+  background: var(--admin-border);
+  border-radius: 2px;
+}
+
+.activitiesList::-webkit-scrollbar-thumb:hover {
+  background: var(--admin-text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .activityItem {
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .activityIcon {
+    width: 24px;
+    height: 24px;
+    font-size: 1.25rem;
+  }
+  
+  .activityHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .activityMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+} 

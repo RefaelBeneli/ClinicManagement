@@ -1,0 +1,239 @@
+.baseCard {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: var(--admin-space-lg);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.baseCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--admin-primary-light);
+}
+
+.baseCard.clickable {
+  cursor: pointer;
+}
+
+.baseCard.clickable:hover {
+  transform: translateY(-2px);
+}
+
+.baseCard.loading {
+  pointer-events: none;
+}
+
+/* Card Sizes */
+.small {
+  padding: var(--admin-space-md);
+  min-height: 120px;
+}
+
+.medium {
+  padding: var(--admin-space-lg);
+  min-height: 160px;
+}
+
+.large {
+  padding: var(--admin-space-xl);
+  min-height: 200px;
+}
+
+/* Status Variants */
+.normal {
+  border-color: var(--admin-border);
+}
+
+.warning {
+  border-left: 4px solid var(--admin-warning);
+  background: linear-gradient(135deg, var(--admin-surface) 0%, rgba(245, 158, 11, 0.05) 100%);
+}
+
+.error {
+  border-left: 4px solid var(--admin-danger);
+  background: linear-gradient(135deg, var(--admin-surface) 0%, rgba(239, 68, 68, 0.05) 100%);
+}
+
+/* Loading Overlay */
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--admin-border);
+  border-top-color: var(--admin-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Card Header */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--admin-space-md);
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-xs);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: block;
+}
+
+.statusIndicator.warning .statusDot {
+  background: var(--admin-warning);
+  animation: pulse 2s infinite;
+}
+
+.statusIndicator.error .statusDot {
+  background: var(--admin-danger);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Card Content */
+.cardContent {
+  flex: 1;
+  margin-bottom: var(--admin-space-lg);
+}
+
+/* Card Actions */
+.cardActions {
+  display: flex;
+  gap: var(--admin-space-sm);
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.cardAction {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-xs);
+  padding: var(--admin-space-sm) var(--admin-space-md);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.cardAction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cardAction.primary {
+  background: var(--admin-primary);
+  color: white;
+  border-color: var(--admin-primary);
+}
+
+.cardAction.primary:hover:not(:disabled) {
+  background: var(--admin-primary-dark);
+  border-color: var(--admin-primary-dark);
+  transform: translateY(-1px);
+}
+
+.cardAction.secondary {
+  background: transparent;
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+}
+
+.cardAction.secondary:hover:not(:disabled) {
+  background: var(--admin-hover);
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+}
+
+.cardAction.danger {
+  background: var(--admin-danger);
+  color: white;
+  border-color: var(--admin-danger);
+}
+
+.cardAction.danger:hover:not(:disabled) {
+  background: #dc2626;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.actionIcon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .baseCard {
+    padding: var(--admin-space-md);
+  }
+  
+  .large {
+    padding: var(--admin-space-lg);
+    min-height: 180px;
+  }
+  
+  .cardActions {
+    flex-direction: column;
+  }
+  
+  .cardAction {
+    justify-content: center;
+  }
+}
+
+/* Focus States for Accessibility */
+.baseCard.clickable:focus {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+}
+
+.cardAction:focus {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+} 

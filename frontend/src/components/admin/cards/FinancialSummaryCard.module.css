@@ -1,0 +1,128 @@
+.financialContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background-color: var(--admin-bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  transition: all 0.2s ease;
+}
+
+.metricCard:hover {
+  background-color: var(--admin-bg-hover);
+  border-color: var(--admin-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metricHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metricIcon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--admin-text-primary);
+  line-height: 1;
+}
+
+.metricChange {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-align: center;
+  width: fit-content;
+}
+
+.metricChange.positive {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.metricChange.negative {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.metricChange.neutral {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.summaryFooter {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-top: 1px solid var(--admin-border);
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.summaryLabel {
+  font-size: 11px;
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summaryValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+}
+
+@media (max-width: 768px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .metricCard {
+    padding: 12px;
+  }
+  
+  .metricValue {
+    font-size: 1.25rem;
+  }
+  
+  .summaryFooter {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+} 

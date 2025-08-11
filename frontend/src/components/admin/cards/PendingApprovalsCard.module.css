@@ -1,0 +1,119 @@
+.pendingApprovalsContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-md);
+  height: 100%;
+}
+
+.pendingCount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--admin-space-sm);
+}
+
+.countNumber {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+  line-height: 1;
+  margin-bottom: var(--admin-space-xs);
+}
+
+.countLabel {
+  font-size: 0.875rem;
+  color: var(--admin-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pendingDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-md);
+}
+
+.description {
+  font-size: 0.875rem;
+  color: var(--admin-text);
+  line-height: 1.5;
+  margin: 0;
+  text-align: center;
+}
+
+.urgencyIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--admin-space-xs);
+  padding: var(--admin-space-sm) var(--admin-space-md);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--admin-warning);
+  border-radius: 8px;
+  margin-top: auto;
+}
+
+.urgencyIcon {
+  font-size: 1rem;
+}
+
+.urgencyText {
+  font-size: 0.75rem;
+  color: var(--admin-warning);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.noApprovals {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--admin-space-sm);
+  text-align: center;
+}
+
+.checkIcon {
+  font-size: 2rem;
+  margin-bottom: var(--admin-space-xs);
+}
+
+.noApprovals .description {
+  color: var(--admin-success);
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .countNumber {
+    font-size: 2.5rem;
+  }
+  
+  .urgencyIndicator {
+    flex-direction: column;
+    gap: var(--admin-space-xs);
+    text-align: center;
+  }
+}
+
+/* Animation for count changes */
+@keyframes countChange {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.countNumber {
+  animation: countChange 0.3s ease-in-out;
+} 

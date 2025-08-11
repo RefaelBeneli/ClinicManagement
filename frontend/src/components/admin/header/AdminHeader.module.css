@@ -1,0 +1,279 @@
+.adminHeader {
+  height: var(--admin-header-height);
+  background: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--admin-space-lg);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-md);
+  min-width: 0;
+}
+
+.mobileMenuButton {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: var(--admin-space-sm);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.mobileMenuButton:hover {
+  background: var(--admin-hover);
+}
+
+.hamburgerIcon {
+  display: block;
+  color: var(--admin-text);
+}
+
+.clinicBrand {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-sm);
+  min-width: 0;
+}
+
+.clinicIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.clinicName {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.headerCenter {
+  flex: 1;
+  max-width: 600px;
+  margin: 0 var(--admin-space-xl);
+  min-width: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-md);
+  flex-shrink: 0;
+}
+
+.notificationButton {
+  position: relative;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: var(--admin-space-sm);
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.notificationButton:hover {
+  background: var(--admin-hover);
+}
+
+.notificationIcon {
+  display: block;
+  color: var(--admin-text-muted);
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--admin-danger);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1;
+}
+
+.userMenu {
+  position: relative;
+}
+
+.userButton {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--admin-space-sm) var(--admin-space-md);
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.userButton:hover {
+  background: var(--admin-hover);
+}
+
+.userAvatar {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.userName {
+  font-weight: 500;
+  color: var(--admin-text);
+  white-space: nowrap;
+}
+
+.dropdownArrow {
+  font-size: 0.75rem;
+  color: var(--admin-text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dropdownArrow.rotated {
+  transform: rotate(180deg);
+}
+
+.userDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  padding: var(--admin-space-md);
+  z-index: 50;
+  animation: dropdownEnter 0.2s ease;
+}
+
+@keyframes dropdownEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-xs);
+  margin-bottom: var(--admin-space-md);
+}
+
+.userEmail {
+  font-size: 0.875rem;
+  color: var(--admin-text);
+  font-weight: 500;
+}
+
+.userRole {
+  font-size: 0.75rem;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.divider {
+  border: none;
+  height: 1px;
+  background: var(--admin-border);
+  margin: 0 0 var(--admin-space-md) 0;
+}
+
+.logoutButton {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: var(--admin-space-sm);
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--admin-danger);
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-sm);
+}
+
+.logoutButton:hover {
+  background: var(--admin-hover);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .headerCenter {
+    margin: 0 var(--admin-space-md);
+  }
+}
+
+@media (max-width: 768px) {
+  .adminHeader {
+    padding: 0 var(--admin-space-md);
+  }
+  
+  .mobileMenuButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .headerCenter {
+    display: none;
+  }
+  
+  .userName {
+    display: none;
+  }
+  
+  .clinicName {
+    font-size: 1.125rem;
+  }
+  
+  .headerLeft {
+    gap: var(--admin-space-sm);
+  }
+  
+  .headerRight {
+    gap: var(--admin-space-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .adminHeader {
+    padding: 0 var(--admin-space-sm);
+  }
+  
+  .clinicName {
+    font-size: 1rem;
+  }
+  
+  .userDropdown {
+    right: -8px;
+    min-width: 180px;
+  }
+} 

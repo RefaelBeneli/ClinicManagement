@@ -41,4 +41,6 @@ interface ExpenseRepository : JpaRepository<Expense, Long> {
     
     @Query("SELECT AVG(e.amount) FROM Expense e WHERE e.user = :user AND e.expenseDate BETWEEN :startDate AND :endDate")
     fun getAverageAmountForPeriod(@Param("user") user: User, @Param("startDate") startDate: LocalDate, @Param("endDate") endDate: LocalDate): BigDecimal?
+    
+    fun findTop5ByOrderByCreatedAtDesc(): List<Expense>
 } 

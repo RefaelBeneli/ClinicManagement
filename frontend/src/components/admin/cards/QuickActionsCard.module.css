@@ -1,0 +1,64 @@
+.quickActionsContent {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.quickActionButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background-color: var(--admin-bg-secondary);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.quickActionButton:hover {
+  background-color: var(--admin-primary);
+  color: white;
+  border-color: var(--admin-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.quickActionButton:active {
+  transform: translateY(0);
+}
+
+.quickActionIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.quickActionLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .quickActionsContent {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .quickActionButton {
+    padding: 12px 8px;
+  }
+  
+  .quickActionIcon {
+    font-size: 1.25rem;
+  }
+  
+  .quickActionLabel {
+    font-size: 0.7rem;
+  }
+} 

@@ -565,4 +565,63 @@ class AdminService(
         }
         expenseRepository.deleteById(id)
     }
+
+    // Dashboard Methods
+    fun getTodaysSessions(): List<AdminMeetingResponse> {
+        val today = LocalDateTime.now().toLocalDate()
+        return meetingRepository.findByMeetingDate(today).map { meeting ->
+            AdminMeetingResponse(
+                id = meeting.id,
+                clientId = meeting.client.id,
+                clientFullName = meeting.client.fullName,
+                userId = meeting.user.id,
+                userFullName = meeting.user.fullName,
+                meetingDate = meeting.meetingDate,
+                duration = meeting.duration,
+                price = meeting.price,
+                isPaid = meeting.isPaid,
+                paymentDate = meeting.paymentDate,
+                status = meeting.status.name,
+                notes = meeting.notes,
+                createdAt = meeting.createdAt
+            )
+        }
+    }
+
+    fun getRecentActivity(): List<Map<String, Any>> {
+        val recentUsers = userRepository.findTop5ByOrderByCreatedAtDesc()
+        val recentMeetings = meetingRepository.findTop5ByOrderByCreatedAtDesc()
+        val recentExpenses = expenseRepository.findTop5ByOrderByCreatedAtDesc()
+
+        val activities = mutableListOf<Map<String, Any>>()
+
+        recentUsers.forEach { user ->
+            activities.add(mapOf(
+                "type" to "user_created",
+                "message" to "New user registered: ${user.fullName}",
+                "timestamp" to user.createdAt,
+                "entityId" to user.id
+            ))
+        }
+
+        recentMeetings.forEach { meeting ->
+            activities.add(mapOf(
+                "type" to "meeting_created",
+                "message" to "New meeting scheduled with ${meeting.client.fullName}",
+                "timestamp" to meeting.createdAt,
+                "entityId" to meeting.id
+            ))
+        }
+
+        recentExpenses.forEach { expense ->
+            activities.add(mapOf(
+                "type" to "expense_created",
+                "message" to "New expense added: ${expense.name}",
+                "timestamp" to expense.createdAt,
+                "entityId" to expense.id
+            ))
+        }
+
+        return activities.sortedByDescending { it["timestamp"] as LocalDateTime }.take(10)
+    }
 } 

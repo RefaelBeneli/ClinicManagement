@@ -17,4 +17,6 @@ interface UserRepository : JpaRepository<User, Long> {
     fun findByApprovalStatus(status: UserApprovalStatus, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User>
     fun findByApprovalStatusIn(statuses: List<UserApprovalStatus>): List<User>
     fun countByApprovalStatus(status: UserApprovalStatus): Long
+    
+    fun findTop5ByOrderByCreatedAtDesc(): List<User>
 } 

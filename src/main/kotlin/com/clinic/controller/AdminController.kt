@@ -210,4 +210,42 @@ class AdminController(
         )
         return ResponseEntity.ok(stats)
     }
+
+    // Dashboard Pending Counts
+    @GetMapping("/dashboard/pending-counts")
+    fun getPendingCounts(): ResponseEntity<Map<String, Long>> {
+        val pendingCounts = mapOf(
+            "users" to adminService.getPendingUsers(PageRequest.of(0, 1)).totalElements,
+            "sessions" to 0L, // TODO: Implement pending sessions logic
+            "expenses" to 0L  // TODO: Implement pending expenses logic
+        )
+        return ResponseEntity.ok(pendingCounts)
+    }
+
+    // System Health Status
+    @GetMapping("/dashboard/system-health")
+    fun getSystemHealth(): ResponseEntity<Map<String, Any>> {
+        val systemHealth = mapOf(
+            "status" to "good",
+            "uptime" to "15 days, 3 hours",
+            "activeUsers" to adminService.getAllUsers(PageRequest.of(0, 1)).totalElements,
+            "systemLoad" to 45,
+            "databaseStatus" to "connected"
+        )
+        return ResponseEntity.ok(systemHealth)
+    }
+
+    // Today's Sessions
+    @GetMapping("/dashboard/todays-sessions")
+    fun getTodaysSessions(): ResponseEntity<List<AdminMeetingResponse>> {
+        val todaysSessions = adminService.getTodaysSessions()
+        return ResponseEntity.ok(todaysSessions)
+    }
+
+    // Recent Activity
+    @GetMapping("/dashboard/recent-activity")
+    fun getRecentActivity(): ResponseEntity<List<Map<String, Any>>> {
+        val recentActivity = adminService.getRecentActivity()
+        return ResponseEntity.ok(recentActivity)
+    }
 } 

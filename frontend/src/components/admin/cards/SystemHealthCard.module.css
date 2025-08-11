@@ -1,0 +1,79 @@
+.systemHealthContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusIcon {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusIcon.good {
+  background-color: #10b981;
+}
+
+.statusIcon.warning {
+  background-color: #f59e0b;
+}
+
+.statusIcon.error {
+  background-color: #ef4444;
+}
+
+.statusText {
+  font-weight: 600;
+  color: var(--admin-text-primary);
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+.metricValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--admin-text-primary);
+}
+
+.metricValue.success {
+  color: #10b981;
+}
+
+.metricValue.warning {
+  color: #f59e0b;
+}
+
+.metricValue.error {
+  color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+} 

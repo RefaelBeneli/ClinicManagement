@@ -1,0 +1,134 @@
+.bulkActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--admin-bg-secondary);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.selectionInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.selectAllLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.selectAllCheckbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.selectAllText {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--admin-text-primary);
+}
+
+.selectedCount {
+  font-size: 14px;
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+.bulkActions {
+  display: flex;
+  gap: 8px;
+}
+
+.bulkActionButton {
+  padding: 8px 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background-color: white;
+  color: var(--admin-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.bulkActionButton:hover:not(:disabled) {
+  background-color: var(--admin-bg-hover);
+  border-color: var(--admin-primary);
+}
+
+.bulkActionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bulkActionButton.update {
+  background-color: var(--admin-primary);
+  color: white;
+  border-color: var(--admin-primary);
+}
+
+.bulkActionButton.update:hover:not(:disabled) {
+  background-color: var(--admin-primary-dark);
+}
+
+.bulkActionButton.export {
+  background-color: var(--admin-success);
+  color: white;
+  border-color: var(--admin-success);
+}
+
+.bulkActionButton.export:hover:not(:disabled) {
+  background-color: var(--admin-success-dark);
+}
+
+.bulkActionButton.delete {
+  background-color: var(--admin-danger);
+  color: white;
+  border-color: var(--admin-danger);
+}
+
+.bulkActionButton.delete:hover:not(:disabled) {
+  background-color: var(--admin-danger-dark);
+}
+
+.bulkActionButton.clear {
+  background-color: transparent;
+  color: var(--admin-text-secondary);
+}
+
+.bulkActionButton.clear:hover:not(:disabled) {
+  background-color: var(--admin-bg-hover);
+  color: var(--admin-text-primary);
+}
+
+@media (max-width: 768px) {
+  .bulkActionBar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .selectionInfo {
+    justify-content: space-between;
+  }
+  
+  .bulkActions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .bulkActionButton {
+    min-width: 80px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+} 

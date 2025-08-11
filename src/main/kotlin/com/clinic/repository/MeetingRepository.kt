@@ -21,4 +21,8 @@ interface MeetingRepository : JpaRepository<Meeting, Long> {
     fun findByUserAndIsPaidFalse(user: User): List<Meeting>
     
     fun existsByPaymentTypeId(paymentTypeId: Long): Boolean
+    
+    fun findByMeetingDate(date: java.time.LocalDate): List<Meeting>
+    
+    fun findTop5ByOrderByCreatedAtDesc(): List<Meeting>
 } 

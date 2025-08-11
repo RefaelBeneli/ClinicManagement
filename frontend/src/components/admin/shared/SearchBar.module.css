@@ -1,0 +1,88 @@
+.searchBar {
+  width: 100%;
+  max-width: 600px;
+}
+
+.searchInput {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.searchInput:focus-within {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.searchIcon {
+  padding: 0 12px;
+  color: #6c757d;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px 8px 8px;
+  font-size: 0.875rem;
+  color: #212529;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #6c757d;
+}
+
+.clearButton {
+  background: none;
+  border: none;
+  padding: 8px;
+  margin-right: 4px;
+  cursor: pointer;
+  color: #6c757d;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.clearButton:hover {
+  background: #f8f9fa;
+  color: #212529;
+}
+
+.loadingIndicator {
+  padding: 0 12px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dee2e6;
+  border-radius: 50%;
+  border-top-color: #007bff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .searchBar {
+    max-width: none;
+  }
+  
+  .input {
+    font-size: 1rem; /* Prevent zoom on iOS */
+  }
+} 

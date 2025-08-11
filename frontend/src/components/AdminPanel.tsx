@@ -7,6 +7,7 @@ import MeetingPanel from './MeetingPanel';
 import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
 import SourceManagementTab from './SourceManagementTab';
+import ClickableStatusDropdown from './admin/shared/ClickableStatusDropdown';
 import { userApproval, clients, meetings, expenses } from '../services/api';
 import { Client, Meeting, Expense } from '../types';
 import './AdminPanel.css';
@@ -175,6 +176,114 @@ const AdminPanel: React.FC = () => {
       fetchStats()
     ]);
     setLoading(false);
+  };
+
+  const handleUserStatusChange = async (userId: number, newStatus: boolean) => {
+    try {
+      // Update user enabled status
+      const response = await fetch(`${apiUrl}/admin/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enabled: newStatus }),
+      });
+      
+      if (response.ok) {
+        // Update local state
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userId ? { ...user, enabled: newStatus } : user
+          )
+        );
+      } else {
+        console.error('Failed to update user status');
+      }
+    } catch (error) {
+      console.error('Error updating user status:', error);
+    }
+  };
+
+  const handleClientStatusChange = async (clientId: number, newStatus: boolean) => {
+    try {
+      // Update client active status
+      const response = await fetch(`${apiUrl}/clients/${clientId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ active: newStatus }),
+      });
+      
+      if (response.ok) {
+        // Update local state
+        setClientList(prevClients => 
+          prevClients.map(client => 
+            client.id === clientId ? { ...client, active: newStatus } : client
+          )
+        );
+      } else {
+        console.error('Failed to update client status');
+      }
+    } catch (error) {
+      console.error('Error updating client status:', error);
+    }
+  };
+
+  const handleMeetingStatusChange = async (meetingId: number, newStatus: string) => {
+    try {
+      // Update meeting status
+      const response = await fetch(`${apiUrl}/meetings/${meetingId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (response.ok) {
+        // Update local state
+        setMeetingList(prevMeetings => 
+          prevMeetings.map(meeting => 
+            meeting.id === meetingId ? { ...meeting, status: newStatus as any } : meeting
+          )
+        );
+      } else {
+        console.error('Failed to update meeting status');
+      }
+    } catch (error) {
+      console.error('Error updating meeting status:', error);
+    }
+  };
+
+  const handleExpenseStatusChange = async (expenseId: number, newStatus: boolean) => {
+    try {
+      // Update expense active status
+      const response = await fetch(`${apiUrl}/expenses/${expenseId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: newStatus }),
+      });
+      
+      if (response.ok) {
+        // Update local state
+        setExpenseList(prevExpenses => 
+          prevExpenses.map(expense => 
+            expense.id === expenseId ? { ...expense, isActive: newStatus } : expense
+          )
+        );
+      } else {
+        console.error('Failed to update expense status');
+      }
+    } catch (error) {
+      console.error('Error updating expense status:', error);
+    }
   };
 
   if (loading) {
@@ -346,9 +455,12 @@ const AdminPanel: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <span className={`status-badge ${user.enabled ? 'enabled' : 'disabled'}`}>
-                          {user.enabled ? 'Active' : 'Disabled'}
-                        </span>
+                        <ClickableStatusDropdown
+                          currentStatus={user.enabled}
+                          onStatusChange={(newStatus) => handleUserStatusChange(user.id, newStatus as boolean)}
+                          entityId={user.id}
+                          entityType="user"
+                        />
                       </td>
                       <td>
                         <span className={`approval-badge ${user.approvalStatus?.toLowerCase() || 'unknown'}`}>
@@ -408,9 +520,12 @@ const AdminPanel: React.FC = () => {
                       <td>{client.email || 'N/A'}</td>
                       <td>{client.phone || 'N/A'}</td>
                       <td>
-                        <span className={`status-badge ${client.active ? 'enabled' : 'disabled'}`}>
-                          {client.active ? 'Active' : 'Inactive'}
-                        </span>
+                        <ClickableStatusDropdown
+                          currentStatus={client.active}
+                          onStatusChange={(newStatus) => handleClientStatusChange(client.id, newStatus as boolean)}
+                          entityId={client.id}
+                          entityType="client"
+                        />
                       </td>
                       <td>{new Date(client.createdAt).toLocaleDateString()}</td>
                       <td>
@@ -455,9 +570,12 @@ const AdminPanel: React.FC = () => {
                       <td>{meeting.duration} min</td>
                       <td>₪{meeting.price}</td>
                       <td>
-                        <span className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}>
-                          {meeting.status || 'Unknown'}
-                        </span>
+                        <ClickableStatusDropdown
+                          currentStatus={meeting.status}
+                          onStatusChange={(newStatus) => handleMeetingStatusChange(meeting.id, newStatus as string)}
+                          entityId={meeting.id}
+                          entityType="meeting"
+                        />
                       </td>
                       <td>
                         <span className={`payment-badge ${meeting.isPaid ? 'paid' : 'unpaid'}`}>
@@ -492,6 +610,7 @@ const AdminPanel: React.FC = () => {
                     <th>Amount</th>
                     <th>Category</th>
                     <th>Date</th>
+                    <th>Payment</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -508,6 +627,14 @@ const AdminPanel: React.FC = () => {
                         <span className={`payment-badge ${expense.isPaid ? 'paid' : 'unpaid'}`}>
                           {expense.isPaid ? 'Paid' : 'Unpaid'}
                         </span>
+                      </td>
+                      <td>
+                        <ClickableStatusDropdown
+                          currentStatus={expense.isActive || true}
+                          onStatusChange={(newStatus) => handleExpenseStatusChange(expense.id, newStatus as boolean)}
+                          entityId={expense.id}
+                          entityType="expense"
+                        />
                       </td>
                       <td>
                         <button className="btn-small">View</button>
