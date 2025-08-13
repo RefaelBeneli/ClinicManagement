@@ -62,6 +62,15 @@ class AdminController(
         return ResponseEntity.ok(adminService.getPendingUsers(pageable))
     }
 
+    @GetMapping("/users/validate-name")
+    fun validateUserName(@RequestParam name: String): ResponseEntity<Map<String, Any>> {
+        val isValid = adminService.validateUserName(name)
+        return ResponseEntity.ok(mapOf(
+            "valid" to isValid,
+            "message" to if (isValid) "User name is valid" else "No user found with that name"
+        ))
+    }
+
     // Client Management Endpoints
     @GetMapping("/clients")
     fun getAllClients(

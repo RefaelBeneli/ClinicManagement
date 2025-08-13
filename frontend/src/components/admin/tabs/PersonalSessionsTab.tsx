@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../shared/DataTable';
 import AddEditModal from '../shared/AddEditModal';
 import SearchFilter from '../shared/SearchFilter';
 import FilterPanel from '../shared/FilterPanel';
+import { adminApi } from '../../../services/adminApi';
 import './PersonalSessionsTab.css';
 
 interface PersonalSession {
@@ -25,40 +26,55 @@ const PersonalSessionsTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSessionIds, setSelectedSessionIds] = useState<number[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+  
+  // Prevent duplicate API calls in React StrictMode
+  const hasFetchedRef = useRef(false);
+
 
   useEffect(() => {
-    fetchSessions();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchSessions();
+    }
   }, []);
 
   useEffect(() => {
     filterSessions();
-  }, [sessions, searchTerm]);
+  }, [searchTerm]);
+
+  // Update filteredSessions when sessions change
+  useEffect(() => {
+    setFilteredSessions(sessions);
+  }, [sessions]);
 
   const fetchSessions = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await adminApi.getPersonalSessions();
-      // setSessions(response.data);
+      const response = await adminApi.getPersonalSessions();
+      console.log('🔍 Raw personal sessions response:', response.data);
       
-      // Mock data for now
-      setTimeout(() => {
-        setSessions([
-          { id: 1, user: 'Dr. Sarah Wilson', provider: 'Dr. Smith', date: '2025-01-15', time: '11:00', type: 'Therapy', status: 'SCHEDULED', isActive: true },
-          { id: 2, user: 'Dr. Michael Chen', provider: 'Dr. Johnson', date: '2025-01-15', time: '15:00', type: 'Guidance', status: 'COMPLETED', isActive: true },
-          { id: 3, user: 'Dr. Sarah Wilson', provider: 'Dr. Davis', date: '2025-01-16', time: '10:00', type: 'Therapy', status: 'SCHEDULED', isActive: true },
-          { id: 4, user: 'Dr. Emily Rodriguez', provider: 'Dr. Wilson', date: '2025-01-16', time: '12:00', type: 'Assessment', status: 'SCHEDULED', isActive: true },
-          { id: 5, user: 'Dr. Michael Chen', provider: 'Dr. Brown', date: '2025-01-16', time: '16:00', type: 'Guidance', status: 'SCHEDULED', isActive: true },
-          { id: 6, user: 'Dr. Sarah Wilson', provider: 'Dr. Miller', date: '2025-01-17', time: '09:00', type: 'Therapy', status: 'SCHEDULED', isActive: true },
-          { id: 7, user: 'Dr. Emily Rodriguez', provider: 'Dr. Taylor', date: '2025-01-17', time: '13:00', type: 'Assessment', status: 'SCHEDULED', isActive: true },
-          { id: 8, user: 'Dr. Michael Chen', provider: 'Dr. Anderson', date: '2025-01-17', time: '17:00', type: 'Guidance', status: 'SCHEDULED', isActive: true },
-          { id: 9, user: 'Dr. Sarah Wilson', provider: 'Dr. Garcia', date: '2025-01-18', time: '10:00', type: 'Therapy', status: 'SCHEDULED', isActive: true },
-          { id: 10, user: 'Dr. Emily Rodriguez', provider: 'Dr. Lee', date: '2025-01-18', time: '14:00', type: 'Assessment', status: 'SCHEDULED', isActive: true },
-        ]);
-        setIsLoading(false);
-      }, 1000);
+      // Handle Spring Data Page response
+      const sessionsData = response.data.content || response.data || [];
+      console.log('🔍 Extracted personal sessions data:', sessionsData);
+      
+      // Transform the data to match our interface
+      const transformedSessions: PersonalSession[] = sessionsData.map((session: any) => ({
+        id: session.id,
+        user: session.userFullName || session.user || 'Unknown',
+        provider: session.therapistName || session.providerName || session.provider || 'Unknown',
+        date: session.meetingDate ? new Date(session.meetingDate).toLocaleDateString() : 'Unknown',
+        time: session.meetingDate ? new Date(session.meetingDate).toLocaleTimeString() : 'Unknown',
+        type: session.meetingType || session.type || 'Session',
+        status: session.status || 'SCHEDULED',
+        isActive: session.isActive !== false
+      }));
+      
+      console.log('🔍 Transformed personal sessions:', transformedSessions);
+      setSessions(transformedSessions);
     } catch (error) {
       console.error('Error fetching personal sessions:', error);
+      setSessions([]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -192,14 +208,9 @@ const PersonalSessionsTab: React.FC = () => {
       key: 'user', 
       label: 'User', 
       editable: true,
-      clickableDropdown: true,
-      searchableOptions: [
-        { value: 'Dr. Sarah Wilson', label: 'Dr. Sarah Wilson' },
-        { value: 'Dr. Michael Chen', label: 'Dr. Michael Chen' },
-        { value: 'Dr. Emily Rodriguez', label: 'Dr. Emily Rodriguez' },
-      ],
-      onDropdownChange: (value: string, row: any) => {
-        // Update the user field when dropdown selection changes
+      validatedInput: true,
+      onValidatedChange: (value: string, row: any) => {
+        // Update the user field when input changes
         setSessions(prev => prev.map(s => 
           s.id === row.id ? { ...s, user: value } : s
         ));
@@ -209,21 +220,9 @@ const PersonalSessionsTab: React.FC = () => {
       key: 'provider', 
       label: 'Provider', 
       editable: true,
-      clickableDropdown: true,
-      searchableOptions: [
-        { value: 'Dr. Smith', label: 'Dr. Smith' },
-        { value: 'Dr. Johnson', label: 'Dr. Johnson' },
-        { value: 'Dr. Davis', label: 'Dr. Davis' },
-        { value: 'Dr. Wilson', label: 'Dr. Wilson' },
-        { value: 'Dr. Brown', label: 'Dr. Brown' },
-        { value: 'Dr. Miller', label: 'Dr. Miller' },
-        { value: 'Dr. Taylor', label: 'Dr. Taylor' },
-        { value: 'Dr. Anderson', label: 'Dr. Anderson' },
-        { value: 'Dr. Garcia', label: 'Dr. Garcia' },
-        { value: 'Dr. Lee', label: 'Dr. Lee' },
-      ],
-      onDropdownChange: (value: string, row: any) => {
-        // Update the provider field when dropdown selection changes
+      validatedInput: true,
+      onValidatedChange: (value: string, row: any) => {
+        // Update the provider field when input changes
         setSessions(prev => prev.map(s => 
           s.id === row.id ? { ...s, provider: value } : s
         ));

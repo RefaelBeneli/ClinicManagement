@@ -8,7 +8,7 @@ import DashboardLayout from './Dashboard/DashboardLayout';
 import QuickActions from './Dashboard/QuickActions';
 import StatsOverview from './Dashboard/StatsOverview';
 import Modal from './ui/Modal';
-import AdminPanel from './AdminPanel';
+
 import Calendar from './Calendar';
 
 import MeetingPanel from './MeetingPanel';
@@ -403,7 +403,12 @@ const Dashboard: React.FC = () => {
         {/* Admin Panel - Only visible to admin users */}
         {user?.role === 'ADMIN' && (
           <div className="admin-section">
-            <AdminPanel />
+            <div className="admin-redirect-message">
+              <h2>Admin Access</h2>
+              <p>You are logged in as an administrator.</p>
+              <p>Please use the dedicated admin panel for administrative functions.</p>
+              <a href="/admin" className="admin-link">Go to Admin Panel</a>
+            </div>
           </div>
         )}
 

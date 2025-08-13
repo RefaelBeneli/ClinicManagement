@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import DashboardTab from './tabs/DashboardTab';
 import UsersTab from './tabs/UsersTab';
 import ClientsTab from './tabs/ClientsTab';

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { adminApi } from '../../../services/adminApi';
 import './DashboardTab.css';
 
 interface DashboardStats {
@@ -27,54 +28,65 @@ const DashboardTab: React.FC = () => {
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Prevent duplicate API calls in React StrictMode
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    // TODO: Replace with actual API calls
-    // fetchDashboardStats();
-    // fetchRecentActivity();
-    
-    // Mock data for now
-    setTimeout(() => {
-      setStats({
-        totalUsers: 12,
-        totalClients: 15,
-        totalSessions: 12,
-        totalExpenses: 12
-      });
-      
-      setRecentActivity([
-        {
-          id: 1,
-          action: 'Created',
-          entity: 'Client',
-          entityId: 123,
-          timestamp: '2025-01-15T10:30:00Z',
-          userId: 1,
-          userName: 'Admin User'
-        },
-        {
-          id: 2,
-          action: 'Updated',
-          entity: 'Session',
-          entityId: 456,
-          timestamp: '2025-01-15T09:15:00Z',
-          userId: 1,
-          userName: 'Admin User'
-        },
-        {
-          id: 3,
-          action: 'Deleted',
-          entity: 'Expense',
-          entityId: 789,
-          timestamp: '2025-01-15T08:45:00Z',
-          userId: 1,
-          userName: 'Admin User'
-        }
-      ]);
-      
-      setIsLoading(false);
-    }, 1000);
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchDashboardStats();
+      fetchRecentActivity();
+    }
   }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await adminApi.getDashboardStats();
+      
+      const statsData = response.data || {};
+      
+      setStats({
+        totalUsers: statsData.totalUsers || 0,
+        totalClients: statsData.totalClients || 0,
+        totalSessions: statsData.totalSessions || 0,
+        totalExpenses: statsData.totalExpenses || 0
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      setStats({
+        totalUsers: 0,
+        totalClients: 0,
+        totalSessions: 0,
+        totalExpenses: 0
+      });
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await adminApi.getRecentActivity();
+      
+      const activityData = response.data || [];
+      
+      // Ensure all activity items have required properties
+      const sanitizedActivityData = activityData.map((activity: any, index: number) => ({
+        id: activity.id || `temp-${index}`,
+        action: activity.action || 'Updated',
+        userName: activity.userName || 'Unknown User',
+        entity: activity.entity || 'item',
+        entityId: activity.entityId || 'N/A',
+        timestamp: activity.timestamp || new Date().toISOString()
+      }));
+      
+      setRecentActivity(sanitizedActivityData);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      setRecentActivity([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
@@ -131,18 +143,19 @@ const DashboardTab: React.FC = () => {
         <h3>Recent Activity</h3>
         <div className="activity-list">
           {recentActivity.map(activity => (
-            <div key={activity.id} className="activity-item">
+            <div key={activity.id || Math.random()} className="activity-item">
               <div className="activity-icon">
                 {activity.action === 'Created' && '➕'}
                 {activity.action === 'Updated' && '✏️'}
                 {activity.action === 'Deleted' && '🗑️'}
+                {!activity.action && '📝'}
               </div>
               <div className="activity-content">
                 <div className="activity-text">
-                  <strong>{activity.userName}</strong> {activity.action.toLowerCase()} {activity.entity} #{activity.entityId}
+                  <strong>{activity.userName || 'Unknown User'}</strong> {activity.action?.toLowerCase() || 'performed action on'} {activity.entity || 'item'} #{activity.entityId || 'N/A'}
                 </div>
                 <div className="activity-time">
-                  {formatTimestamp(activity.timestamp)}
+                  {activity.timestamp ? formatTimestamp(activity.timestamp) : 'Unknown time'}
                 </div>
               </div>
             </div>

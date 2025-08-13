@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ClickableStatusDropdown from './ClickableStatusDropdown';
+import ValidatedInput from './ValidatedInput';
 import './DataTable.css';
 
 interface Column {
@@ -11,6 +12,8 @@ interface Column {
   searchableOptions?: { value: string; label: string }[]; // Added for searchable dropdowns
   clickableDropdown?: boolean; // Added for clickable status dropdowns
   onDropdownChange?: (value: string, row: any) => void; // Callback for dropdown changes
+  validatedInput?: boolean; // Added for validated input fields (replaces dropdowns)
+  onValidatedChange?: (value: string, row: any) => void; // Callback for validated input changes
 }
 
 interface DataTableProps {
@@ -250,7 +253,17 @@ const DataTable: React.FC<DataTableProps> = ({
                       className={`inline-edit-field ${column.editable !== false ? 'editable' : ''}`}
                       title={column.editable !== false ? "Click to edit" : ""}
                     >
-                      {column.clickableDropdown && column.enumValues ? (
+                      {column.validatedInput ? (
+                        <ValidatedInput
+                          value={row[column.key] || ''}
+                          onChange={(value) => column.onValidatedChange?.(value, row)}
+                          placeholder={`Enter ${column.label.toLowerCase()}...`}
+                          onValidationResult={(isValid, message) => {
+                            // Handle validation result if needed
+                            console.log(`Validation for ${column.key}:`, isValid, message);
+                          }}
+                        />
+                      ) : column.clickableDropdown && column.enumValues ? (
                         <select
                           value={row[column.key] || ''}
                           onChange={(e) => column.onDropdownChange?.(e.target.value, row)}

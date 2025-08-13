@@ -111,6 +111,10 @@ class AdminService(
         userRepository.deleteById(id)
     }
 
+    fun validateUserName(name: String): Boolean {
+        return userRepository.findByFullNameContainingIgnoreCase(name).isNotEmpty()
+    }
+
     fun approveUser(id: Long, request: ApproveUserRequest): AdminUserResponse {
         val user = userRepository.findById(id)
             .orElseThrow { RuntimeException("User not found with id: $id") }

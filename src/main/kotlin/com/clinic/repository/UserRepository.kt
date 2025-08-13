@@ -19,4 +19,5 @@ interface UserRepository : JpaRepository<User, Long> {
     fun countByApprovalStatus(status: UserApprovalStatus): Long
     
     fun findTop5ByOrderByCreatedAtDesc(): List<User>
+    fun findByFullNameContainingIgnoreCase(fullName: String): List<User>
 } 

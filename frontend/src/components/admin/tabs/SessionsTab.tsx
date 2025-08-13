@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../shared/DataTable';
 import AddEditModal from '../shared/AddEditModal';
 import SearchFilter from '../shared/SearchFilter';
 import FilterPanel from '../shared/FilterPanel';
+import { adminApi } from '../../../services/adminApi';
 import './SessionsTab.css';
 
 interface Session {
@@ -25,42 +26,55 @@ const SessionsTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSessionIds, setSelectedSessionIds] = useState<number[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+  
+  // Prevent duplicate API calls in React StrictMode
+  const hasFetchedRef = useRef(false);
+
 
   useEffect(() => {
-    fetchSessions();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchSessions();
+    }
   }, []);
 
   useEffect(() => {
     filterSessions();
-  }, [sessions, searchTerm]);
+  }, [searchTerm]);
+
+  // Update filteredSessions when sessions change
+  useEffect(() => {
+    setFilteredSessions(sessions);
+  }, [sessions]);
 
   const fetchSessions = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await adminApi.getSessions();
-      // setSessions(response.data);
+      const response = await adminApi.getSessions();
+      console.log('🔍 Raw sessions response:', response.data);
       
-      // Mock data for now
-      setTimeout(() => {
-        setSessions([
-          { id: 1, client: 'Alice Johnson', date: '2025-01-15', time: '10:00', type: 'Therapy', status: 'SCHEDULED', therapistName: 'Dr. Sarah Wilson', isActive: true },
-          { id: 2, client: 'Bob Smith', date: '2025-01-15', time: '14:00', type: 'Consultation', status: 'COMPLETED', therapistName: 'Dr. Michael Chen', isActive: true },
-          { id: 3, client: 'Carol Davis', date: '2025-01-16', time: '09:00', type: 'Therapy', status: 'SCHEDULED', therapistName: 'Dr. Sarah Wilson', isActive: true },
-          { id: 4, client: 'David Wilson', date: '2025-01-16', time: '11:00', type: 'Assessment', status: 'SCHEDULED', therapistName: 'Dr. Emily Rodriguez', isActive: true },
-          { id: 5, client: 'Eva Brown', date: '2025-01-16', time: '15:00', type: 'Therapy', status: 'SCHEDULED', therapistName: 'Dr. Michael Chen', isActive: true },
-          { id: 6, client: 'Frank Miller', date: '2025-01-17', time: '09:00', type: 'Consultation', status: 'SCHEDULED', therapistName: 'Dr. Sarah Wilson', isActive: true },
-          { id: 7, client: 'Grace Taylor', date: '2025-01-17', time: '13:00', type: 'Therapy', status: 'SCHEDULED', therapistName: 'Dr. Emily Rodriguez', isActive: true },
-          { id: 8, client: 'Henry Anderson', date: '2025-01-17', time: '16:00', type: 'Assessment', status: 'SCHEDULED', therapistName: 'Dr. Michael Chen', isActive: true },
-          { id: 9, client: 'Iris Garcia', date: '2025-01-18', time: '10:00', type: 'Therapy', status: 'SCHEDULED', therapistName: 'Dr. Sarah Wilson', isActive: true },
-          { id: 10, client: 'Jack Lee', date: '2025-01-18', time: '14:00', type: 'Consultation', status: 'SCHEDULED', therapistName: 'Dr. Sarah Wilson', isActive: true },
-          { id: 11, client: 'Kate White', date: '2025-01-19', time: '09:00', type: 'Therapy', status: 'SCHEDULED', therapistName: 'Dr. Michael Chen', isActive: true },
-          { id: 12, client: 'Liam Black', date: '2025-01-19', time: '11:00', type: 'Assessment', status: 'SCHEDULED', therapistName: 'Dr. Emily Rodriguez', isActive: true },
-        ]);
-        setIsLoading(false);
-      }, 1000);
+      // Handle Spring Data Page response
+      const sessionsData = response.data.content || response.data || [];
+      console.log('🔍 Extracted sessions data:', sessionsData);
+      
+      // Transform the data to match our interface
+      const transformedSessions: Session[] = sessionsData.map((session: any) => ({
+        id: session.id,
+        client: session.clientFullName || session.clientName || session.client || 'Unknown',
+        date: session.meetingDate ? new Date(session.meetingDate).toLocaleDateString() : 'Unknown',
+        time: session.meetingDate ? new Date(session.meetingDate).toLocaleTimeString() : 'Unknown',
+        type: session.meetingType || session.type || 'Session',
+        status: session.status || 'SCHEDULED',
+        therapistName: session.userFullName || session.therapistName || 'Unassigned',
+        isActive: session.isActive !== false
+      }));
+      
+      console.log('🔍 Transformed sessions:', transformedSessions);
+      setSessions(transformedSessions);
     } catch (error) {
       console.error('Error fetching sessions:', error);
+      setSessions([]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -194,23 +208,9 @@ const SessionsTab: React.FC = () => {
       key: 'client', 
       label: 'Client', 
       editable: true,
-      clickableDropdown: true,
-      searchableOptions: [
-        { value: 'Alice Johnson', label: 'Alice Johnson' },
-        { value: 'Bob Smith', label: 'Bob Smith' },
-        { value: 'Carol Davis', label: 'Carol Davis' },
-        { value: 'David Wilson', label: 'David Wilson' },
-        { value: 'Eva Brown', label: 'Eva Brown' },
-        { value: 'Frank Miller', label: 'Frank Miller' },
-        { value: 'Grace Taylor', label: 'Grace Taylor' },
-        { value: 'Henry Anderson', label: 'Henry Anderson' },
-        { value: 'Iris Garcia', label: 'Iris Garcia' },
-        { value: 'Jack Lee', label: 'Jack Lee' },
-        { value: 'Kate White', label: 'Kate White' },
-        { value: 'Liam Black', label: 'Liam Black' },
-      ],
-      onDropdownChange: (value: string, row: any) => {
-        // Update the client field when dropdown selection changes
+      validatedInput: true,
+      onValidatedChange: (value: string, row: any) => {
+        // Update the client field when input changes
         setSessions(prev => prev.map(s => 
           s.id === row.id ? { ...s, client: value } : s
         ));
@@ -223,14 +223,9 @@ const SessionsTab: React.FC = () => {
       key: 'therapistName', 
       label: 'Therapist', 
       editable: true,
-      clickableDropdown: true,
-      searchableOptions: [
-        { value: 'Dr. Sarah Wilson', label: 'Dr. Sarah Wilson' },
-        { value: 'Dr. Michael Chen', label: 'Dr. Michael Chen' },
-        { value: 'Dr. Emily Rodriguez', label: 'Dr. Emily Rodriguez' },
-      ],
-      onDropdownChange: (value: string, row: any) => {
-        // Update the therapist field when dropdown selection changes
+      validatedInput: true,
+      onValidatedChange: (value: string, row: any) => {
+        // Update the therapist field when input changes
         setSessions(prev => prev.map(s => 
           s.id === row.id ? { ...s, therapistName: value } : s
         ));

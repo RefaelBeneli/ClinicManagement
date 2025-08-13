@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../shared/DataTable';
 import AddEditModal from '../shared/AddEditModal';
 import SearchFilter from '../shared/SearchFilter';
 import FilterPanel from '../shared/FilterPanel';
+import { adminApi } from '../../../services/adminApi';
+import { useApiCall } from '../../../hooks/useApiCall';
 import './UsersTab.css';
 
 interface User {
@@ -14,6 +16,7 @@ interface User {
 }
 
 const UsersTab: React.FC = () => {
+  const { makeApiCall } = useApiCall();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,42 +25,63 @@ const UsersTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+  
+  // Prevent duplicate API calls in React StrictMode
+  const hasFetchedRef = useRef(false);
+
 
   useEffect(() => {
-    fetchUsers();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchUsers();
+    }
   }, []);
 
   useEffect(() => {
     filterUsers();
-  }, [users, searchTerm]);
+  }, [searchTerm]);
+
+  // Update filteredUsers when users change
+  useEffect(() => {
+    setFilteredUsers(users);
+  }, [users]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await adminApi.getUsers();
-      // setUsers(response.data);
+      const response = await makeApiCall(
+        '/api/admin/users',
+        () => adminApi.getUsers(),
+        { cacheKey: 'admin-users' }
+      );
       
-      // Mock data for now
-      setTimeout(() => {
-        setUsers([
-          { id: 1, name: 'John Doe', email: 'john@clinic.com', role: 'ADMIN', status: 'ACTIVE' },
-          { id: 2, name: 'Jane Smith', email: 'jane@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 3, name: 'Bob Johnson', email: 'bob@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 4, name: 'Sarah Wilson', email: 'sarah@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 5, name: 'Mike Davis', email: 'mike@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 6, name: 'Lisa Brown', email: 'lisa@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 7, name: 'David Miller', email: 'david@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 8, name: 'Emma Taylor', email: 'emma@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 9, name: 'James Anderson', email: 'james@clinic.com', role: 'USER', status: 'INACTIVE' },
-          { id: 10, name: 'Maria Garcia', email: 'maria@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 11, name: 'Tom Wilson', email: 'tom@clinic.com', role: 'USER', status: 'ACTIVE' },
-          { id: 12, name: 'Anna Lee', email: 'anna@clinic.com', role: 'USER', status: 'ACTIVE' },
-        ]);
+      if (!response) {
+        console.log('🔄 Skipping duplicate users fetch');
         setIsLoading(false);
-      }, 1000);
+        return;
+      }
+      
+      console.log('🔍 Raw users response:', response.data);
+      
+      // Handle Spring Data Page response
+      const usersData = response.data.content || response.data || [];
+      console.log('🔍 Extracted users data:', usersData);
+      
+      // Transform the data to match our interface
+      const transformedUsers: User[] = usersData.map((user: any) => ({
+        id: user.id,
+        name: user.fullName || user.name || 'Unknown',
+        email: user.email || '',
+        role: user.role || 'USER',
+        status: user.enabled ? 'ACTIVE' : 'INACTIVE'
+      }));
+      
+      console.log('🔍 Transformed users:', transformedUsers);
+      setUsers(transformedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
+    } finally {
       setIsLoading(false);
     }
   };

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DataTable from '../shared/DataTable';
 import AddEditModal from '../shared/AddEditModal';
 import SearchFilter from '../shared/SearchFilter';
 import FilterPanel from '../shared/FilterPanel';
+import { adminApi } from '../../../services/adminApi';
 import './ClientsTab.css';
 
 interface Client {
@@ -23,45 +24,44 @@ const ClientsTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientIds, setSelectedClientIds] = useState<number[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+  
+  // Prevent duplicate API calls in React StrictMode
+  const hasFetchedRef = useRef(false);
+
 
   useEffect(() => {
-    fetchClients();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchClients();
+    }
   }, []);
 
   useEffect(() => {
     filterClients();
-  }, [clients, searchTerm]);
+  }, [searchTerm]);
 
   const fetchClients = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await adminApi.getClients();
-      // setClients(response.data);
+      const response = await adminApi.getClients();
       
-      // Mock data for now
-      setTimeout(() => {
-        setClients([
-          { id: 1, name: 'Alice Johnson', phone: '+1-555-0101', email: 'alice@email.com', status: 'ACTIVE', therapistName: 'Dr. Sarah Wilson' },
-          { id: 2, name: 'Bob Smith', phone: '+1-555-0102', email: 'bob@email.com', status: 'ACTIVE', therapistName: 'Dr. Michael Chen' },
-          { id: 3, name: 'Carol Davis', phone: '+1-555-0103', email: 'carol@email.com', status: 'ACTIVE', therapistName: 'Dr. Sarah Wilson' },
-          { id: 4, name: 'David Wilson', phone: '+1-555-0104', email: 'david@email.com', status: 'ACTIVE', therapistName: 'Dr. Emily Rodriguez' },
-          { id: 5, name: 'Eva Brown', phone: '+1-555-0105', email: 'eva@email.com', status: 'ACTIVE', therapistName: 'Dr. Michael Chen' },
-          { id: 6, name: 'Frank Miller', phone: '+1-555-0106', email: 'frank@email.com', status: 'ACTIVE', therapistName: 'Dr. Sarah Wilson' },
-          { id: 7, name: 'Grace Taylor', phone: '+1-555-0107', email: 'grace@email.com', status: 'ACTIVE', therapistName: 'Dr. Emily Rodriguez' },
-          { id: 8, name: 'Henry Anderson', phone: '+1-555-0108', email: 'henry@email.com', status: 'ACTIVE', therapistName: 'Dr. Michael Chen' },
-          { id: 9, name: 'Iris Garcia', phone: '+1-555-0109', email: 'iris@email.com', status: 'ACTIVE', therapistName: 'Dr. Sarah Wilson' },
-          { id: 10, name: 'Jack Lee', phone: '+1-555-0110', email: 'jack@email.com', status: 'ACTIVE', therapistName: 'Dr. Emily Rodriguez' },
-          { id: 11, name: 'Kate White', phone: '+1-555-0111', email: 'kate@email.com', status: 'ACTIVE', therapistName: 'Dr. Michael Chen' },
-          { id: 12, name: 'Liam Black', phone: '+1-555-0112', email: 'liam@email.com', status: 'ACTIVE', therapistName: 'Dr. Sarah Wilson' },
-          { id: 13, name: 'Mia Green', phone: '+1-555-0113', email: 'mia@email.com', status: 'ACTIVE', therapistName: 'Dr. Emily Rodriguez' },
-          { id: 14, name: 'Noah Blue', phone: '+1-555-0114', email: 'noah@email.com', status: 'ACTIVE', therapistName: 'Dr. Michael Chen' },
-          { id: 15, name: 'Olivia Red', phone: '+1-555-0115', email: 'olivia@email.com', status: 'ACTIVE', therapistName: 'Dr. Sarah Wilson' },
-        ]);
-        setIsLoading(false);
-      }, 1000);
+      // Handle Spring Data Page response
+      const clientsData = response.data.content || response.data || [];
+      
+      // Transform the data to match our interface
+      const transformedClients: Client[] = clientsData.map((client: any) => ({
+        id: client.id,
+        name: client.fullName || client.name || 'Unknown',
+        phone: client.phone || '',
+        email: client.email || '',
+        status: client.isActive ? 'ACTIVE' : 'INACTIVE',
+        therapistName: client.userFullName || client.therapistName || 'Unassigned'
+      }));
+      setClients(transformedClients);
     } catch (error) {
       console.error('Error fetching clients:', error);
+      setClients([]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -81,17 +81,16 @@ const ClientsTab: React.FC = () => {
     setFilteredClients(filtered);
   };
 
+  // Update filtered clients when clients change
+  useEffect(() => {
+    setFilteredClients(clients);
+  }, [clients]);
+
   const handleCreateClient = async (clientData: any) => {
     try {
-      // TODO: Replace with actual API call
-      // await adminApi.createClient(clientData);
-      
-      // Mock creation
-      const newClient = {
-        ...clientData,
-        id: Math.max(...clients.map(c => c.id)) + 1
-      };
-      setClients(prev => [...prev, newClient]);
+      await adminApi.createClient(clientData);
+      // Refresh the clients list
+      fetchClients();
       setShowModal(false);
     } catch (error) {
       console.error('Error creating client:', error);
@@ -102,13 +101,9 @@ const ClientsTab: React.FC = () => {
     if (!editingClient) return;
     
     try {
-      // TODO: Replace with actual API call
-      // await adminApi.updateClient(editingClient.id, clientData);
-      
-      // Mock update
-      setClients(prev => prev.map(client => 
-        client.id === editingClient.id ? { ...client, ...clientData } : client
-      ));
+      await adminApi.updateClient(editingClient.id, clientData);
+      // Refresh the clients list
+      fetchClients();
       setShowModal(false);
       setEditingClient(null);
     } catch (error) {
@@ -119,11 +114,9 @@ const ClientsTab: React.FC = () => {
   const handleDeleteClient = async (client: Client) => {
     if (window.confirm(`Are you sure you want to delete client ${client.name}?`)) {
       try {
-        // TODO: Replace with actual API call
-        // await adminApi.deleteClient(client.id);
-        
-        // Mock deletion
-        setClients(prev => prev.filter(c => c.id !== client.id));
+        await adminApi.deleteClient(client.id);
+        // Refresh the clients list
+        fetchClients();
       } catch (error) {
         console.error('Error deleting client:', error);
       }
@@ -194,14 +187,9 @@ const ClientsTab: React.FC = () => {
       key: 'therapistName', 
       label: 'Therapist', 
       editable: true,
-      clickableDropdown: true,
-      searchableOptions: [
-        { value: 'Dr. Sarah Wilson', label: 'Dr. Sarah Wilson' },
-        { value: 'Dr. Michael Chen', label: 'Dr. Michael Chen' },
-        { value: 'Dr. Emily Rodriguez', label: 'Dr. Emily Rodriguez' },
-      ],
-      onDropdownChange: (value: string, row: any) => {
-        // Update the therapist field when dropdown selection changes
+      validatedInput: true,
+      onValidatedChange: (value: string, row: any) => {
+        // Update the therapist field when input changes
         setClients(prev => prev.map(c => 
           c.id === row.id ? { ...c, therapistName: value } : c
         ));
