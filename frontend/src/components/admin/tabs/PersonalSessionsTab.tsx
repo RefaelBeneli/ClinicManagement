@@ -29,6 +29,12 @@ const PersonalSessionsTab: React.FC = () => {
   
   // Prevent duplicate API calls in React StrictMode
   const hasFetchedRef = useRef(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
 
   useEffect(() => {
@@ -47,15 +53,22 @@ const PersonalSessionsTab: React.FC = () => {
     setFilteredSessions(sessions);
   }, [sessions]);
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (page: number = currentPage, size: number = pageSize) => {
     setIsLoading(true);
     try {
-      const response = await adminApi.getPersonalSessions();
+      const response = await adminApi.getPersonalSessions(page, size);
       console.log('🔍 Raw personal sessions response:', response.data);
       
       // Handle Spring Data Page response
       const sessionsData = response.data.content || response.data || [];
       console.log('🔍 Extracted personal sessions data:', sessionsData);
+      
+      // Extract pagination info
+      if (response.data.totalElements !== undefined) {
+        setTotalElements(response.data.totalElements);
+        setTotalPages(response.data.totalPages);
+        setCurrentPage(response.data.number);
+      }
       
       // Transform the data to match our interface
       const transformedSessions: PersonalSession[] = sessionsData.map((session: any) => ({
@@ -141,6 +154,19 @@ const PersonalSessionsTab: React.FC = () => {
       }
     }
   };
+  
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    const zeroBasedPage = page - 1; // Convert from 1-based UI to 0-based backend
+    setCurrentPage(zeroBasedPage);
+    fetchSessions(zeroBasedPage, pageSize);
+  };
+  
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(0); // Reset to first page when changing page size
+    fetchSessions(0, size);
+  };
 
   const handlePersonalSessionStatusChange = async (entityId: number | string, newStatus: string | boolean) => {
     try {
@@ -208,6 +234,7 @@ const PersonalSessionsTab: React.FC = () => {
       key: 'user', 
       label: 'User', 
       editable: true,
+      sortable: true,
       validatedInput: true,
       onValidatedChange: (value: string, row: any) => {
         // Update the user field when input changes
@@ -220,6 +247,7 @@ const PersonalSessionsTab: React.FC = () => {
       key: 'provider', 
       label: 'Provider', 
       editable: true,
+      sortable: true,
       validatedInput: true,
       onValidatedChange: (value: string, row: any) => {
         // Update the provider field when input changes
@@ -228,9 +256,9 @@ const PersonalSessionsTab: React.FC = () => {
         ));
       }
     },
-    { key: 'date', label: 'Date', editable: true },
-    { key: 'time', label: 'Time', editable: true },
-    { key: 'type', label: 'Type', editable: true, enumValues: ['Therapy', 'Guidance', 'Assessment'] },
+    { key: 'date', label: 'Date', editable: true, sortable: true },
+    { key: 'time', label: 'Time', editable: true, sortable: true },
+    { key: 'type', label: 'Type', editable: true, sortable: true, enumValues: ['Therapy', 'Guidance', 'Assessment'] },
   ];
 
   return (
@@ -259,6 +287,15 @@ const PersonalSessionsTab: React.FC = () => {
           data={filteredSessions}
           selectable={true}
           onSelectionChange={setSelectedSessionIds}
+          pagination={{
+            enabled: true,
+            currentPage: currentPage + 1, // Convert from 0-based to 1-based for display
+            pageSize: pageSize,
+            totalElements: totalElements,
+            totalPages: totalPages,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange
+          }}
           statusColumn={{
             enabled: true,
             entityType: 'meeting',

@@ -28,6 +28,12 @@ const UsersTab: React.FC = () => {
   
   // Prevent duplicate API calls in React StrictMode
   const hasFetchedRef = useRef(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
 
   useEffect(() => {
@@ -46,12 +52,12 @@ const UsersTab: React.FC = () => {
     setFilteredUsers(users);
   }, [users]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = currentPage, size: number = pageSize) => {
     setIsLoading(true);
     try {
       const response = await makeApiCall(
         '/api/admin/users',
-        () => adminApi.getUsers(),
+        () => adminApi.getUsers(page, size),
         { cacheKey: 'admin-users' }
       );
       
@@ -66,6 +72,13 @@ const UsersTab: React.FC = () => {
       // Handle Spring Data Page response
       const usersData = response.data.content || response.data || [];
       console.log('🔍 Extracted users data:', usersData);
+      
+      // Extract pagination info
+      if (response.data.totalElements !== undefined) {
+        setTotalElements(response.data.totalElements);
+        setTotalPages(response.data.totalPages);
+        setCurrentPage(response.data.number);
+      }
       
       // Transform the data to match our interface
       const transformedUsers: User[] = usersData.map((user: any) => ({
@@ -147,6 +160,19 @@ const UsersTab: React.FC = () => {
       }
     }
   };
+  
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    const zeroBasedPage = page - 1; // Convert from 1-based UI to 0-based backend
+    setCurrentPage(zeroBasedPage);
+    fetchUsers(zeroBasedPage, pageSize);
+  };
+  
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(0); // Reset to first page when changing page size
+    fetchUsers(0, size);
+  };
 
   const handleUserStatusChange = async (entityId: number | string, newStatus: string | boolean) => {
     try {
@@ -194,12 +220,13 @@ const UsersTab: React.FC = () => {
   ];
 
   const columns = [
-    { key: 'name', label: 'Name', editable: true },
-    { key: 'email', label: 'Email', editable: true },
+    { key: 'name', label: 'Name', editable: true, sortable: true },
+    { key: 'email', label: 'Email', editable: true, sortable: true },
     { 
       key: 'role', 
       label: 'Role', 
       editable: true,
+      sortable: true,
       clickableDropdown: true,
       enumValues: ['ADMIN', 'USER'],
       onDropdownChange: (value: string, row: any) => {
@@ -209,6 +236,7 @@ const UsersTab: React.FC = () => {
         ));
       }
     },
+    { key: 'status', label: 'Status', editable: true, sortable: true, enumValues: ['ACTIVE', 'INACTIVE'] }
   ];
 
   return (
@@ -237,6 +265,15 @@ const UsersTab: React.FC = () => {
           data={filteredUsers}
           selectable={true}
           onSelectionChange={setSelectedUserIds}
+          pagination={{
+            enabled: true,
+            currentPage: currentPage + 1, // Convert from 0-based to 1-based for display
+            pageSize: pageSize,
+            totalElements: totalElements,
+            totalPages: totalPages,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange
+          }}
           statusColumn={{
             enabled: true,
             entityType: 'user',

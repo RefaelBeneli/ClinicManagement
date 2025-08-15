@@ -1,6 +1,9 @@
 package com.clinic.dto
 
 import com.clinic.entity.PersonalMeetingType
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonAlias
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -140,10 +143,11 @@ data class AdminExpenseResponse(
     val paymentTypeId: Long?,
     val paymentTypeName: String?,
     val receiptUrl: String?,
+    val isActive: Boolean,
     val createdAt: LocalDateTime
 )
 
-data class AdminExpenseRequest(
+data class AdminExpenseCreateRequest(
     val userId: Long,
     val name: String,
     val description: String? = null,
@@ -159,4 +163,23 @@ data class AdminExpenseRequest(
     val isPaid: Boolean = false,
     val paymentTypeId: Long? = null,
     val receiptUrl: String? = null
+)
+
+data class AdminExpenseRequest(
+    val userId: Long? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val amount: BigDecimal? = null,
+    val currency: String? = null,
+    val categoryId: Long? = null,
+    val notes: String? = null,
+    val expenseDate: LocalDateTime? = null,
+    val isRecurring: Boolean? = null,
+    val recurrenceFrequency: String? = null,
+    val recurrenceCount: Int? = null,
+    val nextDueDate: LocalDateTime? = null,
+    val isPaid: Boolean? = null,
+    val paymentTypeId: Long? = null,
+    val receiptUrl: String? = null,
+    val isActive: Boolean? = null
 ) 

@@ -190,6 +190,7 @@ class ExpenseService {
             isPaid = updateRequest.isPaid ?: expense.isPaid,
             paymentType = paymentType,
             receiptUrl = updateRequest.receiptUrl,
+            isActive = updateRequest.isActive ?: expense.isActive,
             updatedAt = LocalDateTime.now()
         )
 

@@ -14,6 +14,7 @@ interface Column {
   onDropdownChange?: (value: string, row: any) => void; // Callback for dropdown changes
   validatedInput?: boolean; // Added for validated input fields (replaces dropdowns)
   onValidatedChange?: (value: string, row: any) => void; // Callback for validated input changes
+  sortable?: boolean; // Added for sortable columns
 }
 
 interface DataTableProps {
@@ -25,6 +26,16 @@ interface DataTableProps {
   isLoading?: boolean;
   selectable?: boolean;
   onSelectionChange?: (selectedIds: number[]) => void;
+  // Pagination configuration
+  pagination?: {
+    enabled: boolean;
+    currentPage: number;
+    pageSize: number;
+    totalElements: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (size: number) => void;
+  };
   // Status column configuration
   statusColumn?: {
     enabled: boolean;
@@ -50,6 +61,7 @@ const DataTable: React.FC<DataTableProps> = ({
   isLoading = false,
   selectable = false,
   onSelectionChange,
+  pagination,
   statusColumn,
   activityStatusColumn
 }) => {
@@ -57,6 +69,10 @@ const DataTable: React.FC<DataTableProps> = ({
   const [editingData, setEditingData] = useState<any>({});
   const [savingRow, setSavingRow] = useState<number | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const handleEdit = (rowIndex: number, row: any) => {
     setEditingRow(rowIndex);
@@ -107,6 +123,62 @@ const DataTable: React.FC<DataTableProps> = ({
       onSelectionChange?.([]);
     }
   };
+  
+  // Sorting handlers
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, start with ascending
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+  
+  // Sort data based on current sort state
+  const sortedData = React.useMemo(() => {
+    if (!sortColumn) return data;
+    
+    return [...data].sort((a, b) => {
+      let aValue = a[sortColumn];
+      let bValue = b[sortColumn];
+      
+      // Handle status column sorting (statusColumn and activityStatusColumn)
+      if (sortColumn === 'status' && statusColumn?.enabled) {
+        aValue = a[statusColumn.statusKey];
+        bValue = b[statusColumn.statusKey];
+      } else if (sortColumn === 'activityStatus' && activityStatusColumn?.enabled) {
+        aValue = a[activityStatusColumn.activityStatusKey];
+        bValue = b[activityStatusColumn.activityStatusKey];
+      }
+      
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortDirection === 'asc' ? -1 : 1;
+      if (bValue == null) return sortDirection === 'asc' ? 1 : -1;
+      
+      // Handle different data types
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.toLowerCase().localeCompare(bValue.toLowerCase());
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      if (aValue instanceof Date && bValue instanceof Date) {
+        return sortDirection === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
+      }
+      
+      // Default string comparison
+      const aStr = String(aValue);
+      const bStr = String(bValue);
+      const comparison = aStr.toLowerCase().localeCompare(bStr.toLowerCase());
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [data, sortColumn, sortDirection, statusColumn, activityStatusColumn]);
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -126,6 +198,71 @@ const DataTable: React.FC<DataTableProps> = ({
 
   return (
     <div className="data-table-container">
+      {/* Pagination Controls */}
+      {pagination?.enabled && (
+        <div className="pagination-controls">
+          <div className="pagination-info">
+            <span>Showing {((pagination.currentPage - 1) * pagination.pageSize) + 1} to {Math.min(pagination.currentPage * pagination.pageSize, pagination.totalElements)} of {pagination.totalElements} entries</span>
+          </div>
+          
+          <div className="pagination-controls-right">
+            {/* Page Size Selector */}
+            <div className="page-size-selector">
+              <label htmlFor="page-size">Show:</label>
+              <select
+                id="page-size"
+                value={pagination.pageSize}
+                onChange={(e) => pagination.onPageSizeChange(Number(e.target.value))}
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+                <option value={500}>500</option>
+              </select>
+              <span>entries</span>
+            </div>
+            
+            {/* Page Navigation */}
+            <div className="page-navigation">
+              <button
+                onClick={() => pagination.onPageChange(1)}
+                disabled={pagination.currentPage === 1}
+                title="First page"
+              >
+                «
+              </button>
+              <button
+                onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+                title="Previous page"
+              >
+                ‹
+              </button>
+              
+              <span>
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              
+              <button
+                onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages}
+                title="Next page"
+              >
+                ›
+              </button>
+              <button
+                onClick={() => pagination.onPageChange(pagination.totalPages)}
+                disabled={pagination.currentPage === pagination.totalPages}
+                title="Last page"
+              >
+                »
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
         <thead>
           <tr>
@@ -158,8 +295,22 @@ const DataTable: React.FC<DataTableProps> = ({
                 color: '#495057', 
                 borderBottom: '2px solid #dee2e6', 
                 fontSize: '13px', 
-                lineHeight: 1.1 
-              }}>{column.label}</th>
+                lineHeight: 1.1,
+                cursor: column.sortable !== false ? 'pointer' : 'default',
+                userSelect: 'none'
+              }} 
+              onClick={() => column.sortable !== false && handleSort(column.key)}
+              title={column.sortable !== false ? `Click to sort by ${column.label}` : ''}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <span>{column.label}</span>
+                  {column.sortable !== false && sortColumn === column.key && (
+                    <span style={{ fontSize: '12px', color: '#007bff' }}>
+                      {sortDirection === 'asc' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </div>
+              </th>
             ))}
             {statusColumn?.enabled && (
               <th style={{ 
@@ -170,8 +321,22 @@ const DataTable: React.FC<DataTableProps> = ({
                 color: '#495057', 
                 borderBottom: '2px solid #dee2e6', 
                 fontSize: '13px', 
-                lineHeight: '1.1' 
-              }}>Status</th>
+                lineHeight: '1.1',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }} 
+              onClick={() => handleSort('status')}
+              title="Click to sort by Status"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <span>Status</span>
+                  {sortColumn === 'status' && (
+                    <span style={{ fontSize: '12px', color: '#007bff' }}>
+                      {sortDirection === 'asc' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </div>
+              </th>
             )}
             {activityStatusColumn?.enabled && (
               <th style={{ 
@@ -182,13 +347,27 @@ const DataTable: React.FC<DataTableProps> = ({
                 color: '#495057', 
                 borderBottom: '2px solid #dee2e6', 
                 fontSize: '13px', 
-                lineHeight: '1.1' 
-              }}>Activity Status</th>
+                lineHeight: '1.1',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }} 
+              onClick={() => handleSort('activityStatus')}
+              title="Click to sort by Activity Status"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <span>Activity Status</span>
+                  {sortColumn === 'activityStatus' && (
+                    <span style={{ fontSize: '12px', color: '#007bff' }}>
+                      {sortDirection === 'asc' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </div>
+              </th>
             )}
           </tr>
         </thead>
         <tbody>
-          {data.map((row, index) => (
+          {sortedData.map((row, index) => (
             <tr key={row.id || index} className="data-row">
               {selectable && (
                 <td style={{

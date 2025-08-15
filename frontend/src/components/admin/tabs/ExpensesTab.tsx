@@ -28,6 +28,12 @@ const ExpensesTab: React.FC = () => {
   
   // Prevent duplicate API calls in React StrictMode
   const hasFetchedRef = useRef(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
 
   useEffect(() => {
@@ -46,15 +52,20 @@ const ExpensesTab: React.FC = () => {
     setFilteredExpenses(expenses);
   }, [expenses]);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (page: number = currentPage, size: number = pageSize) => {
     setIsLoading(true);
     try {
-      const response = await adminApi.getExpenses();
-      console.log('🔍 Raw expenses response:', response.data);
+      const response = await adminApi.getExpenses(page, size);
       
       // Handle Spring Data Page response
       const expensesData = response.data.content || response.data || [];
-      console.log('🔍 Extracted expenses data:', expensesData);
+      
+      // Extract pagination info
+      if (response.data.totalElements !== undefined) {
+        setTotalElements(response.data.totalElements);
+        setTotalPages(response.data.totalPages);
+        setCurrentPage(response.data.number);
+      }
       
       // Transform the data to match our interface
       const transformedExpenses: Expense[] = expensesData.map((expense: any) => ({
@@ -67,7 +78,6 @@ const ExpensesTab: React.FC = () => {
         status: expense.isActive ? 'ACTIVE' : 'INACTIVE'
       }));
       
-      console.log('🔍 Transformed expenses:', transformedExpenses);
       setExpenses(transformedExpenses);
     } catch (error) {
       console.error('Error fetching expenses:', error);
@@ -127,14 +137,30 @@ const ExpensesTab: React.FC = () => {
       }
     }
   };
+  
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    const zeroBasedPage = page - 1; // Convert from 1-based UI to 0-based backend
+    setCurrentPage(zeroBasedPage);
+    fetchExpenses(zeroBasedPage, pageSize);
+  };
+  
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(0); // Reset to first page when changing page size
+    fetchExpenses(0, size);
+  };
 
   const handleExpenseStatusChange = async (entityId: number | string, newStatus: string | boolean) => {
     try {
       // Update the expense status
       const expenseId = typeof entityId === 'string' ? parseInt(entityId) : entityId;
-      const status = typeof newStatus === 'string' ? newStatus : (newStatus ? 'ACTIVE' : 'INACTIVE');
+      const isActive = typeof newStatus === 'string' ? (newStatus === 'ACTIVE') : newStatus;
       
-      await adminApi.updateExpense(expenseId, { status });
+      const payload = { isActive: isActive };
+      
+      // Call the real endpoint
+      await adminApi.updateExpense(expenseId, payload);
       // Refresh the expenses list
       fetchExpenses();
     } catch (error) {
@@ -188,19 +214,21 @@ const ExpensesTab: React.FC = () => {
   };
 
   const columns = [
-    { key: 'description', label: 'Description', editable: true },
+    { key: 'description', label: 'Description', editable: true, sortable: true },
     { 
       key: 'amount', 
       label: 'Amount',
       editable: true,
+      sortable: true,
       render: (value: number) => formatCurrency(value)
     },
-    { key: 'category', label: 'Category', editable: true, enumValues: ['Office', 'Technology', 'Maintenance', 'Utilities', 'Insurance', 'Marketing', 'Training', 'Professional Services'] },
-    { key: 'date', label: 'Date', editable: true },
+    { key: 'category', label: 'Category', editable: true, sortable: true, enumValues: ['Office', 'Technology', 'Maintenance', 'Utilities', 'Insurance', 'Marketing', 'Training', 'Professional Services'] },
+    { key: 'date', label: 'Date', editable: true, sortable: true },
     { 
       key: 'therapistName', 
       label: 'Therapist', 
       editable: true,
+      sortable: true,
       validatedInput: true,
       onValidatedChange: (value: string, row: any) => {
         // Update the therapist field when input changes
@@ -237,6 +265,15 @@ const ExpensesTab: React.FC = () => {
         data={filteredExpenses}
         selectable={true}
         onSelectionChange={setSelectedExpenseIds}
+        pagination={{
+          enabled: true,
+          currentPage: currentPage + 1, // Convert from 0-based to 1-based for display
+          pageSize: pageSize,
+          totalElements: totalElements,
+          totalPages: totalPages,
+          onPageChange: handlePageChange,
+          onPageSizeChange: handlePageSizeChange
+        }}
         statusColumn={{
           enabled: true,
           entityType: 'expense',

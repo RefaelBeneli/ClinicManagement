@@ -27,6 +27,12 @@ const ClientsTab: React.FC = () => {
   
   // Prevent duplicate API calls in React StrictMode
   const hasFetchedRef = useRef(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
 
   useEffect(() => {
@@ -40,13 +46,20 @@ const ClientsTab: React.FC = () => {
     filterClients();
   }, [searchTerm]);
 
-  const fetchClients = async () => {
+  const fetchClients = async (page: number = currentPage, size: number = pageSize) => {
     setIsLoading(true);
     try {
-      const response = await adminApi.getClients();
+      const response = await adminApi.getClients(page, size);
       
       // Handle Spring Data Page response
       const clientsData = response.data.content || response.data || [];
+      
+      // Extract pagination info
+      if (response.data.totalElements !== undefined) {
+        setTotalElements(response.data.totalElements);
+        setTotalPages(response.data.totalPages);
+        setCurrentPage(response.data.number);
+      }
       
       // Transform the data to match our interface
       const transformedClients: Client[] = clientsData.map((client: any) => ({
@@ -122,6 +135,19 @@ const ClientsTab: React.FC = () => {
       }
     }
   };
+  
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    const zeroBasedPage = page - 1; // Convert from 1-based UI to 0-based backend
+    setCurrentPage(zeroBasedPage);
+    fetchClients(zeroBasedPage, pageSize);
+  };
+  
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(0); // Reset to first page when changing page size
+    fetchClients(0, size);
+  };
 
   const handleClientStatusChange = async (entityId: number | string, newStatus: string | boolean) => {
     try {
@@ -180,13 +206,14 @@ const ClientsTab: React.FC = () => {
   ];
 
   const columns = [
-    { key: 'name', label: 'Name', editable: true },
-    { key: 'phone', label: 'Phone', editable: true },
-    { key: 'email', label: 'Email', editable: true },
+    { key: 'name', label: 'Name', editable: true, sortable: true },
+    { key: 'phone', label: 'Phone', editable: true, sortable: true },
+    { key: 'email', label: 'Email', editable: true, sortable: true },
     { 
       key: 'therapistName', 
       label: 'Therapist', 
       editable: true,
+      sortable: true,
       validatedInput: true,
       onValidatedChange: (value: string, row: any) => {
         // Update the therapist field when input changes
@@ -194,7 +221,7 @@ const ClientsTab: React.FC = () => {
           c.id === row.id ? { ...c, therapistName: value } : c
         ));
       }
-    },
+    }
   ];
 
   return (
@@ -229,6 +256,15 @@ const ClientsTab: React.FC = () => {
           data={filteredClients}
           selectable={true}
           onSelectionChange={setSelectedClientIds}
+          pagination={{
+            enabled: true,
+            currentPage: currentPage + 1, // Convert from 0-based to 1-based for display
+            pageSize: pageSize,
+            totalElements: totalElements,
+            totalPages: totalPages,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange
+          }}
           statusColumn={{
             enabled: true,
             entityType: 'client',

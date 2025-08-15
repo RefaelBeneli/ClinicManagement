@@ -3,32 +3,32 @@ import api from './api';
 // Admin API endpoints for full system access
 export const adminApi = {
   // Users - Admin can manage all users
-  getUsers: () => api.get('/admin/users'),
+  getUsers: (page: number = 0, size: number = 100) => api.get(`/admin/users?page=${page}&size=${size}`),
   createUser: (userData: any) => api.post('/admin/users', userData),
   updateUser: (id: number, userData: any) => api.put(`/admin/users/${id}`, userData),
   deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
   validateUserName: (name: string) => api.get(`/admin/users/validate-name?name=${encodeURIComponent(name)}`),
   
   // Clients - Admin can manage all clients
-  getClients: () => api.get('/admin/clients'),
+  getClients: (page: number = 0, size: number = 100) => api.get(`/admin/clients?page=${page}&size=${size}`),
   createClient: (clientData: any) => api.post('/admin/clients', clientData),
   updateClient: (id: number, clientData: any) => api.put(`/admin/clients/${id}`, clientData),
   deleteClient: (id: number) => api.delete(`/admin/clients/${id}`),
   
   // Sessions/Meetings - Admin can manage all sessions
-  getSessions: () => api.get('/admin/meetings'),
+  getSessions: (page: number = 0, size: number = 100) => api.get(`/admin/meetings?page=${page}&size=${size}`),
   createSession: (sessionData: any) => api.post('/admin/meetings', sessionData),
   updateSession: (id: number, sessionData: any) => api.put(`/admin/meetings/${id}`, sessionData),
   deleteSession: (id: number) => api.delete(`/admin/meetings/${id}`),
   
   // Personal Sessions - Admin can manage all personal sessions
-  getPersonalSessions: () => api.get('/admin/personal-meetings'),
+  getPersonalSessions: (page: number = 0, size: number = 100) => api.get(`/admin/personal-meetings?page=${page}&size=${size}`),
   createPersonalSession: (sessionData: any) => api.post('/admin/personal-meetings', sessionData),
   updatePersonalSession: (id: number, sessionData: any) => api.put(`/admin/personal-meetings/${id}`, sessionData),
   deletePersonalSession: (id: number) => api.delete(`/admin/personal-meetings/${id}`),
   
   // Expenses - Admin can manage all expenses
-  getExpenses: () => api.get('/admin/expenses'),
+  getExpenses: (page: number = 0, size: number = 100) => api.get(`/admin/expenses?page=${page}&size=${size}`),
   createExpense: (expenseData: any) => api.post('/admin/expenses', expenseData),
   updateExpense: (id: number, expenseData: any) => api.put(`/admin/expenses/${id}`, expenseData),
   deleteExpense: (id: number) => api.delete(`/admin/expenses/${id}`),

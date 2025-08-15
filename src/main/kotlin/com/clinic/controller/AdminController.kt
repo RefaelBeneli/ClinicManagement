@@ -2,6 +2,7 @@ package com.clinic.controller
 
 import com.clinic.dto.*
 import com.clinic.service.AdminService
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -20,11 +21,19 @@ class AdminController(
     @GetMapping("/users")
     fun getAllUsers(
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "100") size: Int
     ): ResponseEntity<Page<AdminUserResponse>> {
-        val pageable: Pageable = PageRequest.of(page, size)
+        // Validate page size to prevent extremely large requests
+        val validSize = when {
+            size <= 0 -> 100
+            size > 1000 -> 1000
+            else -> size
+        }
+        val pageable: Pageable = PageRequest.of(page, validSize)
         return ResponseEntity.ok(adminService.getAllUsers(pageable))
     }
+
+
 
     @GetMapping("/users/{id}")
     fun getUserById(@PathVariable id: Long): ResponseEntity<AdminUserResponse> {
@@ -75,11 +84,19 @@ class AdminController(
     @GetMapping("/clients")
     fun getAllClients(
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "100") size: Int
     ): ResponseEntity<Page<AdminClientResponse>> {
-        val pageable: Pageable = PageRequest.of(page, size)
+        // Validate page size to prevent extremely large requests
+        val validSize = when {
+            size <= 0 -> 100
+            size > 1000 -> 1000
+            else -> size
+        }
+        val pageable: Pageable = PageRequest.of(page, validSize)
         return ResponseEntity.ok(adminService.getAllClients(pageable))
     }
+
+
 
     @GetMapping("/clients/{id}")
     fun getClientById(@PathVariable id: Long): ResponseEntity<AdminClientResponse> {
@@ -109,11 +126,19 @@ class AdminController(
     @GetMapping("/meetings")
     fun getAllMeetings(
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "100") size: Int
     ): ResponseEntity<Page<AdminMeetingResponse>> {
+        // Validate page size to prevent extremely large requests
+        val validSize = when {
+            size <= 0 -> 100
+            size > 1000 -> 1000
+            else -> size
+        }
         val pageable: Pageable = PageRequest.of(page, size)
         return ResponseEntity.ok(adminService.getAllMeetings(pageable))
     }
+
+
 
     @GetMapping("/meetings/{id}")
     fun getMeetingById(@PathVariable id: Long): ResponseEntity<AdminMeetingResponse> {
@@ -143,11 +168,19 @@ class AdminController(
     @GetMapping("/personal-meetings")
     fun getAllPersonalMeetings(
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "100") size: Int
     ): ResponseEntity<Page<AdminPersonalMeetingResponse>> {
-        val pageable: Pageable = PageRequest.of(page, size)
+        // Validate page size to prevent extremely large requests
+        val validSize = when {
+            size <= 0 -> 100
+            size > 1000 -> 1000
+            else -> size
+        }
+        val pageable: Pageable = PageRequest.of(page, validSize)
         return ResponseEntity.ok(adminService.getAllPersonalMeetings(pageable))
     }
+
+
 
     @GetMapping("/personal-meetings/{id}")
     fun getPersonalMeetingById(@PathVariable id: Long): ResponseEntity<AdminPersonalMeetingResponse> {
@@ -177,11 +210,19 @@ class AdminController(
     @GetMapping("/expenses")
     fun getAllExpenses(
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "100") size: Int
     ): ResponseEntity<Page<AdminExpenseResponse>> {
-        val pageable: Pageable = PageRequest.of(page, size)
+        // Validate page size to prevent extremely large requests
+        val validSize = when {
+            size <= 0 -> 100
+            size > 1000 -> 1000
+            else -> size
+        }
+        val pageable: Pageable = PageRequest.of(page, validSize)
         return ResponseEntity.ok(adminService.getAllExpenses(pageable))
     }
+
+
 
     @GetMapping("/expenses/{id}")
     fun getExpenseById(@PathVariable id: Long): ResponseEntity<AdminExpenseResponse> {
@@ -189,7 +230,7 @@ class AdminController(
     }
 
     @PostMapping("/expenses")
-    fun createExpense(@RequestBody request: AdminExpenseRequest): ResponseEntity<AdminExpenseResponse> {
+    fun createExpense(@RequestBody request: AdminExpenseCreateRequest): ResponseEntity<AdminExpenseResponse> {
         return ResponseEntity.ok(adminService.createExpense(request))
     }
 
@@ -200,6 +241,8 @@ class AdminController(
     ): ResponseEntity<AdminExpenseResponse> {
         return ResponseEntity.ok(adminService.updateExpense(id, request))
     }
+
+
 
     @DeleteMapping("/expenses/{id}")
     fun deleteExpense(@PathVariable id: Long): ResponseEntity<MessageResponse> {

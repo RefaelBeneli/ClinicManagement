@@ -83,7 +83,9 @@ data class UpdateExpenseRequest(
     @JsonProperty("isPaid")
     val isPaid: Boolean? = null,
     val paymentTypeId: Long? = null,
-    val receiptUrl: String? = null
+    val receiptUrl: String? = null,
+    @JsonProperty("isActive")
+    val isActive: Boolean? = null
 )
 
 data class ExpenseSummaryResponse(
