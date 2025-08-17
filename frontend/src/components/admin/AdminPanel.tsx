@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import DashboardTab from './tabs/DashboardTab';
 import UsersTab from './tabs/UsersTab';
 import ClientsTab from './tabs/ClientsTab';
@@ -9,7 +10,12 @@ import SystemSettingsTab from './tabs/SystemSettingsTab';
 import './AdminPanel.css';
 
 const AdminPanel: React.FC = () => {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  const handleLogout = () => {
+    logout();
+  };
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -47,8 +53,8 @@ const AdminPanel: React.FC = () => {
       <div className="admin-header">
         <h1>Clinic Management System - Admin Panel</h1>
         <div className="admin-user-info">
-          <span>Admin User</span>
-          <button className="logout-btn">Logout</button>
+          <span>Welcome, {user?.fullName || user?.username}</span>
+          <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </div>
       

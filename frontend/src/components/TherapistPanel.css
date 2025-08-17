@@ -99,6 +99,121 @@
   overflow-x: auto;
 }
 
+/* Pagination styling for therapist panel */
+.pagination-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.items-per-page label {
+  font-size: 0.875rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.items-per-page select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.page-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #ced4da;
+  background: white;
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #212529;
+}
+
+.pagination-btn.active {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
+.pagination-btn:disabled {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+  color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.375rem 0.75rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Responsive design for pagination */
+@media (max-width: 768px) {
+  .pagination-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .items-per-page {
+    justify-content: center;
+  }
+  
+  .page-navigation {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
 /* Inline Editing Styles */
 .inline-input,
 .inline-select {
@@ -363,8 +478,10 @@
 .expenses-table {
   background: white;
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .clients-table table,
@@ -372,8 +489,11 @@
 .personal-meetings-table table,
 .expenses-table table {
   width: 100%;
+  min-width: 1400px;
   border-collapse: collapse;
   font-size: 0.9rem;
+  table-layout: auto;
+  white-space: nowrap;
 }
 
 .clients-table th,
@@ -398,6 +518,9 @@
   padding: 12px;
   border-bottom: 1px solid #e9ecef;
   vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .clients-table tr:hover,
@@ -405,6 +528,97 @@
 .personal-meetings-table tr:hover,
 .expenses-table tr:hover {
   background: #f8f9fa;
+}
+
+/* Ensure table rows display as table rows */
+.clients-table tr,
+.meetings-table tr,
+.personal-meetings-table tr,
+.expenses-table tr {
+  display: table-row;
+}
+
+/* Action buttons styling to prevent cutoff */
+.meetings-table td:last-child,
+.clients-table td:last-child,
+.personal-meetings-table td:last-child,
+.expenses-table td:last-child {
+  padding-right: 20px;
+  white-space: nowrap;
+}
+
+/* Force horizontal scrolling and make it visible */
+.clients-table::-webkit-scrollbar,
+.meetings-table::-webkit-scrollbar,
+.personal-meetings-table::-webkit-scrollbar,
+.expenses-table::-webkit-scrollbar {
+  height: 12px;
+}
+
+/* Ensure tables have proper width and scrolling */
+.clients-table,
+.meetings-table,
+.personal-meetings-table,
+.expenses-table {
+  max-width: 100%;
+  width: 100%;
+}
+
+.clients-table table,
+.meetings-table table,
+.personal-meetings-table table,
+.expenses-table table {
+  min-width: 1400px !important;
+  width: max-content !important;
+}
+
+.clients-table::-webkit-scrollbar-track,
+.meetings-table::-webkit-scrollbar-track,
+.personal-meetings-table::-webkit-scrollbar-track,
+.expenses-table::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+
+.clients-table::-webkit-scrollbar-thumb,
+.meetings-table::-webkit-scrollbar-thumb,
+.personal-meetings-table::-webkit-scrollbar-thumb,
+.expenses-table::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 6px;
+}
+
+.clients-table::-webkit-scrollbar-thumb:hover,
+.meetings-table::-webkit-scrollbar-thumb:hover,
+.personal-meetings-table::-webkit-scrollbar-thumb:hover,
+.expenses-table::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Ensure action buttons have proper spacing */
+.meetings-table td:last-child button,
+.clients-table td:last-child button,
+.personal-meetings-table td:last-child button,
+.expenses-table td:last-child button {
+  margin-right: 8px;
+  min-width: 60px;
+}
+
+/* Force action column to be wide enough */
+.meetings-table th:last-child,
+.clients-table th:last-child,
+.personal-meetings-table th:last-child,
+.expenses-table th:last-child {
+  min-width: 200px !important;
+  width: 200px !important;
+}
+
+.meetings-table td:last-child,
+.clients-table td:last-child,
+.personal-meetings-table td:last-child,
+.expenses-table td:last-child {
+  min-width: 200px !important;
+  width: 200px !important;
 }
 
 /* Override hover styles for disabled items */
@@ -696,6 +910,13 @@
   .expenses-table {
     overflow-x: auto;
     font-size: 0.8rem;
+  }
+  
+  .clients-table table,
+  .meetings-table table,
+  .personal-meetings-table table,
+  .expenses-table table {
+    min-width: 1000px;
   }
 
   .clients-table th,
@@ -1315,6 +1536,9 @@
   position: relative;
   padding-right: 20px;
   transition: background-color 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sortable-header:hover {
@@ -1350,6 +1574,8 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: all 0.2s ease;
+  display: table-cell;
+  white-space: nowrap;
 }
 
 /* Sort indicator styles */
@@ -1378,7 +1604,50 @@
   .sortable-header span {
     font-size: 0.7em;
   }
-} 
+}
+
+/* Column width definitions for proper alignment */
+.meetings-table th:nth-child(1) { width: 50px; }  /* Checkbox */
+.meetings-table th:nth-child(2) { width: 60px; }  /* ID */
+.meetings-table th:nth-child(3) { width: 150px; } /* Client */
+.meetings-table th:nth-child(4) { width: 180px; } /* Date & Time */
+.meetings-table th:nth-child(5) { width: 80px; }  /* Duration */
+.meetings-table th:nth-child(6) { width: 80px; }  /* Price */
+.meetings-table th:nth-child(7) { width: 100px; } /* Status */
+.meetings-table th:nth-child(8) { width: 100px; } /* Payment */
+.meetings-table th:nth-child(9) { width: 120px; } /* Client Source */
+.meetings-table th:nth-child(10) { width: 120px; } /* Meeting Stats */
+.meetings-table th:nth-child(11) { width: 200px; } /* Actions - Increased for button visibility */
+
+.clients-table th:nth-child(1) { width: 50px; }   /* Checkbox */
+.clients-table th:nth-child(2) { width: 60px; }   /* ID */
+.clients-table th:nth-child(3) { width: 150px; }  /* Full Name */
+.clients-table th:nth-child(4) { width: 150px; }  /* Email */
+.clients-table th:nth-child(5) { width: 120px; }  /* Phone */
+.clients-table th:nth-child(6) { width: 100px; }  /* Status */
+.clients-table th:nth-child(7) { width: 100px; }  /* Created */
+.clients-table th:nth-child(8) { width: 120px; }  /* Source */
+.clients-table th:nth-child(9) { width: 150px; }  /* Actions */
+
+.personal-meetings-table th:nth-child(1) { width: 50px; }   /* Checkbox */
+.personal-meetings-table th:nth-child(2) { width: 60px; }   /* ID */
+.personal-meetings-table th:nth-child(3) { width: 120px; }  /* Provider */
+.personal-meetings-table th:nth-child(4) { width: 120px; }  /* Type */
+.personal-meetings-table th:nth-child(5) { width: 180px; }  /* Date & Time */
+.personal-meetings-table th:nth-child(6) { width: 80px; }   /* Duration */
+.personal-meetings-table th:nth-child(7) { width: 80px; }   /* Price */
+.personal-meetings-table th:nth-child(8) { width: 100px; }  /* Status */
+.personal-meetings-table th:nth-child(9) { width: 100px; }  /* Payment */
+.personal-meetings-table th:nth-child(10) { width: 150px; } /* Actions */
+
+.expenses-table th:nth-child(1) { width: 50px; }   /* Checkbox */
+.expenses-table th:nth-child(2) { width: 60px; }   /* ID */
+.expenses-table th:nth-child(3) { width: 200px; }  /* Description */
+.expenses-table th:nth-child(4) { width: 100px; }  /* Amount */
+.expenses-table th:nth-child(5) { width: 120px; }  /* Category */
+.expenses-table th:nth-child(6) { width: 120px; }  /* Date */
+.expenses-table th:nth-child(7) { width: 100px; }  /* Status */
+.expenses-table th:nth-child(8) { width: 150px; }  /* Actions */ 
 
 /* Table Controls */
 .table-controls {
@@ -1584,7 +1853,6 @@
 .clients-table td {
   padding: 12px;
   border-bottom: 1px solid #e9ecef;
-  table-layout: auto;
 }
 
 /* Force filter row alignment - ensure each cell aligns with its header */
@@ -1610,4 +1878,47 @@
 .expenses-table td {
   padding: 12px;
   border-bottom: 1px solid #e9ecef;
-} 
+}
+
+/* Column width definitions for table data cells to ensure alignment */
+.meetings-table td:nth-child(1) { width: 50px; }  /* Checkbox */
+.meetings-table td:nth-child(2) { width: 60px; }  /* ID */
+.meetings-table td:nth-child(3) { width: 150px; } /* Client */
+.meetings-table td:nth-child(4) { width: 180px; } /* Date & Time */
+.meetings-table td:nth-child(5) { width: 80px; }  /* Duration */
+.meetings-table td:nth-child(6) { width: 80px; }  /* Price */
+.meetings-table td:nth-child(7) { width: 100px; } /* Status */
+.meetings-table td:nth-child(8) { width: 100px; } /* Payment */
+.meetings-table td:nth-child(9) { width: 120px; } /* Client Source */
+.meetings-table td:nth-child(10) { width: 120px; } /* Meeting Stats */
+.meetings-table td:nth-child(11) { width: 150px; } /* Actions */
+
+.clients-table td:nth-child(1) { width: 50px; }   /* Checkbox */
+.clients-table td:nth-child(2) { width: 60px; }   /* ID */
+.clients-table td:nth-child(3) { width: 150px; }  /* Full Name */
+.clients-table td:nth-child(4) { width: 150px; }  /* Email */
+.clients-table td:nth-child(5) { width: 120px; }  /* Phone */
+.clients-table td:nth-child(6) { width: 100px; }  /* Status */
+.clients-table td:nth-child(7) { width: 100px; }  /* Created */
+.clients-table td:nth-child(8) { width: 120px; }  /* Source */
+.clients-table td:nth-child(9) { width: 150px; }  /* Actions */
+
+.personal-meetings-table td:nth-child(1) { width: 50px; }   /* Checkbox */
+.personal-meetings-table td:nth-child(2) { width: 60px; }   /* ID */
+.personal-meetings-table td:nth-child(3) { width: 120px; }  /* Provider */
+.personal-meetings-table td:nth-child(4) { width: 120px; }  /* Type */
+.personal-meetings-table td:nth-child(5) { width: 180px; }  /* Date & Time */
+.personal-meetings-table td:nth-child(6) { width: 80px; }   /* Duration */
+.personal-meetings-table td:nth-child(7) { width: 80px; }   /* Price */
+.personal-meetings-table td:nth-child(8) { width: 100px; }  /* Status */
+.personal-meetings-table td:nth-child(9) { width: 100px; }  /* Payment */
+.personal-meetings-table td:nth-child(10) { width: 150px; } /* Actions */
+
+.expenses-table td:nth-child(1) { width: 50px; }   /* Checkbox */
+.expenses-table td:nth-child(2) { width: 60px; }   /* ID */
+.expenses-table td:nth-child(3) { width: 200px; }  /* Description */
+.expenses-table td:nth-child(4) { width: 100px; }  /* Amount */
+.expenses-table td:nth-child(5) { width: 120px; }  /* Category */
+.expenses-table td:nth-child(6) { width: 120px; }  /* Date */
+.expenses-table td:nth-child(7) { width: 100px; }  /* Status */
+.expenses-table td:nth-child(8) { width: 150px; }  /* Actions */ 

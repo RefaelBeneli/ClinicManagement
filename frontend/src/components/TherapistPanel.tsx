@@ -9,6 +9,7 @@ import ExpensePanel from './ExpensePanel';
 import Calendar from './Calendar';
 import AnalyticsPanel from './AnalyticsPanel';
 import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
+import Pagination from './ui/Pagination';
 import { clients, meetings, personalMeetings, expenses, paymentTypes as paymentTypesApi } from '../services/api';
 import { 
   Client, 
@@ -42,6 +43,7 @@ interface SortableHeaderProps {
   currentSortOrder: 'asc' | 'desc';
   onSort: (column: string) => void;
   children: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 const SortableHeader: React.FC<SortableHeaderProps> = ({ 
@@ -49,7 +51,8 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({
   currentSortBy, 
   currentSortOrder, 
   onSort, 
-  children 
+  children,
+  style 
 }) => {
   const isActive = currentSortBy === column;
   
@@ -60,7 +63,8 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({
         cursor: 'pointer', 
         userSelect: 'none',
         position: 'relative',
-        paddingRight: '20px'
+        paddingRight: '20px',
+        ...style
       }}
       className="sortable-header"
     >
@@ -278,6 +282,27 @@ const TherapistPanel: React.FC = () => {
     monthlyRevenue: 0
   });
 
+  // Pagination state for each table
+  const [clientPagination, setClientPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 25
+  });
+
+  const [meetingPagination, setMeetingPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 25
+  });
+
+  const [personalMeetingPagination, setPersonalMeetingPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 25
+  });
+
+  const [expensePagination, setExpensePagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 25
+  });
+
   // Analytics state
   // const [analytics, setAnalytics] = useState<any>({ // Temporarily commented out to fix unused variable warning
   //   revenueStats: null,
@@ -298,6 +323,7 @@ const TherapistPanel: React.FC = () => {
       setClientSortBy(column as any);
       setClientSortOrder('asc');
     }
+    setClientPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handleMeetingSort = (column: string) => {
@@ -307,6 +333,7 @@ const TherapistPanel: React.FC = () => {
       setMeetingSortBy(column as any);
       setMeetingSortOrder('asc');
     }
+    setMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handlePersonalMeetingSort = (column: string) => {
@@ -316,6 +343,7 @@ const TherapistPanel: React.FC = () => {
       setPersonalMeetingSortBy(column as any);
       setPersonalMeetingSortOrder('asc');
     }
+    setPersonalMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handleExpenseSort = (column: string) => {
@@ -325,23 +353,61 @@ const TherapistPanel: React.FC = () => {
       setExpenseSortBy(column as any);
       setExpenseSortOrder('asc');
     }
+    setExpensePagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   // Filter handlers
   const handleClientFilter = (column: string, value: string) => {
     setClientFilters(prev => ({ ...prev, [column]: value }));
+    setClientPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handleMeetingFilter = (column: string, value: string) => {
     setMeetingFilters(prev => ({ ...prev, [column]: value }));
+    setMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handlePersonalMeetingFilter = (column: string, value: string) => {
     setPersonalMeetingFilters(prev => ({ ...prev, [column]: value }));
+    setPersonalMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handleExpenseFilter = (column: string, value: string) => {
     setExpenseFilters(prev => ({ ...prev, [column]: value }));
+    setExpensePagination(prev => ({ ...prev, currentPage: 1 }));
+  };
+
+  // Pagination handlers
+  const handleClientPageChange = (page: number) => {
+    setClientPagination(prev => ({ ...prev, currentPage: page }));
+  };
+
+  const handleClientItemsPerPageChange = (itemsPerPage: number) => {
+    setClientPagination({ currentPage: 1, itemsPerPage });
+  };
+
+  const handleMeetingPageChange = (page: number) => {
+    setMeetingPagination(prev => ({ ...prev, currentPage: page }));
+  };
+
+  const handleMeetingItemsPerPageChange = (itemsPerPage: number) => {
+    setMeetingPagination({ currentPage: 1, itemsPerPage });
+  };
+
+  const handlePersonalMeetingPageChange = (page: number) => {
+    setPersonalMeetingPagination(prev => ({ ...prev, currentPage: page }));
+  };
+
+  const handlePersonalMeetingItemsPerPageChange = (itemsPerPage: number) => {
+    setPersonalMeetingPagination({ currentPage: 1, itemsPerPage });
+  };
+
+  const handleExpensePageChange = (page: number) => {
+    setExpensePagination(prev => ({ ...prev, currentPage: page }));
+  };
+
+  const handleExpenseItemsPerPageChange = (itemsPerPage: number) => {
+    setExpensePagination({ currentPage: 1, itemsPerPage });
   };
 
   // Clear all filters
@@ -350,6 +416,7 @@ const TherapistPanel: React.FC = () => {
       active: 'ALL',
       source: 'ALL'
     });
+    setClientPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
       const clearMeetingFilters = () => {
@@ -361,6 +428,7 @@ const TherapistPanel: React.FC = () => {
         duration: '',
         clientSource: 'ALL'
       });
+      setMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
     };
 
   const clearPersonalMeetingFilters = () => {
@@ -372,6 +440,7 @@ const TherapistPanel: React.FC = () => {
       price: '',
       duration: ''
     });
+    setPersonalMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
       const clearExpenseFilters = () => {
@@ -380,10 +449,15 @@ const TherapistPanel: React.FC = () => {
         isPaid: 'ALL',
         expenseDate: ''
       });
+      setExpensePagination(prev => ({ ...prev, currentPage: 1 }));
     };
 
   // Sorted and filtered data
   const sortedClientList = useMemo(() => {
+    if (!clientList || !Array.isArray(clientList)) {
+      return [];
+    }
+    
     let filtered = [...clientList];
 
     // Apply filters
@@ -429,7 +503,18 @@ const TherapistPanel: React.FC = () => {
     });
   }, [clientList, clientSortBy, clientSortOrder, clientFilters]);
 
+  // Paginated client data
+  const paginatedClientList = useMemo(() => {
+    const startIndex = (clientPagination.currentPage - 1) * clientPagination.itemsPerPage;
+    const endIndex = startIndex + clientPagination.itemsPerPage;
+    return sortedClientList.slice(startIndex, endIndex);
+  }, [sortedClientList, clientPagination.currentPage, clientPagination.itemsPerPage]);
+
   const sortedMeetingList = useMemo(() => {
+    if (!meetingList || !Array.isArray(meetingList)) {
+      return [];
+    }
+    
     let filtered = [...meetingList];
 
     // Apply filters
@@ -496,7 +581,18 @@ const TherapistPanel: React.FC = () => {
     });
   }, [meetingList, meetingSortBy, meetingSortOrder, meetingFilters]);
 
+  // Paginated meeting data
+  const paginatedMeetingList = useMemo(() => {
+    const startIndex = (meetingPagination.currentPage - 1) * meetingPagination.itemsPerPage;
+    const endIndex = startIndex + meetingPagination.itemsPerPage;
+    return sortedMeetingList.slice(startIndex, endIndex);
+  }, [sortedMeetingList, meetingPagination.currentPage, meetingPagination.itemsPerPage]);
+
   const sortedPersonalMeetingList = useMemo(() => {
+    if (!personalMeetingList || !Array.isArray(personalMeetingList)) {
+      return [];
+    }
+    
     let filtered = [...personalMeetingList];
 
     // Apply filters
@@ -563,7 +659,18 @@ const TherapistPanel: React.FC = () => {
     });
   }, [personalMeetingList, personalMeetingSortBy, personalMeetingSortOrder, personalMeetingFilters]);
 
+  // Paginated personal meeting data
+  const paginatedPersonalMeetingList = useMemo(() => {
+    const startIndex = (personalMeetingPagination.currentPage - 1) * personalMeetingPagination.itemsPerPage;
+    const endIndex = startIndex + personalMeetingPagination.itemsPerPage;
+    return sortedPersonalMeetingList.slice(startIndex, endIndex);
+  }, [sortedPersonalMeetingList, personalMeetingPagination.currentPage, personalMeetingPagination.itemsPerPage]);
+
   const sortedExpenseList = useMemo(() => {
+    if (!expenseList || !Array.isArray(expenseList)) {
+      return [];
+    }
+    
     let filtered = [...expenseList];
 
     // Apply filters
@@ -610,6 +717,13 @@ const TherapistPanel: React.FC = () => {
       return expenseSortOrder === 'asc' ? comparison : -comparison;
     });
   }, [expenseList, expenseSortBy, expenseSortOrder, expenseFilters]);
+
+  // Paginated expense data
+  const paginatedExpenseList = useMemo(() => {
+    const startIndex = (expensePagination.currentPage - 1) * expensePagination.itemsPerPage;
+    const endIndex = startIndex + expensePagination.itemsPerPage;
+    return sortedExpenseList.slice(startIndex, endIndex);
+  }, [sortedExpenseList, expensePagination.currentPage, expensePagination.itemsPerPage]);
 
   // Use the same API URL logic as the main API service
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -809,6 +923,23 @@ const TherapistPanel: React.FC = () => {
       fetchAnalytics();
     }
   }, [loading, fetchDashboardStats, fetchAnalytics]);
+
+  // Reset pagination when data changes
+  useEffect(() => {
+    setClientPagination(prev => ({ ...prev, currentPage: 1 }));
+  }, [clientList.length]);
+
+  useEffect(() => {
+    setMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
+  }, [meetingList.length]);
+
+  useEffect(() => {
+    setPersonalMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
+  }, [personalMeetingList.length]);
+
+  useEffect(() => {
+    setExpensePagination(prev => ({ ...prev, currentPage: 1 }));
+  }, [expenseList.length]);
 
   // Bulk operations handlers for meetings
   const bulkActions: BulkAction[] = [
@@ -2288,10 +2419,10 @@ const TherapistPanel: React.FC = () => {
             <div className="clients-table">
               <div className="table-controls">
                 <div className="filter-count">
-                  Showing {sortedClientList.length} of {clientList.length} clients
+                  Showing {paginatedClientList?.length || 0} of {sortedClientList?.length || 0} clients (Total: {clientList?.length || 0})
                 </div>
                 <div className="table-controls-right">
-                  {sortedClientList.length > 0 && (
+                  {sortedClientList && sortedClientList.length > 0 && (
                     <button 
                       className="select-all-button"
                       onClick={() => handleSelectAllClients(selectedClients.length === 0)}
@@ -2412,7 +2543,7 @@ const TherapistPanel: React.FC = () => {
                   
                 </thead>
                 <tbody>
-                  {sortedClientList.map((client) => (
+                  {paginatedClientList.map((client) => (
                     <tr key={client.id} className={!client.active ? 'disabled-item' : ''}>
                       <td>
                         <input
@@ -2514,6 +2645,16 @@ const TherapistPanel: React.FC = () => {
               </table>
             </div>
 
+            {/* Pagination for Clients */}
+            <Pagination
+              currentPage={clientPagination.currentPage}
+              totalPages={Math.max(1, Math.ceil(sortedClientList.length / clientPagination.itemsPerPage))}
+              totalItems={sortedClientList.length}
+              itemsPerPage={clientPagination.itemsPerPage}
+              onPageChange={handleClientPageChange}
+              onItemsPerPageChange={handleClientItemsPerPageChange}
+            />
+
             {/* Bulk Operations for Clients */}
             <BulkOperations
               selectedItems={selectedClients}
@@ -2550,10 +2691,10 @@ const TherapistPanel: React.FC = () => {
             <div className="meetings-table">
               <div className="table-controls">
                 <div className="filter-count">
-                  Showing {sortedMeetingList.length} of {meetingList.length} meetings
+                  Showing {paginatedMeetingList?.length || 0} of {sortedMeetingList?.length || 0} meetings (Total: {meetingList?.length || 0})
                 </div>
                 <div className="table-controls-right">
-                  {sortedMeetingList.length > 0 && (
+                  {sortedMeetingList && sortedMeetingList.length > 0 && (
                     <button 
                       className="select-all-button"
                       onClick={() => handleSelectAllMeetings(selectedMeetings.length === 0)}
@@ -2640,10 +2781,10 @@ const TherapistPanel: React.FC = () => {
                   />
                 </div>
               </div>
-              <table>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '40px' }}>
+                    <th style={{ width: '50px' }}>
                       <input
                         type="checkbox"
                         checked={selectedMeetings.length > 0 && selectedMeetings.length === sortedMeetingList.length}
@@ -2721,7 +2862,7 @@ const TherapistPanel: React.FC = () => {
 
                 </thead>
                 <tbody>
-                  {sortedMeetingList.map((meeting) => (
+                  {paginatedMeetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>
                         <input
@@ -2772,8 +2913,6 @@ const TherapistPanel: React.FC = () => {
                           min="0"
                           value={meeting.price}
                           onChange={(e) => handleMeetingPriceUpdate(meeting.id, parseFloat(e.target.value) || 0)}
-                          className="inline-input"
-                          disabled={meeting.active === false}
                         />
                       </td>
                       <td style={{ position: 'relative' }}>
@@ -2937,6 +3076,16 @@ const TherapistPanel: React.FC = () => {
               </table>
             </div>
 
+            {/* Pagination for Meetings */}
+            <Pagination
+              currentPage={meetingPagination.currentPage}
+              totalPages={Math.max(1, Math.ceil(sortedMeetingList.length / meetingPagination.itemsPerPage))}
+              totalItems={sortedMeetingList.length}
+              itemsPerPage={meetingPagination.itemsPerPage}
+              onPageChange={handleMeetingPageChange}
+              onItemsPerPageChange={handleMeetingItemsPerPageChange}
+            />
+
             {/* Bulk Operations for Meetings */}
             <BulkOperations
               selectedItems={selectedMeetings}
@@ -2973,10 +3122,10 @@ const TherapistPanel: React.FC = () => {
             <div className="personal-meetings-table">
               <div className="table-controls">
                 <div className="filter-count">
-                  Showing {sortedPersonalMeetingList.length} of {personalMeetingList.length} personal meetings
+                  Showing {paginatedPersonalMeetingList?.length || 0} of {sortedPersonalMeetingList?.length || 0} personal meetings (Total: {personalMeetingList?.length || 0})
                 </div>
                 <div className="table-controls-right">
-                  {sortedPersonalMeetingList.length > 0 && (
+                  {sortedPersonalMeetingList && sortedPersonalMeetingList.length > 0 && (
                     <button 
                       className="select-all-button"
                       onClick={() => handleSelectAllPersonalMeetings(selectedPersonalMeetings.length === 0)}
@@ -3136,7 +3285,7 @@ const TherapistPanel: React.FC = () => {
 
                 </thead>
                 <tbody>
-                  {sortedPersonalMeetingList.map((meeting) => (
+                  {paginatedPersonalMeetingList.map((meeting) => (
                     <tr key={meeting.id} className={meeting.active === false ? 'disabled-item' : ''} style={meeting.active === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>
                         <input
@@ -3345,6 +3494,16 @@ const TherapistPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination for Personal Meetings */}
+            <Pagination
+              currentPage={personalMeetingPagination.currentPage}
+              totalPages={Math.max(1, Math.ceil(sortedPersonalMeetingList.length / personalMeetingPagination.itemsPerPage))}
+              totalItems={sortedPersonalMeetingList.length}
+              itemsPerPage={personalMeetingPagination.itemsPerPage}
+              onPageChange={handlePersonalMeetingPageChange}
+              onItemsPerPageChange={handlePersonalMeetingItemsPerPageChange}
+            />
 
             {/* Bulk Operations for Personal Meetings */}
             <BulkOperations
@@ -3653,10 +3812,10 @@ const TherapistPanel: React.FC = () => {
             <div className="expenses-table">
               <div className="table-controls">
                 <div className="filter-count">
-                  Showing {sortedExpenseList.length} of {expenseList.length} expenses
+                  Showing {paginatedExpenseList?.length || 0} of {sortedExpenseList?.length || 0} expenses (Total: {expenseList?.length || 0})
                 </div>
                 <div className="table-controls-right">
-                  {sortedExpenseList.length > 0 && (
+                  {sortedExpenseList && sortedExpenseList.length > 0 && (
                     <button 
                       className="select-all-button"
                       onClick={() => handleSelectAllExpenses(selectedExpenses.length === 0)}
@@ -3780,7 +3939,7 @@ const TherapistPanel: React.FC = () => {
 
                 </thead>
                 <tbody>
-                  {sortedExpenseList.map((expense) => (
+                  {paginatedExpenseList.map((expense) => (
                     <tr key={expense.id} className={expense.isActive === false ? 'disabled-item' : ''} style={expense.isActive === false ? { opacity: 0.6, backgroundColor: '#f8f9fa', borderLeft: '4px solid #dc3545' } : {}}>
                       <td>
                         <input
@@ -3869,6 +4028,16 @@ const TherapistPanel: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination for Expenses */}
+            <Pagination
+              currentPage={expensePagination.currentPage}
+              totalPages={Math.max(1, Math.ceil(sortedExpenseList.length / expensePagination.itemsPerPage))}
+              totalItems={sortedExpenseList.length}
+              itemsPerPage={expensePagination.itemsPerPage}
+              onPageChange={handleExpensePageChange}
+              onItemsPerPageChange={handleExpenseItemsPerPageChange}
+            />
 
             {/* Bulk Operations for Expenses */}
             <BulkOperations
