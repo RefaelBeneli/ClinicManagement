@@ -15,6 +15,8 @@ class PersonalMeetingTypeController(
     private val personalMeetingTypeService: PersonalMeetingTypeService
 ) {
     
+
+    
     @GetMapping
     fun getAllPersonalMeetingTypes(): ResponseEntity<List<PersonalMeetingTypeResponse>> {
         val meetingTypes = personalMeetingTypeService.getAllPersonalMeetingTypes()

@@ -1,5 +1,6 @@
--- V1 Migration: Create base schema with all core tables
--- This migration establishes the foundation schema for the clinic management system
+-- V1 Migration: Consolidated schema with all tables and seed data
+-- This migration establishes the complete foundation schema for the clinic management system
+-- Combines V1__create_base_schema.sql and V2__Add_Missing_Tables.sql
 
 -- Create users table
 CREATE TABLE users (
@@ -8,9 +9,9 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'USER',
+    role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    approval_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    approval_status ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
     approved_by BIGINT NULL,
     approved_date TIMESTAMP NULL,
     rejection_reason VARCHAR(1000) NULL,
@@ -38,8 +39,21 @@ CREATE TABLE expense_categories (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create client_sources table
+-- Create client_sources table (referenced as client_sources in V1)
 CREATE TABLE client_sources (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    duration INT NOT NULL DEFAULT 60,
+    price DECIMAL(10,2) NOT NULL,
+    no_show_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    default_sessions INT NOT NULL DEFAULT 1,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create meeting_sources table (referenced as meeting_sources in V2)
+CREATE TABLE meeting_sources (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     duration INT NOT NULL DEFAULT 60,
@@ -61,7 +75,6 @@ CREATE TABLE clients (
     notes TEXT,
     source_id BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (source_id) REFERENCES client_sources(id)
@@ -76,23 +89,19 @@ CREATE TABLE meetings (
     duration INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_date DATETIME,
-    payment_type_id BIGINT,
     notes TEXT,
     summary TEXT,
-    status VARCHAR(50) NOT NULL DEFAULT 'SCHEDULED',
+    status ENUM('SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW') NOT NULL DEFAULT 'SCHEDULED',
     google_event_id VARCHAR(255),
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
-    recurrence_frequency VARCHAR(50),
+    recurrence_frequency ENUM('WEEKLY', 'BIWEEKLY', 'MONTHLY'),
     total_sessions INT,
     session_number INT NOT NULL DEFAULT 1,
     parent_meeting_id BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (client_id) REFERENCES clients(id),
-    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id),
     FOREIGN KEY (parent_meeting_id) REFERENCES meetings(id)
 );
 
@@ -109,81 +118,109 @@ CREATE TABLE personal_meeting_types (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create personal_meetings table
+-- Create personal_meetings table (consolidated from both migrations)
 CREATE TABLE personal_meetings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     therapist_name VARCHAR(255) NOT NULL,
-    meeting_type_id BIGINT,
-    provider_type VARCHAR(100),
+    meeting_type_id BIGINT NOT NULL,
+    meeting_type VARCHAR(255), -- Keep for backward compatibility
+    provider_type VARCHAR(255) NOT NULL DEFAULT 'Therapist',
     provider_credentials TEXT,
+    payment_date DATETIME NULL,
     meeting_date DATETIME NOT NULL,
-    duration INT NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
+    duration INT NOT NULL DEFAULT 60,
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_date DATETIME,
     notes TEXT,
     summary TEXT,
-    status VARCHAR(50) NOT NULL DEFAULT 'SCHEDULED',
+    status ENUM('SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW') NOT NULL DEFAULT 'SCHEDULED',
     google_event_id VARCHAR(255),
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     recurrence_frequency VARCHAR(50),
     next_due_date DATE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (meeting_type_id) REFERENCES personal_meeting_types(id)
 );
 
--- Create expenses table
+-- Create payments table for tracking all payment transactions
+CREATE TABLE payments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id BIGINT NOT NULL,
+    session_type ENUM('MEETING', 'PERSONAL_MEETING') NOT NULL,
+    payment_type_id BIGINT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'ILS',
+    payment_date DATETIME NOT NULL,
+    reference_number VARCHAR(255),
+    notes TEXT,
+    transaction_id VARCHAR(255),
+    receipt_url VARCHAR(500),
+    status ENUM('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED') NOT NULL DEFAULT 'COMPLETED',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
+);
+
+-- Create expenses table (consolidated from both migrations)
 CREATE TABLE expenses (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     amount DECIMAL(10,2) NOT NULL,
-    currency VARCHAR(3) NOT NULL DEFAULT 'ILS',
+    currency VARCHAR(10) NOT NULL DEFAULT 'ILS',
     category_id BIGINT NOT NULL,
+    category VARCHAR(255), -- Keep for backward compatibility
     notes TEXT,
     expense_date DATE NOT NULL,
+    is_paid BOOLEAN NOT NULL DEFAULT FALSE,
+    payment_method VARCHAR(100),
     is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
     recurrence_frequency VARCHAR(50),
     recurrence_count INT,
     next_due_date DATE,
-    is_paid BOOLEAN NOT NULL DEFAULT FALSE,
-    payment_type_id BIGINT,
     receipt_url VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (category_id) REFERENCES expense_categories(id),
-    FOREIGN KEY (payment_type_id) REFERENCES payment_types(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES expense_categories(id)
 );
 
--- Create calendar_integrations table
+-- Create calendar_integrations table (consolidated from both migrations)
 CREATE TABLE calendar_integrations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     google_calendar_id VARCHAR(255),
     client_session_calendar VARCHAR(255),
     personal_meeting_calendar VARCHAR(255),
+    calendar_id VARCHAR(255), -- Keep for backward compatibility
+    access_token TEXT,
+    refresh_token TEXT,
+    token_expiry DATETIME NULL,
     sync_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     sync_client_sessions BOOLEAN NOT NULL DEFAULT FALSE,
     sync_personal_meetings BOOLEAN NOT NULL DEFAULT FALSE,
     last_sync_date DATETIME,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Insert default payment types
+-- Insert default payment types (consolidated from both migrations)
 INSERT INTO payment_types (name) VALUES 
 ('Cash'),
 ('Bank Transfer'),
 ('Credit Card'),
 ('Check'),
+('Bit'),
+('Paybox'),
 ('Other');
 
 -- Insert default expense categories
@@ -205,6 +242,12 @@ INSERT INTO client_sources (name, duration, price, no_show_price, default_sessio
 ('Natal', 45, 150.00, 75.00, 1),
 ('Clalit', 50, 120.00, 60.00, 1);
 
+-- Insert seed data for meeting_sources
+INSERT INTO meeting_sources (name, duration, price, no_show_price, default_sessions) VALUES
+('Private', 60, 150.00, 0.00, 1),
+('Natal', 60, 150.00, 0.00, 1),
+('Clalit', 60, 150.00, 0.00, 1);
+
 -- Insert default personal meeting types
 INSERT INTO personal_meeting_types (name, duration, price, is_recurring, recurrence_frequency) VALUES
 ('Personal Therapy', 60, 300.00, FALSE, NULL),
@@ -216,30 +259,35 @@ INSERT INTO personal_meeting_types (name, duration, price, is_recurring, recurre
 INSERT INTO users (username, password, email, full_name, role, enabled, approval_status) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDa', 'admin@clinic.com', 'Administrator', 'ADMIN', TRUE, 'APPROVED');
 
--- Create indexes for better performance
+-- Create indexes for better performance (consolidated from both migrations)
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_approval_status ON users(approval_status);
 CREATE INDEX idx_users_approved_by ON users(approved_by);
 CREATE INDEX idx_client_sources_active ON client_sources(is_active);
+CREATE INDEX idx_meeting_sources_active ON meeting_sources(is_active);
 CREATE INDEX idx_clients_user_id ON clients(user_id);
 CREATE INDEX idx_clients_source_id ON clients(source_id);
 CREATE INDEX idx_payment_types_active ON payment_types(is_active);
 CREATE INDEX idx_personal_meeting_types_active ON personal_meeting_types(is_active);
 CREATE INDEX idx_meetings_user_id ON meetings(user_id);
 CREATE INDEX idx_meetings_client_id ON meetings(client_id);
-CREATE INDEX idx_meetings_payment_type_id ON meetings(payment_type_id);
 CREATE INDEX idx_meetings_date ON meetings(meeting_date);
 CREATE INDEX idx_personal_meetings_user_id ON personal_meetings(user_id);
 CREATE INDEX idx_personal_meetings_meeting_type_id ON personal_meetings(meeting_type_id);
 CREATE INDEX idx_personal_meetings_date ON personal_meetings(meeting_date);
 CREATE INDEX idx_expenses_user_id ON expenses(user_id);
-CREATE INDEX idx_expenses_category ON expenses(category_id);
+CREATE INDEX idx_expenses_category_id ON expenses(category_id);
 CREATE INDEX idx_expenses_date ON expenses(expense_date);
-CREATE INDEX idx_calendar_integration_user_id ON calendar_integrations(user_id);
+CREATE INDEX idx_calendar_integrations_user_id ON calendar_integrations(user_id);
+CREATE INDEX idx_payments_user_id ON payments(user_id);
+CREATE INDEX idx_payments_session_id ON payments(session_id);
+CREATE INDEX idx_payments_session_type ON payments(session_type);
+CREATE INDEX idx_payments_payment_type_id ON payments(payment_type_id);
+CREATE INDEX idx_payments_payment_date ON payments(payment_date);
 
 -- Update existing clients to have is_active field set
 -- This ensures all existing clients have the is_active field properly set
 UPDATE clients 
 SET is_active = TRUE 
-WHERE is_active IS NULL; 
+WHERE is_active IS NULL;

@@ -19,6 +19,12 @@ export const adminApi = {
   getSessions: (page: number = 0, size: number = 100) => api.get(`/admin/meetings?page=${page}&size=${size}`),
   createSession: (sessionData: any) => api.post('/admin/meetings', sessionData),
   updateSession: (id: number, sessionData: any) => api.put(`/admin/meetings/${id}`, sessionData),
+  updateSessionStatus: (id: number, status: string) => {
+    console.log('🔍 adminApi.updateSessionStatus called with:', { id, status });
+    return api.patch(`/admin/meetings/${id}/status`, { status });
+  },
+  activateSession: (id: number) => api.post(`/admin/meetings/${id}/activate`),
+  deactivateSession: (id: number) => api.post(`/admin/meetings/${id}/deactivate`),
   deleteSession: (id: number) => api.delete(`/admin/meetings/${id}`),
   
   // Personal Sessions - Admin can manage all personal sessions

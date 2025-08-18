@@ -172,12 +172,17 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     filterAndSortExpenses();
   }, [filterAndSortExpenses]);
 
-  const handlePaymentToggle = async (expenseId: number, currentPaidStatus: boolean) => {
+  const handlePaymentToggle = async (expenseId: number, currentPaidStatus: boolean, paymentTypeId?: number) => {
     try {
       if (currentPaidStatus) {
         await expensesApi.markAsUnpaid(expenseId);
       } else {
-        await expensesApi.markAsPaid(expenseId);
+        // Marking as paid - require payment type
+        if (!paymentTypeId) {
+          setError('Please select a payment type when marking an expense as paid.');
+          return;
+        }
+        await expensesApi.markAsPaid(expenseId, paymentTypeId);
       }
       
       const updatedExpenses = expenses.map(expense =>

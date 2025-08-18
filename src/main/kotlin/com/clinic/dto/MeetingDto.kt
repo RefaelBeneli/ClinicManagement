@@ -39,8 +39,6 @@ data class MeetingResponse(
     val price: BigDecimal,
     @JsonProperty("isPaid")
     val isPaid: Boolean,
-    val paymentDate: LocalDateTime?,
-    val paymentType: PaymentTypeResponse?,
     val notes: String?,
     val summary: String?,
     val status: MeetingStatus,
@@ -61,8 +59,6 @@ data class UpdateMeetingRequest(
     val price: BigDecimal?,
     @JsonProperty("isPaid")
     val isPaid: Boolean?,
-    val paymentDate: LocalDateTime?,
-    val paymentTypeId: Long?,
     val notes: String?,
     val summary: String?,
     val status: MeetingStatus?
@@ -72,7 +68,12 @@ data class PaymentUpdateRequest(
     @field:NotNull(message = "Payment status is required")
     @JsonProperty("isPaid")
     val isPaid: Boolean,
-    val paymentDate: LocalDateTime? = if (isPaid == true) LocalDateTime.now() else null
+    val paymentTypeId: Long? = null,
+    val amount: BigDecimal? = null,
+    val referenceNumber: String? = null,
+    val notes: String? = null,
+    val transactionId: String? = null,
+    val receiptUrl: String? = null
 )
 
 // Revenue tracking DTOs

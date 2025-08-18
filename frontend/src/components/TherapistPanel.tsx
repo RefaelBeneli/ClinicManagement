@@ -30,10 +30,12 @@ import EditClientModal from './ui/EditClientModal';
 import EditMeetingModal from './ui/EditMeetingModal';
 import EditPersonalMeetingModal from './ui/EditPersonalMeetingModal';
 import EditExpenseModal from './ui/EditExpenseModal';
+import PaymentTypeSelectionModal from './ui/PaymentTypeSelectionModal';
 import AddClientModal from './ui/AddClientModal';
 import AddSessionModal from './ui/AddSessionModal';
 import AddPersonalMeetingModal from './ui/AddPersonalMeetingModal';
 import AddExpenseModal from './ui/AddExpenseModal';
+
 import './TherapistPanel.css';
 
 // Sortable table header component
@@ -147,6 +149,7 @@ const TherapistPanel: React.FC = () => {
   const [expenseList, setExpenseList] = useState<Expense[]>([]);
   const [meetingSources, setMeetingSources] = useState<ClientSourceResponse[]>([]);
   const [meetingTypes, setMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'meetings' | 'personal-meetings' | 'expenses' | 'analytics' | 'calendar'>('dashboard');
   // const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false); // Temporarily commented out to fix unused variable warning
@@ -256,20 +259,15 @@ const TherapistPanel: React.FC = () => {
   // const [addPersonalMeetingModal, setAddPersonalMeetingModal] = useState(false); // Temporarily commented out to fix unused variable warning
   const [addExpenseModal, setAddExpenseModal] = useState(false);
 
-  // Payment type selection state
+  // Payment type selection modal state
   const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
-  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType | null>(null);
-  const [meetingToPay, setMeetingToPay] = useState<Meeting | null>(null);
-  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
+  const [pendingPaymentAction, setPendingPaymentAction] = useState<{
+    type: 'meeting' | 'personalMeeting' | 'expense';
+    id: number;
+    isPaid: boolean;
+  } | null>(null);
 
-  // Status dropdown state
-  const [statusDropdowns, setStatusDropdowns] = useState<{
-    meetings: { [key: number]: boolean };
-    personalMeetings: { [key: number]: boolean };
-  }>({
-    meetings: {},
-    personalMeetings: {}
-  });
+
 
   // Stats state
   const [stats, setStats] = useState({
@@ -737,9 +735,7 @@ const TherapistPanel: React.FC = () => {
   const fetchClients = useCallback(async () => {
     try {
       const clientsData = await clients.getAll();
-      console.log('📋 Fetched clients data:', clientsData);
-      console.log('📋 First client details:', clientsData[0]);
-                      console.log('📋 First client active field:', clientsData[0]?.active);
+      
       setClientList(clientsData);
     } catch (error) {
       console.error('Failed to fetch clients:', error);
@@ -748,10 +744,7 @@ const TherapistPanel: React.FC = () => {
 
   const fetchMeetings = useCallback(async () => {
     try {
-      console.log('🔄 Fetching meetings from server...');
-      const meetingsData = await meetings.getAll();
-      console.log('📋 Fetched meetings data:', meetingsData);
-      console.log('📋 Meetings active status:', meetingsData.map(m => ({ id: m.id, active: m.active })));
+              const meetingsData = await meetings.getAll();
       setMeetingList(meetingsData);
     } catch (error) {
       console.error('Failed to fetch meetings:', error);
@@ -907,6 +900,21 @@ const TherapistPanel: React.FC = () => {
         // Load meeting types
         const types = await personalMeetings.getActiveMeetingTypes();
         setMeetingTypes(types);
+        
+        // Load payment types
+        try {
+          const paymentTypesData = await paymentTypesApi.getActive();
+          setPaymentTypes(paymentTypesData);
+        } catch (error) {
+          console.warn('Failed to load payment types:', error);
+          // Set default payment types as fallback
+          setPaymentTypes([
+            { id: 1, name: 'Bank Transfer', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { id: 2, name: 'Bit', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { id: 3, name: 'Paybox', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { id: 4, name: 'Cash', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+          ]);
+        }
       } catch (error) {
         console.error('❌ Error fetching data:', error);
       } finally {
@@ -1628,19 +1636,7 @@ const TherapistPanel: React.FC = () => {
   };
 
   // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.status-badge')) {
-        closeAllDropdowns();
-      }
-    };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -1688,51 +1684,38 @@ const TherapistPanel: React.FC = () => {
   //   return meeting.source?.name || 'Unknown Source';
   // };
 
-  // Payment toggle functions
-  const handleMeetingPaymentToggle = async (meetingId: number, currentPaidStatus: boolean) => {
+  // Payment update – direct, no modal
+  const handleMeetingPaymentChange = async (meetingId: number, isPaid: boolean, paymentTypeId?: number) => {
     try {
-      console.log('🎯 Payment button clicked for meeting:', meetingId, 'Current status:', currentPaidStatus);
-      if (currentPaidStatus) {
-        // Mark as unpaid - use updatePayment for simplicity
-        console.log('💰 Marking as unpaid - direct update');
-        await meetings.updatePayment(meetingId, false);
-      } else {
-        // Mark as paid - show payment type selection modal
-        console.log('💰 Marking as paid - showing payment type modal');
-        try {
-          const paymentTypes = await paymentTypesApi.getActive(); // Use getActive instead of getAll
-          console.log('✅ Payment types fetched:', paymentTypes);
-          setPaymentTypes(paymentTypes);
-        } catch (error) {
-          console.log('⚠️ Failed to fetch payment types from API, using fallback:', error);
-          // Fallback payment types if API fails
-          const fallbackPaymentTypes: PaymentType[] = [
-            { id: 1, name: 'Bank Transfer', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-            { id: 2, name: 'Bit', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-            { id: 3, name: 'Paybox', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-            { id: 4, name: 'Cash', isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-          ];
-          console.log('✅ Using fallback payment types:', fallbackPaymentTypes);
-          setPaymentTypes(fallbackPaymentTypes);
-        }
-        setSelectedPaymentType(null);
-        setShowPaymentTypeModal(true);
-        const session = meetingList.find(m => m.id === meetingId);
-        setMeetingToPay(session || null);
-        console.log('✅ Session found:', session?.client?.fullName);
+  
+      
+      // If marking as paid, require payment type
+      if (isPaid && !paymentTypeId) {
+        alert('Please select a payment type when marking a meeting as paid.');
+        return;
       }
-      console.log('✅ Meeting payment status updated successfully');
+      
+      await meetings.updatePayment(meetingId, isPaid, paymentTypeId);
       await fetchMeetings();
     } catch (error) {
-      console.error('❌ Failed to update meeting payment status:', error);
+      console.error('❌ Failed to update meeting payment:', error);
       alert('Failed to update payment status. Please try again.');
     }
   };
 
-  const handlePersonalMeetingPaymentToggle = async (meetingId: number, currentPaidStatus: boolean) => {
+  const handlePersonalMeetingPaymentToggle = async (meetingId: number, currentPaidStatus: boolean, paymentTypeId?: number) => {
     try {
-      console.log('🔄 Updating personal meeting payment status:', { meetingId, currentPaidStatus, newStatus: !currentPaidStatus });
-      await personalMeetings.updatePayment(meetingId, !currentPaidStatus);
+  
+      
+      const newStatus = !currentPaidStatus;
+      
+      // If marking as paid, require payment type
+      if (newStatus && !paymentTypeId) {
+        alert('Please select a payment type when marking a personal meeting as paid.');
+        return;
+      }
+      
+      await personalMeetings.updatePayment(meetingId, newStatus, paymentTypeId);
       console.log('✅ Personal meeting payment status updated successfully');
       await fetchPersonalMeetings();
     } catch (error) {
@@ -1741,14 +1724,48 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
-  const handleExpensePaymentToggle = async (expenseId: number, currentPaidStatus: boolean) => {
+  // Handle payment type selection from modal
+  const handlePaymentTypeSelected = async (paymentTypeId: number) => {
+    if (!pendingPaymentAction) return;
+    
     try {
-      console.log('🔄 Updating expense payment status:', { expenseId, currentPaidStatus, newStatus: !currentPaidStatus });
+      const { type, id, isPaid } = pendingPaymentAction;
+      
+      if (type === 'meeting') {
+        await handleMeetingPaymentChange(id, isPaid, paymentTypeId);
+      } else if (type === 'personalMeeting') {
+        await handlePersonalMeetingPaymentToggle(id, !isPaid, paymentTypeId);
+      } else if (type === 'expense') {
+        await handleExpensePaymentToggle(id, !isPaid, paymentTypeId);
+      }
+      
+      // Clear the pending action
+      setPendingPaymentAction(null);
+      setShowPaymentTypeModal(false);
+    } catch (error) {
+      console.error('❌ Failed to process payment type selection:', error);
+      alert('Failed to update payment status. Please try again.');
+    }
+  };
+
+  const handleExpensePaymentToggle = async (expenseId: number, currentPaidStatus: boolean, paymentTypeId?: number) => {
+    try {
+  
+      
+      const newStatus = !currentPaidStatus;
+      
       if (currentPaidStatus) {
+        // Marking as unpaid
         await expenses.markAsUnpaid(expenseId);
       } else {
-        await expenses.markAsPaid(expenseId);
+        // Marking as paid - require payment type
+        if (!paymentTypeId) {
+          alert('Please select a payment type when marking an expense as paid.');
+          return;
+        }
+        await expenses.markAsPaid(expenseId, paymentTypeId);
       }
+      
       console.log('✅ Expense payment status updated successfully');
       await fetchExpenses();
     } catch (error) {
@@ -1757,52 +1774,71 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
+  // Handle expense payment toggle with modal
+  const handleExpensePaymentToggleWithModal = (expenseId: number, currentPaidStatus: boolean) => {
+    if (currentPaidStatus) {
+      // Marking as unpaid - no payment type needed
+      handleExpensePaymentToggle(expenseId, currentPaidStatus);
+    } else {
+      // Marking as paid - show payment type selection modal
+      setPendingPaymentAction({
+        type: 'expense',
+        id: expenseId,
+        isPaid: true
+      });
+      setShowPaymentTypeModal(true);
+    }
+  };
+
   // Status update handlers
   const handleMeetingStatusUpdate = async (meetingId: number, newStatus: MeetingStatus) => {
     try {
-      console.log('🔄 Updating meeting status:', { meetingId, newStatus });
-      await meetings.update(meetingId, { status: newStatus });
-      console.log('✅ Meeting status updated successfully');
+  
+      console.log('🔍 Calling meetings.update with payload:', { status: newStatus });
+      
+      const result = await meetings.update(meetingId, { status: newStatus });
+      console.log('✅ Meeting status updated successfully, result:', result);
+      
       await fetchMeetings();
-    } catch (error) {
+      console.log('✅ Meetings refreshed after status update');
+    } catch (error: any) {
       console.error('❌ Failed to update meeting status:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       alert('Failed to update status. Please try again.');
     }
   };
 
   const handlePersonalMeetingStatusUpdate = async (meetingId: number, newStatus: PersonalMeetingStatus) => {
     try {
-      console.log('🔄 Updating personal meeting status:', { meetingId, newStatus });
-      await personalMeetings.update(meetingId, { status: newStatus });
-      console.log('✅ Personal meeting status updated successfully');
+  
+      console.log('🔍 Calling personalMeetings.update with payload:', { status: newStatus });
+      
+      const result = await personalMeetings.update(meetingId, { status: newStatus });
+      console.log('✅ Personal meeting status updated successfully, result:', result);
+      
       await fetchPersonalMeetings();
-    } catch (error) {
+      console.log('✅ Personal meetings refreshed after status update');
+    } catch (error: any) {
       console.error('❌ Failed to update personal meeting status:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       alert('Failed to update status. Please try again.');
     }
   };
 
   // Status dropdown state
-  const toggleStatusDropdown = (type: 'meetings' | 'personalMeetings', id: number) => {
-    setStatusDropdowns(prev => ({
-      ...prev,
-      [type]: {
-        ...prev[type],
-        [id]: !prev[type][id]
-      }
-    }));
-  };
 
-  const closeAllDropdowns = () => {
-    setStatusDropdowns({
-      meetings: {},
-      personalMeetings: {}
-    });
-  };
 
   const handleClientStatusToggle = async (clientId: number, currentActiveStatus: boolean) => {
     try {
-      console.log('🔄 Updating client status:', { clientId, currentActiveStatus, newStatus: !currentActiveStatus });
+  
       if (currentActiveStatus) {
         await clients.deactivate(clientId);
       } else {
@@ -2037,7 +2073,7 @@ const TherapistPanel: React.FC = () => {
   const handleDeleteMeeting = async (meetingId: number) => {
     if (window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
       try {
-        console.log('🔄 Disabling meeting:', meetingId);
+    
         await meetings.disable(meetingId);
         console.log('✅ Meeting disabled successfully via API');
         
@@ -2046,12 +2082,12 @@ const TherapistPanel: React.FC = () => {
           const updated = prev.map(meeting => 
             meeting.id === meetingId ? { ...meeting, active: false } : meeting
           );
-          console.log('🔄 Updated meeting list:', updated.map(m => ({ id: m.id, active: m.active })));
+  
           return updated;
         });
         
         // Refresh the list from server
-        console.log('🔄 Refreshing meetings from server...');
+
         await fetchMeetings();
         console.log('✅ Meetings refreshed from server');
       } catch (error) {
@@ -2159,7 +2195,7 @@ const TherapistPanel: React.FC = () => {
   // Meeting update handlers for inline editing
   const handleMeetingClientUpdate = async (meetingId: number, clientId: number) => {
     try {
-      console.log('🔄 Updating meeting client:', { meetingId, clientId });
+  
       await meetings.update(meetingId, { clientId });
       console.log('✅ Meeting client updated successfully');
       await fetchMeetings();
@@ -2171,7 +2207,7 @@ const TherapistPanel: React.FC = () => {
 
   const handleMeetingDateUpdate = async (meetingId: number, meetingDate: string) => {
     try {
-      console.log('🔄 Updating meeting date:', { meetingId, meetingDate });
+  
       await meetings.update(meetingId, { meetingDate });
       console.log('✅ Meeting date updated successfully');
       await fetchMeetings();
@@ -2230,43 +2266,9 @@ const TherapistPanel: React.FC = () => {
   //   setSelectedPaymentType(type);
   // };
 
-  const handleConfirmPaymentType = async () => {
-    if (selectedPaymentType && meetingToPay) {
-      try {
-        console.log('💰 Confirming payment type:', selectedPaymentType.name, 'for session:', meetingToPay.id);
-        const updateData = {
-          isPaid: true,
-          paymentTypeId: selectedPaymentType.id
-        };
-        console.log('🔧 Update data:', updateData);
-        await meetings.update(meetingToPay.id, updateData);
-        console.log('✅ Meeting payment type updated successfully');
-        await fetchMeetings();
-        setShowPaymentTypeModal(false);
-        setSelectedPaymentType(null);
-        setMeetingToPay(null);
-      } catch (error) {
-        console.error('❌ Failed to update meeting payment type:', error);
-        alert('Failed to update payment type. Please try again.');
-      }
-    }
-  };
+  // Removed confirm/cancel handlers – no modal flow
 
-  const handleCancelPaymentType = () => {
-    console.log('❌ Payment type selection cancelled');
-    setShowPaymentTypeModal(false);
-    setSelectedPaymentType(null);
-    setMeetingToPay(null);
-  };
-
-  // Debug modal state changes
-  useEffect(() => {
-    console.log('🔍 Modal state changed:', {
-      showPaymentTypeModal,
-      sessionToPay: meetingToPay?.client?.fullName,
-      paymentTypesCount: paymentTypes.length
-    });
-  }, [showPaymentTypeModal, meetingToPay, paymentTypes.length]);
+  // Removed modal debug effect
 
   if (loading) {
     return (
@@ -2915,97 +2917,51 @@ const TherapistPanel: React.FC = () => {
                           onChange={(e) => handleMeetingPriceUpdate(meeting.id, parseFloat(e.target.value) || 0)}
                         />
                       </td>
-                      <td style={{ position: 'relative' }}>
-                        <button
-                          className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}
-                          onClick={() => toggleStatusDropdown('meetings', meeting.id)}
-                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                      <td>
+                        <select
+                          value={meeting.status || MeetingStatus.SCHEDULED}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as MeetingStatus;
+                            console.log('🔍 Status changed for meeting:', meeting.id, 'New status:', newStatus);
+                            handleMeetingStatusUpdate(meeting.id, newStatus);
+                          }}
+                          className="status-select"
+                          data-status={meeting.status || MeetingStatus.SCHEDULED}
                         >
-                          {meeting.status ? meeting.status.replace('_', ' ') : 'Scheduled'}
-                        </button>
-                        {statusDropdowns.meetings[meeting.id] && (
-                          <div 
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: '0',
-                              zIndex: 1000,
-                              backgroundColor: 'white',
-                              border: '1px solid #ddd',
-                              borderRadius: '8px',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                              minWidth: '120px'
-                            }}
-                          >
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.SCHEDULED);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              Scheduled
-                            </div>
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.COMPLETED);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              Completed
-                            </div>
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.CANCELLED);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              Cancelled
-                            </div>
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handleMeetingStatusUpdate(meeting.id, MeetingStatus.NO_SHOW);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              No Show
-                            </div>
-                          </div>
-                        )}
+                          <option value={MeetingStatus.SCHEDULED}>SCHEDULED</option>
+                          <option value={MeetingStatus.COMPLETED}>COMPLETED</option>
+                          <option value={MeetingStatus.CANCELLED}>CANCELLED</option>
+                          <option value={MeetingStatus.NO_SHOW}>NO_SHOW</option>
+                        </select>
                       </td>
                       <td>
-                        <button
-                          className={`payment-badge ${meeting.isPaid ? 'paid' : 'unpaid'}`}
-                          onClick={() => {
-                            console.log('🎯 Payment button clicked for meeting:', meeting.id, 'Current status:', meeting.isPaid);
-                            handleMeetingPaymentToggle(meeting.id, meeting.isPaid);
+                        <select
+                          value={meeting.isPaid ? 'paid' : 'unpaid'}
+                          onChange={(e) => {
+                            const newPaymentStatus = e.target.value === 'paid';
+                            console.log('🎯 Payment status changed for meeting:', meeting.id, 'New status:', newPaymentStatus);
+                            
+                            if (newPaymentStatus) {
+                              // If marking as paid, show payment type selection modal
+                              setPendingPaymentAction({
+                                type: 'meeting',
+                                id: meeting.id,
+                                isPaid: newPaymentStatus
+                              });
+                              setShowPaymentTypeModal(true);
+                              // Reset the select to unpaid until payment type is selected
+                              e.target.value = 'unpaid';
+                            } else {
+                              // If marking as unpaid, no payment type needed
+                              handleMeetingPaymentChange(meeting.id, newPaymentStatus);
+                            }
                           }}
-                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                          className="payment-select"
+                          data-payment-status={meeting.isPaid ? 'paid' : 'unpaid'}
                         >
-                          {meeting.isPaid ? 'Paid' : 'Unpaid'}
-                        </button>
+                          <option value="unpaid">Unpaid</option>
+                          <option value="paid">Paid</option>
+                        </select>
                       </td>
                       <td>
                         {meeting.client?.source?.name || 'No source'}
@@ -3354,97 +3310,51 @@ const TherapistPanel: React.FC = () => {
                           disabled={meeting.active === false}
                         />
                       </td>
-                      <td style={{ position: 'relative' }}>
-                        <button
-                          className={`status-badge ${meeting.status?.toLowerCase() || 'unknown'}`}
-                          onClick={() => toggleStatusDropdown('personalMeetings', meeting.id)}
-                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                      <td>
+                        <select
+                          value={meeting.status || PersonalMeetingStatus.SCHEDULED}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as PersonalMeetingStatus;
+                            console.log('🔍 Status changed for personal meeting:', meeting.id, 'New status:', newStatus);
+                            handlePersonalMeetingStatusUpdate(meeting.id, newStatus);
+                          }}
+                          className="status-select"
+                          data-status={meeting.status || PersonalMeetingStatus.SCHEDULED}
                         >
-                          {meeting.status ? meeting.status.replace('_', ' ') : 'Scheduled'}
-                        </button>
-                        {statusDropdowns.personalMeetings[meeting.id] && (
-                          <div 
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: '0',
-                              zIndex: 1000,
-                              backgroundColor: 'white',
-                              border: '1px solid #ddd',
-                              borderRadius: '8px',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                              minWidth: '120px'
-                            }}
-                          >
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.SCHEDULED);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              Scheduled
-                            </div>
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.COMPLETED);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              Completed
-                            </div>
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.CANCELLED);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              Cancelled
-                            </div>
-                            <div
-                              style={{
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem'
-                              }}
-                              onClick={() => {
-                                handlePersonalMeetingStatusUpdate(meeting.id, PersonalMeetingStatus.NO_SHOW);
-                                closeAllDropdowns();
-                              }}
-                            >
-                              No Show
-                            </div>
-                          </div>
-                        )}
+                          <option value={PersonalMeetingStatus.SCHEDULED}>SCHEDULED</option>
+                          <option value={PersonalMeetingStatus.COMPLETED}>COMPLETED</option>
+                          <option value={PersonalMeetingStatus.CANCELLED}>CANCELLED</option>
+                          <option value={PersonalMeetingStatus.NO_SHOW}>NO_SHOW</option>
+                        </select>
                       </td>
                       <td>
-                        <button
-                          className={`payment-badge ${meeting.isPaid ? 'paid' : 'unpaid'}`}
-                          onClick={() => {
-                            console.log('🎯 Payment button clicked for personal meeting:', meeting.id, 'Current status:', meeting.isPaid);
-                            handlePersonalMeetingPaymentToggle(meeting.id, meeting.isPaid);
+                        <select
+                          value={meeting.isPaid ? 'paid' : 'unpaid'}
+                          onChange={(e) => {
+                            const newPaymentStatus = e.target.value === 'paid';
+                            console.log('🎯 Payment status changed for personal meeting:', meeting.id, 'New status:', newPaymentStatus);
+                            
+                            if (newPaymentStatus) {
+                              // If marking as paid, show payment type selection modal
+                              setPendingPaymentAction({
+                                type: 'personalMeeting',
+                                id: meeting.id,
+                                isPaid: newPaymentStatus
+                              });
+                              setShowPaymentTypeModal(true);
+                              // Reset the select to unpaid until payment type is selected
+                              e.target.value = 'unpaid';
+                            } else {
+                              // If marking as unpaid, no payment type needed
+                              handlePersonalMeetingPaymentToggle(meeting.id, newPaymentStatus);
+                            }
                           }}
-                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                          className="payment-select"
+                          data-payment-status={meeting.isPaid ? 'paid' : 'unpaid'}
                         >
-                          {meeting.isPaid ? 'Paid' : 'Unpaid'}
-                        </button>
+                          <option value="unpaid">Unpaid</option>
+                          <option value="paid">Paid</option>
+                        </select>
                       </td>
                       <td>
                         <button 
@@ -3987,16 +3897,21 @@ const TherapistPanel: React.FC = () => {
                         />
                       </td>
                       <td>
-                        <button
-                          className={`payment-badge ${expense.isPaid ? 'paid' : 'unpaid'}`}
-                          onClick={() => {
-                            console.log('🎯 Payment button clicked for expense:', expense.id, 'Current status:', expense.isPaid);
-                            handleExpensePaymentToggle(expense.id, expense.isPaid);
+                        <select
+                          value={expense.isPaid ? 'paid' : 'unpaid'}
+                          onChange={(e) => {
+                            const newPaymentStatus = e.target.value === 'paid';
+                            console.log('🎯 Payment status changed for expense:', expense.id, 'New status:', newPaymentStatus);
+                            handleExpensePaymentToggleWithModal(expense.id, newPaymentStatus);
+                            // Reset the select to current status until payment type is selected
+                            e.target.value = expense.isPaid ? 'paid' : 'unpaid';
                           }}
-                          style={{ cursor: 'pointer', border: 'none', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}
+                          className="payment-select"
+                          data-payment-status={expense.isPaid ? 'paid' : 'unpaid'}
                         >
-                          {expense.isPaid ? 'Paid' : 'Unpaid'}
-                        </button>
+                          <option value="unpaid">Unpaid</option>
+                          <option value="paid">Paid</option>
+                        </select>
                       </td>
                       <td>
                         <button 
@@ -4220,44 +4135,16 @@ const TherapistPanel: React.FC = () => {
       />
 
       {/* Payment Type Selection Modal */}
-      {showPaymentTypeModal && meetingToPay && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Select Payment Type</h3>
-              <button className="modal-close-button" onClick={handleCancelPaymentType}>×</button>
-            </div>
-            <div className="modal-body">
-              <p>Select payment type for <strong>{meetingToPay.client?.fullName}</strong>:</p>
-              <div className="payment-type-selection">
-                <select
-                  className="payment-type-select"
-                  value={selectedPaymentType?.id || ''}
-                  onChange={(e) => {
-                    const type = paymentTypes.find(t => t.id === parseInt(e.target.value));
-                    setSelectedPaymentType(type || null);
-                  }}
-                >
-                  <option value="">Select a payment type...</option>
-                  {paymentTypes.map(type => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn btn--secondary" onClick={handleCancelPaymentType}>Cancel</button>
-              <button 
-                className="btn btn--primary" 
-                onClick={handleConfirmPaymentType}
-                disabled={!selectedPaymentType}
-              >
-                Mark as Paid
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PaymentTypeSelectionModal
+        isOpen={showPaymentTypeModal}
+        onClose={() => {
+          setShowPaymentTypeModal(false);
+          setPendingPaymentAction(null);
+        }}
+        onConfirm={handlePaymentTypeSelected}
+        paymentTypes={paymentTypes}
+        title="Select Payment Type"
+      />
 
       {/* Sessions/Meetings Selector Modals */}
       {showMeetingPaymentSelector && (
@@ -4267,11 +4154,13 @@ const TherapistPanel: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 9999,
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)'
         }}>
           <div style={{
             backgroundColor: 'white',

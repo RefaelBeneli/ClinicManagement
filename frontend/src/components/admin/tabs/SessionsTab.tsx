@@ -169,34 +169,43 @@ const SessionsTab: React.FC = () => {
   };
 
   const handleSessionStatusChange = async (entityId: number | string, newStatus: string | boolean) => {
+    console.log('🔍 handleSessionStatusChange called with:', { entityId, newStatus, type: typeof newStatus });
+    
     try {
-      // TODO: Replace with actual API call
-      // await adminApi.updateSessionStatus(entityId, newStatus);
+      // Call backend API to update session status
+      console.log('🔍 Calling adminApi.updateSessionStatus...');
+      await adminApi.updateSessionStatus(entityId as number, newStatus as string);
       
-      // Mock status update
+      // Update local state after successful API call
       setSessions(prev => prev.map(s => 
         s.id === entityId ? { ...s, status: newStatus as string } : s
       ));
       
-      console.log('Session status updated:', entityId, newStatus);
+      console.log('✅ Session status updated successfully:', entityId, newStatus);
     } catch (error) {
-      console.error('Error updating session status:', error);
+      console.error('❌ Error updating session status:', error);
+      alert('Failed to update session status. Please try again.');
     }
   };
 
   const handleSessionActivityStatusChange = async (entityId: number | string, newStatus: boolean) => {
     try {
-      // TODO: Replace with actual API call
-      // await adminApi.updateSessionActivityStatus(entityId, newStatus);
+      // Call backend API to update session activity status
+      if (newStatus) {
+        await adminApi.activateSession(entityId as number);
+      } else {
+        await adminApi.deactivateSession(entityId as number);
+      }
       
-      // Mock activity status update (soft delete/restore)
+      // Update local state after successful API call
       setSessions(prev => prev.map(s => 
         s.id === entityId ? { ...s, isActive: newStatus } : s
       ));
       
-      console.log('Session activity status updated:', entityId, newStatus);
+      console.log('Session activity status updated successfully:', entityId, newStatus);
     } catch (error) {
       console.error('Error updating session activity status:', error);
+      alert('Failed to update session activity status. Please try again.');
     }
   };
 

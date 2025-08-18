@@ -164,6 +164,24 @@ class AdminController(
         return ResponseEntity.ok(MessageResponse("Meeting deleted successfully"))
     }
 
+    @PatchMapping("/meetings/{id}/status")
+    fun updateMeetingStatus(
+        @PathVariable id: Long,
+        @RequestBody request: UpdateMeetingStatusRequest
+    ): ResponseEntity<AdminMeetingResponse> {
+        return ResponseEntity.ok(adminService.updateMeetingStatus(id, request.status))
+    }
+
+    @PostMapping("/meetings/{id}/activate")
+    fun activateMeeting(@PathVariable id: Long): ResponseEntity<AdminMeetingResponse> {
+        return ResponseEntity.ok(adminService.activateMeeting(id))
+    }
+
+    @PostMapping("/meetings/{id}/deactivate")
+    fun deactivateMeeting(@PathVariable id: Long): ResponseEntity<AdminMeetingResponse> {
+        return ResponseEntity.ok(adminService.deactivateMeeting(id))
+    }
+
     // Personal Meeting Management Endpoints
     @GetMapping("/personal-meetings")
     fun getAllPersonalMeetings(

@@ -23,7 +23,7 @@
   display: flex;
   flex-direction: column;
   animation: slideUp 0.4s ease-out;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Header Section */
@@ -256,7 +256,7 @@
 .sessions-content {
   flex: 1;
   padding: 2rem 2.5rem;
-  overflow-y: auto;
+  overflow: visible;
   background: #f8fafc;
 }
 
@@ -314,7 +314,7 @@
   gap: 1.5rem;
   padding: 0.5rem 0;
   min-height: 0; /* Allows flex item to shrink below content size */
-  overflow-y: auto; /* Enables scrolling on the list itself */
+  overflow: visible; /* Allows dropdowns to be visible */
 }
 
 /* Session Card */
@@ -326,7 +326,8 @@
   border: 1px solid #e2e8f0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 1;
 }
 
 .session-card::before {
@@ -345,6 +346,17 @@
   transform: translateY(-4px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   border-color: #667eea;
+}
+
+/* Status Dropdown Specific Styles */
+.session-status-dropdown {
+  position: relative;
+  z-index: 1001;
+}
+
+/* Portal-based dropdown doesn't need these z-index rules */
+.session-status-dropdown .status-dropdown-menu {
+  /* z-index handled by portal positioning */
 }
 
 .session-card:hover::before {

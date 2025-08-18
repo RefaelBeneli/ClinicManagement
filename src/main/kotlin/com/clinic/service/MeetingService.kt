@@ -4,13 +4,13 @@ import com.clinic.dto.MeetingRequest
 import com.clinic.dto.MeetingResponse
 import com.clinic.dto.UpdateMeetingRequest
 import com.clinic.dto.ClientResponse
-import com.clinic.dto.PaymentTypeResponse
+
 import com.clinic.entity.Meeting
 import com.clinic.entity.MeetingStatus
 import com.clinic.entity.RecurrenceFrequency
 import com.clinic.repository.MeetingRepository
 import com.clinic.repository.ClientRepository
-import com.clinic.repository.PaymentTypeRepository
+
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -28,8 +28,7 @@ class MeetingService {
     @Autowired
     private lateinit var authService: AuthService
     
-    @Autowired
-    private lateinit var paymentTypeRepository: PaymentTypeRepository
+
 
     fun createMeeting(meetingRequest: MeetingRequest): MeetingResponse {
         val currentUser = authService.getCurrentUser()
@@ -165,17 +164,7 @@ class MeetingService {
             meeting.client
         }
 
-        // Handle payment type change if paymentTypeId is provided
-        val newPaymentType = if (updateRequest.paymentTypeId != null) {
-            if (updateRequest.paymentTypeId == 0L) {
-                null // Clear payment type
-            } else {
-                paymentTypeRepository.findById(updateRequest.paymentTypeId)
-                    .orElseThrow { RuntimeException("Payment type not found") }
-            }
-        } else {
-            meeting.paymentType
-        }
+        // Payment type is now handled separately through the payment system
 
         // Apply no-show pricing if status is being changed to NO_SHOW
         val finalPrice = if (updateRequest.status == MeetingStatus.NO_SHOW && meeting.status != MeetingStatus.NO_SHOW) {
@@ -192,14 +181,6 @@ class MeetingService {
             duration = updateRequest.duration ?: meeting.duration,
             price = finalPrice,
             isPaid = updateRequest.isPaid ?: meeting.isPaid,
-            paymentDate = updateRequest.paymentDate ?: if (updateRequest.isPaid == true && meeting.paymentDate == null) {
-                LocalDateTime.now()
-            } else if (updateRequest.isPaid == false) {
-                null
-            } else {
-                meeting.paymentDate
-            },
-            paymentType = newPaymentType,
             notes = updateRequest.notes ?: meeting.notes,
             summary = updateRequest.summary ?: meeting.summary,
             status = updateRequest.status ?: meeting.status
@@ -209,7 +190,7 @@ class MeetingService {
         return mapToResponse(savedMeeting)
     }
 
-    fun updatePaymentStatus(id: Long, isPaid: Boolean): MeetingResponse {
+    fun updatePaymentStatus(id: Long, isPaid: Boolean, paymentTypeId: Long? = null, amount: java.math.BigDecimal? = null, referenceNumber: String? = null, notes: String? = null, transactionId: String? = null, receiptUrl: String? = null): MeetingResponse {
         val currentUser = authService.getCurrentUser()
         val meeting = meetingRepository.findById(id).orElse(null)
             ?: throw RuntimeException("Meeting not found")
@@ -218,12 +199,23 @@ class MeetingService {
             throw RuntimeException("Meeting not found")
         }
 
+        // If marking as paid, require payment type
+        if (isPaid && paymentTypeId == null) {
+            throw RuntimeException("Payment type is required when marking meeting as paid")
+        }
+
         val updatedMeeting = meeting.copy(
-            isPaid = isPaid,
-            paymentDate = if (isPaid) LocalDateTime.now() else null
+            isPaid = isPaid
         )
 
         val savedMeeting = meetingRepository.save(updatedMeeting)
+        
+        // If marking as paid, create payment record
+        if (isPaid && paymentTypeId != null) {
+            // Note: This will be handled by the PaymentController when the frontend calls the payment endpoint
+            // The meeting is already marked as paid here
+        }
+        
         return mapToResponse(savedMeeting)
     }
 
@@ -375,16 +367,6 @@ class MeetingService {
             duration = meeting.duration,
             price = meeting.price,
             isPaid = meeting.isPaid,
-            paymentDate = meeting.paymentDate,
-            paymentType = meeting.paymentType?.let { paymentType ->
-                PaymentTypeResponse(
-                    id = paymentType.id,
-                    name = paymentType.name,
-                    isActive = paymentType.isActive,
-                    createdAt = paymentType.createdAt,
-                    updatedAt = paymentType.updatedAt
-                )
-            },
             notes = meeting.notes,
             summary = meeting.summary,
             status = meeting.status,

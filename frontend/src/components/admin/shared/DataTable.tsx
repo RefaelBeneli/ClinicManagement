@@ -65,6 +65,15 @@ const DataTable: React.FC<DataTableProps> = ({
   statusColumn,
   activityStatusColumn
 }) => {
+  console.log('🔍 DataTable props:', { 
+    statusColumn: statusColumn ? {
+      enabled: statusColumn.enabled,
+      entityType: statusColumn.entityType,
+      statusKey: statusColumn.statusKey,
+      hasOnStatusChange: !!statusColumn.onStatusChange
+    } : null,
+    dataLength: data.length
+  });
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editingData, setEditingData] = useState<any>({});
   const [savingRow, setSavingRow] = useState<number | null>(null);
@@ -526,7 +535,10 @@ const DataTable: React.FC<DataTableProps> = ({
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
                       <ClickableStatusDropdown
                         currentStatus={row[statusColumn.statusKey]}
-                        onStatusChange={(newStatus) => statusColumn.onStatusChange?.(row.id, newStatus)}
+                        onStatusChange={(newStatus) => {
+                          console.log('🔍 DataTable: onStatusChange called with:', { newStatus, rowId: row.id });
+                          statusColumn.onStatusChange?.(row.id, newStatus);
+                        }}
                         entityId={row.id}
                         entityType={statusColumn.entityType}
                       />

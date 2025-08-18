@@ -53,7 +53,6 @@ data class PersonalMeetingResponse(
     val price: BigDecimal,
     @JsonProperty("isPaid")
     val isPaid: Boolean,
-    val paymentDate: LocalDateTime?,
     val notes: String?,
     val summary: String?,
     val status: PersonalMeetingStatus,
@@ -89,5 +88,10 @@ data class PersonalMeetingPaymentUpdateRequest(
     @field:NotNull(message = "Payment status is required")
     @JsonProperty("isPaid")
     val isPaid: Boolean,
-    val paymentDate: LocalDateTime? = if (isPaid == true) LocalDateTime.now() else null
+    val paymentTypeId: Long? = null,
+    val amount: BigDecimal? = null,
+    val referenceNumber: String? = null,
+    val notes: String? = null,
+    val transactionId: String? = null,
+    val receiptUrl: String? = null
 ) 

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './ClickableStatusDropdown.css';
 
 interface ClickableStatusDropdownProps {
@@ -19,12 +20,14 @@ const ClickableStatusDropdown: React.FC<ClickableStatusDropdownProps> = ({
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -32,6 +35,10 @@ const ClickableStatusDropdown: React.FC<ClickableStatusDropdownProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+
+
+
 
   // Determine status display and options based on entity type
   const getStatusConfig = () => {
@@ -71,29 +78,33 @@ const ClickableStatusDropdown: React.FC<ClickableStatusDropdownProps> = ({
         'SCHEDULED': {
           display: 'Scheduled',
           options: [
-            { value: 'IN_PROGRESS', label: 'Start', icon: '▶️' },
-            { value: 'CANCELLED', label: 'Cancel', icon: '❌' }
-          ]
-        },
-        'IN_PROGRESS': {
-          display: 'In Progress',
-          options: [
-            { value: 'COMPLETED', label: 'Complete', icon: '✅' },
-            { value: 'CANCELLED', label: 'Cancel', icon: '❌' }
+            { value: 'COMPLETED', label: 'Mark Complete', icon: '✅' },
+            { value: 'CANCELLED', label: 'Cancel', icon: '❌' },
+            { value: 'NO_SHOW', label: 'Mark No Show', icon: '🚫' }
           ]
         },
         'COMPLETED': {
           display: 'Completed',
           options: [
-            { value: 'IN_PROGRESS', label: 'Reopen', icon: '🔄' },
-            { value: 'CANCELLED', label: 'Mark Cancelled', icon: '❌' }
+            { value: 'SCHEDULED', label: 'Reschedule', icon: '📅' },
+            { value: 'CANCELLED', label: 'Mark Cancelled', icon: '❌' },
+            { value: 'NO_SHOW', label: 'Mark No Show', icon: '🚫' }
           ]
         },
         'CANCELLED': {
           display: 'Cancelled',
           options: [
             { value: 'SCHEDULED', label: 'Reschedule', icon: '📅' },
-            { value: 'COMPLETED', label: 'Mark Complete', icon: '✅' }
+            { value: 'COMPLETED', label: 'Mark Complete', icon: '✅' },
+            { value: 'NO_SHOW', label: 'Mark No Show', icon: '🚫' }
+          ]
+        },
+        'NO_SHOW': {
+          display: 'No Show',
+          options: [
+            { value: 'SCHEDULED', label: 'Reschedule', icon: '📅' },
+            { value: 'COMPLETED', label: 'Mark Complete', icon: '✅' },
+            { value: 'CANCELLED', label: 'Mark Cancelled', icon: '❌' }
           ]
         }
       };
@@ -116,15 +127,55 @@ const ClickableStatusDropdown: React.FC<ClickableStatusDropdownProps> = ({
   const statusConfig = getStatusConfig();
 
   const handleStatusClick = () => {
+    console.log('🔍 handleStatusClick called, loading:', loading);
     if (!loading) {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const dropdownHeight = 250; // Approximate dropdown height
+        const windowHeight = window.innerHeight;
+        const scrollY = window.scrollY;
+        
+        // Calculate if dropdown would go below viewport
+        let topPosition = rect.bottom + scrollY + 4;
+        
+        // If dropdown would go below viewport, position it above the button instead
+        if (topPosition + dropdownHeight > scrollY + windowHeight) {
+          topPosition = rect.top + scrollY - dropdownHeight - 4;
+        }
+        
+        // Ensure minimum spacing from viewport edges
+        const minSpacing = 10;
+        if (topPosition < scrollY + minSpacing) {
+          topPosition = scrollY + minSpacing;
+        }
+        
+        setDropdownPosition({
+          top: topPosition,
+          left: rect.left + (rect.width / 2)
+        });
+      }
+      console.log('🔍 Setting isOpen to:', !isOpen);
       setIsOpen(!isOpen);
     }
   };
 
   const handleOptionClick = (newStatus: boolean | string) => {
+    console.log('🔍 Option clicked:', { newStatus, currentStatus: statusConfig.currentValue });
+    console.log('🔍 onStatusChange callback exists:', !!onStatusChange);
+    console.log('🔍 onStatusChange callback type:', typeof onStatusChange);
+    
     if (newStatus !== statusConfig.currentValue) {
-      onStatusChange(newStatus);
+      console.log('🔍 Calling onStatusChange with:', newStatus);
+      try {
+        onStatusChange(newStatus);
+        console.log('✅ onStatusChange called successfully');
+      } catch (error) {
+        console.error('❌ Error calling onStatusChange:', error);
+      }
+    } else {
+      console.log('🔍 Status unchanged, not calling onStatusChange');
     }
+    
     setIsOpen(false);
   };
 
@@ -139,9 +190,9 @@ const ClickableStatusDropdown: React.FC<ClickableStatusDropdownProps> = ({
       'APPROVED': 'status-approved',
       'REJECTED': 'status-rejected',
       'SCHEDULED': 'status-scheduled',
-      'IN_PROGRESS': 'status-in-progress',
       'COMPLETED': 'status-completed',
       'CANCELLED': 'status-cancelled',
+      'NO_SHOW': 'status-no-show',
       'ACTIVE': 'status-active',
       'INACTIVE': 'status-inactive'
     };
@@ -152,6 +203,7 @@ const ClickableStatusDropdown: React.FC<ClickableStatusDropdownProps> = ({
   return (
     <div className={`clickable-status-dropdown ${className}`} ref={dropdownRef}>
       <button
+        ref={buttonRef}
         className={`status-badge ${getStatusBadgeClass()} ${isOpen ? 'active' : ''} ${loading ? 'loading' : ''}`}
         onClick={handleStatusClick}
         disabled={loading}
@@ -167,25 +219,71 @@ const ClickableStatusDropdown: React.FC<ClickableStatusDropdownProps> = ({
         )}
       </button>
 
-      {isOpen && (
-        <div className="status-dropdown-menu">
-          <div className="dropdown-header">
+      {isOpen && createPortal(
+        <div 
+          className="status-dropdown-menu"
+          style={{ 
+            position: 'fixed',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: 'white',
+            border: '2px solid #e2e8f0',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            minWidth: '200px',
+            color: '#1e293b',
+            maxHeight: '250px',
+            overflow: 'hidden'
+          }}
+        >
+          <div className="dropdown-header" style={{ padding: '12px 16px' }}>
             <span className="current-status">Current: {statusConfig.display}</span>
           </div>
-          <div className="dropdown-options">
-            {statusConfig.options.map((option, index) => (
+          <div className="dropdown-options" style={{ 
+            maxHeight: '180px', 
+            overflowY: 'auto',
+            padding: '0'
+          }}>
+            <div style={{ fontSize: '10px', color: 'blue', padding: '5px', borderBottom: '1px solid #e2e8f0' }}>
+              DEBUG: {statusConfig.options?.length || 0} options available
+            </div>
+            {statusConfig.options?.map((option, index) => (
               <button
                 key={index}
                 className={`dropdown-option ${option.value === statusConfig.currentValue ? 'current' : ''}`}
-                onClick={() => handleOptionClick(option.value)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🖱️ Button clicked for option:', option);
+                  console.log('🖱️ Event details:', { 
+                    target: e.target, 
+                    currentTarget: e.currentTarget,
+                    eventType: e.type 
+                  });
+                  handleOptionClick(option.value);
+                }}
                 disabled={option.value === statusConfig.currentValue}
+                onMouseEnter={(e) => {
+                  if (option.value !== statusConfig.currentValue) {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (option.value !== statusConfig.currentValue) {
+                    e.currentTarget.style.backgroundColor = 'white';
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
               >
                 <span className="option-icon">{option.icon}</span>
                 <span className="option-label">{option.label}</span>
               </button>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

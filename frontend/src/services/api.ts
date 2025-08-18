@@ -32,8 +32,6 @@ import {
 
 // Data transformation functions to handle backend/frontend property name mismatches
 const transformClientResponse = (data: any): any => {
-  console.log('🔄 Transforming client response:', data);
-  
   if (data && typeof data === 'object') {
     // Handle single client object
     if (data.id && data.fullName) {
@@ -43,16 +41,11 @@ const transformClientResponse = (data: any): any => {
         // Remove the "isActive" property to avoid confusion
         isActive: undefined
       };
-      console.log('🔄 Transformed client:', { 
-        original: { isActive: data.isActive, active: data.active },
-        transformed: { active: transformed.active }
-      });
       return transformed;
     }
     // Handle array of clients
     if (Array.isArray(data)) {
       const transformed = data.map(transformClientResponse);
-      console.log('🔄 Transformed clients array:', transformed.map(c => ({ id: c.id, active: c.active })));
       return transformed;
     }
   }
@@ -60,8 +53,6 @@ const transformClientResponse = (data: any): any => {
 };
 
 const transformMeetingResponse = (data: any): any => {
-  console.log('🔄 Transforming meeting response:', data);
-  
   if (data && typeof data === 'object') {
     // Handle single meeting object
     if (data.id && data.client) {
@@ -73,16 +64,11 @@ const transformMeetingResponse = (data: any): any => {
         paid: undefined,
         isActive: undefined
       };
-      console.log('🔄 Transformed meeting:', { 
-        original: { paid: data.paid, isPaid: data.isPaid, isActive: data.isActive, active: data.active },
-        transformed: { isPaid: transformed.isPaid, active: transformed.active }
-      });
       return transformed;
     }
     // Handle array of meetings
     if (Array.isArray(data)) {
       const transformed = data.map(transformMeetingResponse);
-      console.log('🔄 Transformed meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid, active: m.active })));
       return transformed;
     }
   }
@@ -90,8 +76,6 @@ const transformMeetingResponse = (data: any): any => {
 };
 
 const transformPersonalMeetingResponse = (data: any): any => {
-  console.log('🔄 Transforming personal meeting response:', data);
-  
   if (data && typeof data === 'object') {
     // Handle single personal meeting object
     if (data.id && data.therapistName) {
@@ -103,16 +87,11 @@ const transformPersonalMeetingResponse = (data: any): any => {
         paid: undefined,
         isActive: undefined
       };
-      console.log('🔄 Transformed personal meeting:', { 
-        original: { paid: data.paid, isPaid: data.isPaid, isActive: data.isActive, active: data.active },
-        transformed: { isPaid: transformed.isPaid, active: transformed.active }
-      });
       return transformed;
     }
     // Handle array of personal meetings
     if (Array.isArray(data)) {
       const transformed = data.map(transformPersonalMeetingResponse);
-      console.log('🔄 Transformed personal meetings array:', transformed.map(m => ({ id: m.id, isPaid: m.isPaid, active: m.active })));
       return transformed;
     }
   }
@@ -120,8 +99,6 @@ const transformPersonalMeetingResponse = (data: any): any => {
 };
 
 const transformExpenseResponse = (data: any): any => {
-  console.log('🔄 Transforming expense response:', data);
-  
   if (data && typeof data === 'object') {
     // Handle single expense object
     if (data.id && data.name) {
@@ -142,7 +119,6 @@ const transformExpenseResponse = (data: any): any => {
     // Handle array of expenses
     if (Array.isArray(data)) {
       const transformed = data.map(transformExpenseResponse);
-      console.log('🔄 Transformed expenses array:', transformed.map(e => ({ id: e.id, paid: e.paid, active: e.active })));
       return transformed;
     }
   }
@@ -157,8 +133,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ||
 
 const ROOT_BASE_URL = API_BASE_URL.endsWith('/api') ? API_BASE_URL.slice(0, -4) : API_BASE_URL;
 
-console.log('🌐 API Base URL:', API_BASE_URL);
-console.log('🌍 Current hostname:', window.location.hostname);
+
 
 // Create axios instance with enhanced CORS support
 const apiClient = axios.create({
@@ -174,12 +149,6 @@ const apiClient = axios.create({
 // Enhanced request interceptor with debugging
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
-    console.log('📤 Request Method:', config.method);
-    console.log('📤 Request URL:', config.url);
-    console.log('📤 Request Data:', config.data);
-    console.log('📤 Request Headers:', config.headers);
-    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -195,7 +164,6 @@ apiClient.interceptors.request.use(
 // Enhanced response interceptor with CORS error detection
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('📥 API Response:', response.config.method?.toUpperCase(), response.config.url, '✅', response.status);
     return response;
   },
   (error) => {
@@ -317,19 +285,34 @@ export const meetings = {
   },
 
   update: async (id: number, meetingData: UpdateMeetingRequest): Promise<Meeting> => {
+    console.log('🔧 meetings.update called with:', { id, meetingData });
+    console.log('🔧 Making PUT request to:', `/meetings/${id}`);
+    
     const response = await apiClient.put(`/meetings/${id}`, meetingData);
+    console.log('🔧 API response received:', response);
+    
     return transformMeetingResponse(response.data);
   },
 
-  updatePayment: async (id: number, isPaid: boolean): Promise<Meeting> => {
-    console.log('🔧 updatePayment called with:', { id, isPaid });
+  updatePayment: async (id: number, isPaid: boolean, paymentTypeId?: number, amount?: number, referenceNumber?: string, notes?: string): Promise<Meeting> => {
+    console.log('🔧 updatePayment called with:', { id, isPaid, paymentTypeId, amount, referenceNumber, notes });
     console.log('🔧 Making PUT request to:', `/meetings/${id}/payment`);
-    console.log('🔧 Request payload:', { isPaid, paymentDate: isPaid ? new Date().toISOString() : null });
     
-    const response = await apiClient.put(`/meetings/${id}/payment`, { 
-      isPaid, 
-      paymentDate: isPaid ? new Date().toISOString() : null 
-    });
+    const payload: any = { isPaid };
+    
+    // Only include paymentTypeId when marking as paid (required by backend)
+    if (isPaid && paymentTypeId) {
+      payload.paymentTypeId = paymentTypeId;
+    }
+    
+    // Include optional fields if provided
+    if (amount !== undefined) payload.amount = amount;
+    if (referenceNumber) payload.referenceNumber = referenceNumber;
+    if (notes) payload.notes = notes;
+    
+    console.log('🔧 Request payload:', payload);
+    
+    const response = await apiClient.put(`/meetings/${id}/payment`, payload);
     
     console.log('🔧 Response received:', response);
     return transformMeetingResponse(response.data);
@@ -437,15 +420,25 @@ export const personalMeetings = {
     return transformPersonalMeetingResponse(response.data);
   },
 
-  updatePayment: async (id: number, isPaid: boolean): Promise<PersonalMeeting> => {
-    console.log('🔧 personalMeetings.updatePayment called with:', { id, isPaid });
+  updatePayment: async (id: number, isPaid: boolean, paymentTypeId?: number, amount?: number, referenceNumber?: string, notes?: string): Promise<PersonalMeeting> => {
+    console.log('🔧 personalMeetings.updatePayment called with:', { id, isPaid, paymentTypeId, amount, referenceNumber, notes });
     console.log('🔧 Making PUT request to:', `/personal-meetings/${id}/payment`);
-    console.log('🔧 Request payload:', { isPaid, paymentDate: isPaid ? new Date().toISOString() : null });
     
-    const response = await apiClient.put(`/personal-meetings/${id}/payment`, { 
-      isPaid, 
-      paymentDate: isPaid ? new Date().toISOString() : null 
-    });
+    const payload: any = { isPaid };
+    
+    // Only include paymentTypeId when marking as paid (required by backend)
+    if (isPaid && paymentTypeId) {
+      payload.paymentTypeId = paymentTypeId;
+    }
+    
+    // Include optional fields if provided
+    if (amount !== undefined) payload.amount = amount;
+    if (referenceNumber) payload.referenceNumber = referenceNumber;
+    if (notes) payload.notes = notes;
+    
+    console.log('🔧 Request payload:', payload);
+    
+    const response = await apiClient.put(`/personal-meetings/${id}/payment`, payload);
     
     console.log('🔧 Response received:', response);
     return transformPersonalMeetingResponse(response.data);
@@ -504,8 +497,30 @@ export const personalMeetings = {
   },
 
   getActiveMeetingTypes: async (): Promise<PersonalMeetingTypeEntity[]> => {
-    const response = await adminClient.get('/api/admin/personal-meeting-types/active');
-    return response.data;
+    // Check if user is admin and use admin endpoint if so
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const userResponse = await apiClient.get('/auth/me');
+        const user = userResponse.data;
+        
+        if (user.role === 'ADMIN') {
+          const response = await adminClient.get('/api/admin/personal-meeting-types/active');
+          return response.data;
+        }
+      } catch (error) {
+        console.warn('Could not determine user role, using regular endpoint:', error);
+      }
+    }
+    
+    // For regular users, try to get meeting types from public endpoint
+    try {
+      const response = await apiClient.get('/personal-meeting-types/active');
+      return response.data;
+    } catch (error) {
+      console.warn('No public endpoint for meeting types, returning empty array');
+      return [];
+    }
   },
 
   getProviderTypes: async (): Promise<string[]> => {
@@ -650,32 +665,24 @@ export const expenses = {
   getAll: async () => {
     // Check if user is admin and use admin endpoint if so
     const token = localStorage.getItem('token');
-    console.log('🔍 Expenses API - Token exists:', !!token);
     
     if (token) {
       try {
         // Try to get current user to check role
         const userResponse = await apiClient.get('/auth/me');
         const user = userResponse.data;
-        console.log('🔍 Expenses API - User role:', user.role);
         
         if (user.role === 'ADMIN') {
-          console.log('🔍 Expenses API - Using ADMIN endpoint');
           // Use admin endpoint for admin users
           const response = await adminClient.get('/api/admin/expenses?size=1000');
-          console.log('🔍 Expenses API - Admin response data:', response.data);
           return transformExpenseResponse(response.data.content || response.data);
-        } else {
-          console.log('🔍 Expenses API - Using regular endpoint for non-admin user');
         }
       } catch (error) {
         console.warn('Could not determine user role, using regular endpoint:', error);
       }
     }
     
-    console.log('🔍 Expenses API - Using regular endpoint');
     const response = await apiClient.get('/expenses');
-    console.log('🔍 Expenses API - Regular response data:', response.data);
     return transformExpenseResponse(response.data);
   },
 
@@ -755,13 +762,18 @@ export const expenses = {
     return response.data;
   },
 
-  markAsPaid: async (id: number) => {
-    const response = await apiClient.post(`/expenses/${id}/mark-paid`);
+  markAsPaid: async (expenseId: number, paymentTypeId: number, referenceNumber?: string, notes?: string, transactionId?: string) => {
+    const payload: any = { paymentTypeId };
+    if (referenceNumber) payload.referenceNumber = referenceNumber;
+    if (notes) payload.notes = notes;
+    if (transactionId) payload.transactionId = transactionId;
+    
+    const response = await apiClient.put(`/expenses/${expenseId}/payment`, payload);
     return response.data;
   },
 
-  markAsUnpaid: async (id: number) => {
-    const response = await apiClient.post(`/expenses/${id}/mark-unpaid`);
+  markAsUnpaid: async (expenseId: number) => {
+    const response = await apiClient.put(`/expenses/${expenseId}/unpaid`);
     return response.data;
   },
 };
@@ -780,7 +792,6 @@ const adminClient = axios.create({
 // Add interceptors to admin client
 adminClient.interceptors.request.use(
   (config) => {
-    console.log('📤 Admin API Request:', config.method?.toUpperCase(), config.url);
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -792,11 +803,9 @@ adminClient.interceptors.request.use(
 
 adminClient.interceptors.response.use(
   (response) => {
-    console.log('📥 Admin API Response:', response.config.method?.toUpperCase(), response.config.url, '✅', response.status);
     return response;
   },
   (error) => {
-    console.error('📥 Admin API Error:', error.config?.method?.toUpperCase(), error.config?.url);
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';
@@ -813,8 +822,30 @@ export const paymentTypes = {
   },
 
   getActive: async (): Promise<PaymentType[]> => {
-    const response = await adminClient.get('/api/admin/payment-types/active');
-    return response.data;
+    // Check if user is admin and use admin endpoint if so
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const userResponse = await apiClient.get('/auth/me');
+        const user = userResponse.data;
+        
+        if (user.role === 'ADMIN') {
+          const response = await adminClient.get('/api/admin/payment-types/active');
+          return response.data;
+        }
+      } catch (error) {
+        console.warn('Could not determine user role, using regular endpoint:', error);
+      }
+    }
+    
+    // For regular users, try to get payment types from public endpoint
+    try {
+      const response = await apiClient.get('/payment-types/active');
+      return response.data;
+    } catch (error) {
+      console.warn('No public endpoint for payment types, returning empty array');
+      return [];
+    }
   },
 
   getById: async (id: number): Promise<PaymentType> => {

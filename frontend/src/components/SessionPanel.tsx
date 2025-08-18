@@ -4,6 +4,7 @@ import { meetings, clients, paymentTypes as paymentTypesApi } from '../services/
 import { useAuth } from '../contexts/AuthContext';
 import AddSessionModal from './ui/AddSessionModal';
 import BulkOperations, { BulkAction, BulkOperationProgress } from './BulkOperations';
+import ClickableStatusDropdown from './admin/shared/ClickableStatusDropdown';
 import './SessionPanel.css';
 
 // Helper function to get default payment types
@@ -52,6 +53,8 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSession, setEditingSession] = useState<Meeting | null>(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedSessionForStatus, setSelectedSessionForStatus] = useState<Meeting | null>(null);
 
   // Filters and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -238,29 +241,43 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
     ));
   };
 
-  const handleStatusToggle = async (sessionId: number, currentStatus: MeetingStatus) => {
-    let nextStatus: MeetingStatus;
-    switch (currentStatus) {
-      case MeetingStatus.SCHEDULED:
-        nextStatus = MeetingStatus.COMPLETED;
-        break;
-      case MeetingStatus.COMPLETED:
-        nextStatus = MeetingStatus.CANCELLED;
-        break;
-      case MeetingStatus.CANCELLED:
-        nextStatus = MeetingStatus.NO_SHOW;
-        break;
-      case MeetingStatus.NO_SHOW:
-        nextStatus = MeetingStatus.SCHEDULED;
-        break;
-      default:
-        nextStatus = MeetingStatus.SCHEDULED;
+  const handleStatusChange = async (sessionId: number, newStatus: MeetingStatus) => {
+    console.log('🔄 handleStatusChange called:', { sessionId, newStatus });
+    
+    try {
+      console.log('📡 Calling API to update session status...');
+      // Update the session status via API
+      const updatedSession = await meetings.update(sessionId, { status: newStatus });
+      console.log('✅ API response:', updatedSession);
+      
+      // Update local state
+      setSessions(prev => prev.map(session => 
+        session.id === sessionId 
+          ? { ...session, status: newStatus, originalData: { ...updatedSession } }
+          : session
+      ));
+      
+      // Recalculate stats
+      calculateStats(sessions.map(s => s.id === sessionId ? { ...s, status: newStatus } : s));
+      
+      // Close the status modal
+      setShowStatusModal(false);
+      setSelectedSessionForStatus(null);
+      
+      console.log('✅ Session status updated successfully');
+    } catch (error) {
+      console.error('❌ Error updating session status:', error);
+      setError('Failed to update session status');
     }
-    handleFieldChange(sessionId, 'status', nextStatus);
   };
 
   const handlePaymentStatusToggle = (sessionId: number, currentPaidStatus: boolean) => {
     handleFieldChange(sessionId, 'isPaid', !currentPaidStatus);
+  };
+
+  const handleStatusSelection = (session: Meeting) => {
+    setSelectedSessionForStatus(session);
+    setShowStatusModal(true);
   };
 
   const handleDeleteSession = async (sessionId: number) => {
@@ -761,12 +778,16 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
                             ))}
                           </select>
                         ) : (
-                          <button 
-                            className={`status-toggle ${getStatusColorClass(session.status)}`}
-                            onClick={() => handleStatusToggle(session.id, session.status)}
-                            disabled={session.status === MeetingStatus.CANCELLED || session.status === MeetingStatus.NO_SHOW}
+                          <button
+                            className={`status-badge ${session.status === 'SCHEDULED' ? 'status-scheduled' : 
+                                                   session.status === 'COMPLETED' ? 'status-completed' : 
+                                                   session.status === 'CANCELLED' ? 'status-cancelled' : 
+                                                   session.status === 'NO_SHOW' ? 'status-no-show' : 'status-default'}`}
+                            onClick={() => handleStatusSelection(session)}
+                            style={{ cursor: 'pointer' }}
                           >
                             {session.status}
+                            <span style={{ marginLeft: '8px', fontSize: '12px' }}>▼</span>
                           </button>
                         )}
                       </div>
@@ -849,6 +870,156 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ onClose, onRefresh }) => {
             onRefresh?.();
           }}
         />
+
+        {/* Status Selection Modal */}
+        {showStatusModal && selectedSessionForStatus && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              minWidth: '400px',
+              boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)',
+              maxWidth: '90vw'
+            }}>
+              <h3 style={{ marginBottom: '1.5rem', color: '#1e293b', textAlign: 'center' }}>
+                Change Status for Session
+              </h3>
+              
+              <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                <strong>Client:</strong> {selectedSessionForStatus.client.fullName}<br />
+                <strong>Date:</strong> {formatDateTime(selectedSessionForStatus.meetingDate)}<br />
+                <strong>Current Status:</strong> <span style={{ 
+                  color: selectedSessionForStatus.status === 'SCHEDULED' ? '#1e40af' : 
+                         selectedSessionForStatus.status === 'COMPLETED' ? '#166534' : 
+                         selectedSessionForStatus.status === 'CANCELLED' ? '#374151' : '#991b1b'
+                }}>{selectedSessionForStatus.status}</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
+                {selectedSessionForStatus.status !== 'COMPLETED' && (
+                  <button
+                    onClick={() => handleStatusChange(selectedSessionForStatus.id, MeetingStatus.COMPLETED)}
+                    style={{
+                      padding: '1rem',
+                      backgroundColor: '#dcfce7',
+                      color: '#166534',
+                      border: '2px solid #bbf7d0',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#bbf7d0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dcfce7'}
+                  >
+                    ✅ Mark Complete
+                  </button>
+                )}
+                
+                {selectedSessionForStatus.status !== 'CANCELLED' && (
+                  <button
+                    onClick={() => handleStatusChange(selectedSessionForStatus.id, MeetingStatus.CANCELLED)}
+                    style={{
+                      padding: '1rem',
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  >
+                    ❌ Cancel Session
+                  </button>
+                )}
+                
+                {selectedSessionForStatus.status !== 'NO_SHOW' && (
+                  <button
+                    onClick={() => handleStatusChange(selectedSessionForStatus.id, MeetingStatus.NO_SHOW)}
+                    style={{
+                      padding: '1rem',
+                      backgroundColor: '#fef2f2',
+                      color: '#991b1b',
+                      border: '2px solid #fecaca',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fecaca'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                  >
+                    🚫 Mark No Show
+                  </button>
+                )}
+                
+                {selectedSessionForStatus.status !== 'SCHEDULED' && (
+                  <button
+                    onClick={() => handleStatusChange(selectedSessionForStatus.id, MeetingStatus.SCHEDULED)}
+                    style={{
+                      padding: '1rem',
+                      backgroundColor: '#dbeafe',
+                      color: '#1e40af',
+                      border: '2px solid #bfdbfe',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#bfdbfe'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
+                  >
+                    📅 Reschedule
+                  </button>
+                )}
+              </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <button
+                  onClick={() => setShowStatusModal(false)}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

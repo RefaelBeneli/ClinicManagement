@@ -235,7 +235,6 @@ class AdminService(
                 duration = meeting.duration,
                 price = meeting.price,
                 isPaid = meeting.isPaid,
-                paymentDate = meeting.paymentDate,
                 status = meeting.status.name,
                 notes = meeting.notes,
                 createdAt = meeting.createdAt
@@ -255,7 +254,6 @@ class AdminService(
                 duration = meeting.duration,
                 price = meeting.price,
                 isPaid = meeting.isPaid,
-                paymentDate = meeting.paymentDate,
                 status = meeting.status.name,
                 notes = meeting.notes,
                 createdAt = meeting.createdAt
@@ -277,7 +275,6 @@ class AdminService(
             duration = meeting.duration,
             price = meeting.price,
             isPaid = meeting.isPaid,
-            paymentDate = meeting.paymentDate,
             status = meeting.status.name,
             notes = meeting.notes,
             createdAt = meeting.createdAt
@@ -291,11 +288,6 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
-        val paymentType = if (request.paymentTypeId != null) {
-            paymentTypeRepository.findById(request.paymentTypeId)
-                .orElseThrow { RuntimeException("Payment type not found with id: ${request.paymentTypeId}") }
-        } else null
-
         val meeting = Meeting(
             client = client,
             user = user,
@@ -303,8 +295,6 @@ class AdminService(
             duration = request.duration,
             price = request.price,
             isPaid = request.isPaid,
-            paymentDate = request.paymentDate,
-            paymentType = paymentType,
             status = MeetingStatus.valueOf(request.status),
             notes = request.notes
         )
@@ -323,11 +313,6 @@ class AdminService(
         val user = userRepository.findById(request.userId)
             .orElseThrow { RuntimeException("User not found with id: ${request.userId}") }
 
-        val paymentType = if (request.paymentTypeId != null) {
-            paymentTypeRepository.findById(request.paymentTypeId)
-                .orElseThrow { RuntimeException("Payment type not found with id: ${request.paymentTypeId}") }
-        } else null
-
         val updatedMeeting = meeting.copy(
             client = client,
             user = user,
@@ -335,8 +320,6 @@ class AdminService(
             duration = request.duration,
             price = request.price,
             isPaid = request.isPaid,
-            paymentDate = request.paymentDate,
-            paymentType = paymentType,
             status = MeetingStatus.valueOf(request.status),
             notes = request.notes
         )
@@ -350,6 +333,39 @@ class AdminService(
             throw RuntimeException("Meeting not found with id: $id")
         }
         meetingRepository.deleteById(id)
+    }
+
+    fun updateMeetingStatus(id: Long, status: String): AdminMeetingResponse {
+        val meeting = meetingRepository.findById(id)
+            .orElseThrow { RuntimeException("Meeting not found with id: $id") }
+        
+        val meetingStatus = try {
+            MeetingStatus.valueOf(status)
+        } catch (e: IllegalArgumentException) {
+            throw RuntimeException("Invalid status: $status")
+        }
+        
+        val updatedMeeting = meeting.copy(status = meetingStatus)
+        val saved = meetingRepository.save(updatedMeeting)
+        return getMeetingById(saved.id)
+    }
+
+    fun activateMeeting(id: Long): AdminMeetingResponse {
+        val meeting = meetingRepository.findById(id)
+            .orElseThrow { RuntimeException("Meeting not found with id: $id") }
+        
+        val updatedMeeting = meeting.copy(isActive = true)
+        val saved = meetingRepository.save(updatedMeeting)
+        return getMeetingById(saved.id)
+    }
+
+    fun deactivateMeeting(id: Long): AdminMeetingResponse {
+        val meeting = meetingRepository.findById(id)
+            .orElseThrow { RuntimeException("Meeting not found with id: $id") }
+        
+        val updatedMeeting = meeting.copy(isActive = false)
+        val saved = meetingRepository.save(updatedMeeting)
+        return getMeetingById(saved.id)
     }
 
     // Personal Meeting Management
@@ -367,7 +383,6 @@ class AdminService(
                 duration = meeting.duration,
                 price = meeting.price,
                 isPaid = meeting.isPaid,
-                paymentDate = meeting.paymentDate,
                 status = meeting.status.name,
                 notes = meeting.notes,
                 createdAt = meeting.createdAt
@@ -389,7 +404,6 @@ class AdminService(
                 duration = meeting.duration,
                 price = meeting.price,
                 isPaid = meeting.isPaid,
-                paymentDate = meeting.paymentDate,
                 status = meeting.status.name,
                 notes = meeting.notes,
                 createdAt = meeting.createdAt
@@ -413,7 +427,6 @@ class AdminService(
             duration = meeting.duration,
             price = meeting.price,
             isPaid = meeting.isPaid,
-            paymentDate = meeting.paymentDate,
             status = meeting.status.name,
             notes = meeting.notes,
             createdAt = meeting.createdAt
@@ -437,7 +450,6 @@ class AdminService(
             duration = request.duration,
             price = request.price,
             isPaid = request.isPaid,
-            paymentDate = request.paymentDate,
             status = PersonalMeetingStatus.valueOf(request.status),
             notes = request.notes
         )
@@ -466,7 +478,6 @@ class AdminService(
             duration = request.duration,
             price = request.price,
             isPaid = request.isPaid,
-            paymentDate = request.paymentDate,
             status = PersonalMeetingStatus.valueOf(request.status),
             notes = request.notes
         )
@@ -501,9 +512,6 @@ class AdminService(
                 recurrenceFrequency = expense.recurrenceFrequency,
                 recurrenceCount = expense.recurrenceCount,
                 nextDueDate = expense.nextDueDate?.atStartOfDay(),
-                isPaid = expense.isPaid,
-                paymentTypeId = expense.paymentType?.id,
-                paymentTypeName = expense.paymentType?.name,
                 receiptUrl = expense.receiptUrl,
                 isActive = expense.isActive,
                 createdAt = expense.createdAt
@@ -529,9 +537,6 @@ class AdminService(
                 recurrenceFrequency = expense.recurrenceFrequency,
                 recurrenceCount = expense.recurrenceCount,
                 nextDueDate = expense.nextDueDate?.atStartOfDay(),
-                isPaid = expense.isPaid,
-                paymentTypeId = expense.paymentType?.id,
-                paymentTypeName = expense.paymentType?.name,
                 receiptUrl = expense.receiptUrl,
                 isActive = expense.isActive,
                 createdAt = expense.createdAt
@@ -559,9 +564,6 @@ class AdminService(
             recurrenceFrequency = expense.recurrenceFrequency,
             recurrenceCount = expense.recurrenceCount,
             nextDueDate = expense.nextDueDate?.atStartOfDay(),
-            isPaid = expense.isPaid,
-            paymentTypeId = expense.paymentType?.id,
-            paymentTypeName = expense.paymentType?.name,
             receiptUrl = expense.receiptUrl,
             isActive = expense.isActive,
             createdAt = expense.createdAt
@@ -574,11 +576,6 @@ class AdminService(
 
         val category = expenseCategoryRepository.findById(request.categoryId)
             .orElseThrow { RuntimeException("Expense category not found with id: ${request.categoryId}") }
-
-        val paymentType = request.paymentTypeId?.let { paymentTypeId ->
-            paymentTypeRepository.findById(paymentTypeId)
-                .orElseThrow { RuntimeException("Payment type not found with id: $paymentTypeId") }
-        }
 
         val expense = Expense(
             user = user,
@@ -593,8 +590,6 @@ class AdminService(
             recurrenceFrequency = request.recurrenceFrequency,
             recurrenceCount = request.recurrenceCount,
             nextDueDate = request.nextDueDate?.toLocalDate(),
-            isPaid = request.isPaid,
-            paymentType = paymentType,
             receiptUrl = request.receiptUrl
         )
 
@@ -616,11 +611,6 @@ class AdminService(
                 .orElseThrow { RuntimeException("Expense category not found with id: $categoryId") }
         } ?: expense.category
 
-        val paymentType = request.paymentTypeId?.let { paymentTypeId ->
-            paymentTypeRepository.findById(paymentTypeId)
-                .orElseThrow { RuntimeException("Payment type not found with id: $paymentTypeId") }
-        } ?: expense.paymentType
-
         // Only update fields that are actually provided in the request
         val updatedExpense = expense.copy(
             user = user,
@@ -635,8 +625,6 @@ class AdminService(
             recurrenceFrequency = request.recurrenceFrequency,
             recurrenceCount = request.recurrenceCount ?: expense.recurrenceCount,
             nextDueDate = request.nextDueDate?.toLocalDate(),
-            isPaid = request.isPaid ?: expense.isPaid,
-            paymentType = paymentType,
             receiptUrl = request.receiptUrl,
             isActive = request.isActive ?: expense.isActive,
             updatedAt = LocalDateTime.now()
@@ -667,7 +655,6 @@ class AdminService(
                 duration = meeting.duration,
                 price = meeting.price,
                 isPaid = meeting.isPaid,
-                paymentDate = meeting.paymentDate,
                 status = meeting.status.name,
                 notes = meeting.notes,
                 createdAt = meeting.createdAt

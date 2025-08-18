@@ -86,6 +86,119 @@
   flex-shrink: 0;
 }
 
+/* 💳 Payment Type Modal Styles */
+.payment-type-modal {
+  max-width: 500px !important;
+  width: 500px !important;
+}
+
+.payment-type-modal .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.payment-type-modal .modal-header h3 {
+  color: white;
+  margin: 0;
+}
+
+.payment-type-modal .modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-base);
+}
+
+.payment-type-modal .modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.payment-type-modal .form-group {
+  margin-bottom: var(--space-4);
+}
+
+.payment-type-modal .form-group label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-weight-medium);
+  color: var(--secondary-700);
+}
+
+.payment-type-modal .form-select {
+  width: 100%;
+  padding: var(--space-3);
+  border: 2px solid var(--secondary-200);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  transition: border-color var(--transition-base);
+}
+
+.payment-type-modal .form-select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.payment-type-modal .payment-type-info {
+  background: var(--secondary-50);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-4);
+}
+
+.payment-type-modal .payment-type-info p {
+  margin: 0;
+  color: var(--secondary-600);
+  font-size: var(--text-sm);
+}
+
+.payment-type-modal .modal-footer {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding: var(--space-4);
+  border-top: 1px solid var(--secondary-200);
+}
+
+.payment-type-modal .btn {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.payment-type-modal .btn-primary {
+  background: var(--primary-500);
+  color: white;
+}
+
+.payment-type-modal .btn-primary:hover:not(:disabled) {
+  background: var(--primary-600);
+  transform: translateY(-1px);
+}
+
+.payment-type-modal .btn-primary:disabled {
+  background: var(--secondary-300);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.payment-type-modal .btn-secondary {
+  background: var(--secondary-200);
+  color: var(--secondary-700);
+}
+
+.payment-type-modal .btn-secondary:hover {
+  background: var(--secondary-300);
+}
+
 .modal__title {
   margin: 0;
   font-size: var(--text-xl);

@@ -22,7 +22,7 @@ class DataInitializer(
                 username = "admin",
                 email = "admin@clinicmanagement.com",
                 fullName = "System Administrator",
-                password = passwordEncoder.encode("admin123"),
+                password = passwordEncoder.encode("123456"),
                 role = Role.ADMIN,
                 enabled = true,
                 approvalStatus = UserApprovalStatus.APPROVED,

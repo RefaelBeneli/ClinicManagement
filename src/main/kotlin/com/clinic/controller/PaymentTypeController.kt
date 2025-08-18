@@ -9,7 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/admin/payment-types")
+@RequestMapping("/api/admin/payment-types")
 @PreAuthorize("hasRole('ADMIN')")
 class PaymentTypeController(
     private val paymentTypeService: PaymentTypeService

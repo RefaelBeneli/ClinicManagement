@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import DataTable from '../shared/DataTable';
 import AddEditModal from '../shared/AddEditModal';
 import SearchFilter from '../shared/SearchFilter';
@@ -35,6 +35,15 @@ const UsersTab: React.FC = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // API URL configuration
+  const apiUrl = useMemo(() => {
+    return process.env.REACT_APP_API_URL || 
+      (window.location.hostname === 'frolicking-granita-900c53.netlify.app' 
+        ? 'https://web-production-9aa8.up.railway.app/api'
+        : 'http://localhost:8085/api');
+  }, []);
+  const rootUrl = useMemo(() => apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl, [apiUrl]);
+
 
   useEffect(() => {
     if (!hasFetchedRef.current) {
@@ -56,7 +65,7 @@ const UsersTab: React.FC = () => {
     setIsLoading(true);
     try {
       const response = await makeApiCall(
-        '/api/admin/users',
+        `${rootUrl}/admin/users`,
         () => adminApi.getUsers(page, size),
         { cacheKey: 'admin-users' }
       );
@@ -133,30 +142,70 @@ const UsersTab: React.FC = () => {
     if (!editingUser) return;
     
     try {
-      // TODO: Replace with actual API call
-      // await adminApi.updateUser(editingUser.id, userData);
+      // Call backend API to update user
+      const response = await fetch(`${rootUrl}/admin/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(userData)
+      });
       
-      // Mock update
+      if (!response.ok) {
+        throw new Error(`Failed to update user: ${response.statusText}`);
+      }
+      
+      // Get updated user data from response
+      const updatedUser = await response.json();
+      
+      // Update local state with the response data
       setUsers(prev => prev.map(user => 
-        user.id === editingUser.id ? { ...user, ...userData } : user
+        user.id === editingUser.id ? {
+          ...user,
+          name: updatedUser.fullName || user.name,
+          email: updatedUser.email || user.email,
+          role: updatedUser.role || user.role,
+          status: updatedUser.enabled ? 'ACTIVE' : 'INACTIVE'
+        } : user
       ));
+      
       setShowModal(false);
       setEditingUser(null);
+      
+      // Show success message
+      alert('User updated successfully!');
+      
     } catch (error) {
       console.error('Error updating user:', error);
+      alert(`Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const handleDeleteUser = async (user: User) => {
     if (window.confirm(`Are you sure you want to delete user ${user.name}?`)) {
       try {
-        // TODO: Replace with actual API call
-        // await adminApi.deleteUser(user.id);
+        // Call backend API to delete user
+        const response = await fetch(`${rootUrl}/admin/users/${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         
-        // Mock deletion
+        if (!response.ok) {
+          throw new Error(`Failed to delete user: ${response.statusText}`);
+        }
+        
+        // Remove user from local state after successful deletion
         setUsers(prev => prev.filter(u => u.id !== user.id));
+        
+        // Show success message
+        alert('User deleted successfully!');
+        
       } catch (error) {
         console.error('Error deleting user:', error);
+        alert(`Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   };
@@ -176,17 +225,36 @@ const UsersTab: React.FC = () => {
 
   const handleUserStatusChange = async (entityId: number | string, newStatus: string | boolean) => {
     try {
-      // TODO: Replace with actual API call
-      // await adminApi.updateUserStatus(entityId, newStatus);
+      // Convert frontend status to backend enabled field
+      const enabled = newStatus === 'ACTIVE' || newStatus === true;
       
-      // Mock status update
+      // Call backend API to update user status
+      const response = await fetch(`${rootUrl}/admin/users/${entityId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ enabled })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update user status: ${response.statusText}`);
+      }
+      
+      // Update local state after successful backend update
       setUsers(prev => prev.map(u => 
         u.id === entityId ? { ...u, status: newStatus as string } : u
       ));
       
-      console.log('User status updated:', entityId, newStatus);
+      console.log('User status updated successfully:', entityId, newStatus);
+      
+      // Show success message
+      alert(`User status updated to ${newStatus === 'ACTIVE' ? 'Active' : 'Inactive'}`);
+      
     } catch (error) {
       console.error('Error updating user status:', error);
+      alert(`Failed to update user status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -194,17 +262,99 @@ const UsersTab: React.FC = () => {
     switch (action) {
       case 'Delete':
         if (window.confirm(`Are you sure you want to delete ${selectedIds.length} users?`)) {
-          setUsers(prev => prev.filter(u => !selectedIds.includes(u.id)));
-          setSelectedUserIds([]);
+          try {
+            // Delete all selected users via API
+            const deletePromises = selectedIds.map(async (userId) => {
+              const response = await fetch(`${rootUrl}/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              });
+              
+              if (!response.ok) {
+                throw new Error(`Failed to delete user ${userId}: ${response.statusText}`);
+              }
+              
+              return { userId, success: true };
+            });
+            
+            // Wait for all deletions to complete
+            const results = await Promise.allSettled(deletePromises);
+            
+            // Count successes and failures
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.length - successful;
+            
+            // Remove successfully deleted users from local state
+            setUsers(prev => prev.filter(u => !selectedIds.includes(u.id)));
+            setSelectedUserIds([]);
+            
+            // Show results
+            if (failed === 0) {
+              alert(`Successfully deleted ${successful} users`);
+            } else {
+              alert(`Deleted ${successful} users successfully. ${failed} deletions failed.`);
+            }
+            
+          } catch (error) {
+            console.error('Error in bulk delete:', error);
+            alert(`Bulk delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
         break;
       case 'Update Status':
-        setUsers(prev => prev.map(u => 
-          selectedIds.includes(u.id) 
-            ? { ...u, status: u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }
-            : u
-        ));
-        setSelectedUserIds([]);
+        try {
+          // Get current status of first selected user to determine new status
+          const firstUser = users.find(u => selectedIds.includes(u.id));
+          if (!firstUser) break;
+          
+          const newStatus = firstUser.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+          const enabled = newStatus === 'ACTIVE';
+          
+          // Update all selected users via API
+          const updatePromises = selectedIds.map(async (userId) => {
+            const response = await fetch(`${rootUrl}/admin/users/${userId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({ enabled })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Failed to update user ${userId}: ${response.statusText}`);
+            }
+            
+            return { userId, success: true };
+          });
+          
+          // Wait for all updates to complete
+          const results = await Promise.allSettled(updatePromises);
+          
+          // Count successes and failures
+          const successful = results.filter(r => r.status === 'fulfilled').length;
+          const failed = results.length - successful;
+          
+          // Update local state for successful updates
+          setUsers(prev => prev.map(u => 
+            selectedIds.includes(u.id) ? { ...u, status: newStatus } : u
+          ));
+          
+          setSelectedUserIds([]);
+          
+          // Show results
+          if (failed === 0) {
+            alert(`Successfully updated ${successful} users to ${newStatus === 'ACTIVE' ? 'Active' : 'Inactive'}`);
+          } else {
+            alert(`Updated ${successful} users successfully. ${failed} updates failed.`);
+          }
+          
+        } catch (error) {
+          console.error('Error in bulk status update:', error);
+          alert(`Bulk status update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
         break;
       case 'Export':
         alert(`Exporting ${selectedIds.length} users...`);
@@ -283,7 +433,7 @@ const UsersTab: React.FC = () => {
           onSave={async (user, updatedData) => {
             try {
               // Call backend API to update user
-              const response = await fetch(`http://localhost:8085/api/admin/users/${user.id}`, {
+              const response = await fetch(`${rootUrl}/admin/users/${user.id}`, {
                 method: 'PUT',
                 headers: {
                   'Content-Type': 'application/json',
@@ -296,10 +446,18 @@ const UsersTab: React.FC = () => {
                 throw new Error('Failed to update user');
               }
               
-              // Update local state to reflect changes
+              // Get updated user data from response
               const updatedUser = await response.json();
+              
+              // Update local state to reflect changes - transform backend data to frontend format
               setUsers(prevUsers => 
-                prevUsers.map(u => u.id === user.id ? updatedUser : u)
+                prevUsers.map(u => u.id === user.id ? {
+                  ...u,
+                  name: updatedUser.fullName || u.name,
+                  email: updatedUser.email || u.email,
+                  role: updatedUser.role || u.role,
+                  status: updatedUser.enabled ? 'ACTIVE' : 'INACTIVE'
+                } : u)
               );
               
               // Show success message
@@ -314,7 +472,7 @@ const UsersTab: React.FC = () => {
           onRestore={async (user) => {
             try {
               // Call backend API to restore user
-              const response = await fetch(`http://localhost:8085/api/admin/users/${user.id}/restore`, {
+              const response = await fetch(`${rootUrl}/admin/users/${user.id}/restore`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -323,19 +481,19 @@ const UsersTab: React.FC = () => {
               
               if (!response.ok) {
                 throw new Error('Failed to restore user');
+              }
+              
+              // Update local state
+              setUsers(prevUsers => 
+                prevUsers.map(u => u.id === user.id ? { ...u, deleted: false } : u)
+              );
+              
+              alert('User restored successfully!');
+            } catch (error) {
+              console.error('Error restoring user:', error);
+              alert('Failed to restore user. Please try again.');
             }
-            
-            // Update local state
-            setUsers(prevUsers => 
-              prevUsers.map(u => u.id === user.id ? { ...u, deleted: false } : u)
-            );
-            
-            alert('User restored successfully!');
-          } catch (error) {
-            console.error('Error restoring user:', error);
-            alert('Failed to restore user. Please try again.');
-          }
-        }}
+          }}
         isLoading={isLoading}
       />
       

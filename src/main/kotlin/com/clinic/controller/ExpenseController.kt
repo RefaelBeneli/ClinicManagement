@@ -99,6 +99,36 @@ class ExpenseController {
         }
     }
 
+    // Payment-related endpoints
+    @PutMapping("/{id}/payment")
+    fun markExpenseAsPaid(
+        @PathVariable id: Long,
+        @Valid @RequestBody paymentRequest: ExpensePaymentRequest
+    ): ResponseEntity<*> {
+        return try {
+            val expense = expenseService.markExpenseAsPaid(
+                expenseId = id,
+                paymentTypeId = paymentRequest.paymentTypeId,
+                referenceNumber = paymentRequest.referenceNumber,
+                notes = paymentRequest.notes,
+                transactionId = paymentRequest.transactionId
+            )
+            ResponseEntity.ok(expense)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error marking expense as paid: ${e.message}"))
+        }
+    }
+
+    @PutMapping("/{id}/unpaid")
+    fun markExpenseAsUnpaid(@PathVariable id: Long): ResponseEntity<*> {
+        return try {
+            val expense = expenseService.markExpenseAsUnpaid(id)
+            ResponseEntity.ok(expense)
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(MessageResponse("Error marking expense as unpaid: ${e.message}"))
+        }
+    }
+
     @GetMapping("/recurring")
     fun getRecurringExpenses(): ResponseEntity<*> {
         return try {
@@ -129,25 +159,7 @@ class ExpenseController {
         }
     }
 
-    @PostMapping("/{id}/mark-paid")
-    fun markAsPaid(@PathVariable id: Long): ResponseEntity<*> {
-        return try {
-            val expense = expenseService.markAsPaid(id)
-            ResponseEntity.ok(expense)
-        } catch (e: Exception) {
-            ResponseEntity.badRequest().body(MessageResponse("Error marking expense as paid: ${e.message}"))
-        }
-    }
 
-    @PostMapping("/{id}/mark-unpaid")
-    fun markAsUnpaid(@PathVariable id: Long): ResponseEntity<*> {
-        return try {
-            val expense = expenseService.markAsUnpaid(id)
-            ResponseEntity.ok(expense)
-        } catch (e: Exception) {
-            ResponseEntity.badRequest().body(MessageResponse("Error marking expense as unpaid: ${e.message}"))
-        }
-    }
 
     @PostMapping("/{id}/activate")
     fun activateExpense(@PathVariable id: Long): ResponseEntity<*> {

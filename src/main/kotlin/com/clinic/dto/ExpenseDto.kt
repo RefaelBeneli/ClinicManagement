@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Positive
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import com.clinic.dto.PaymentTypeResponse
 
 data class ExpenseRequest(
     @field:NotBlank(message = "Expense name is required")
@@ -37,11 +38,19 @@ data class ExpenseRequest(
     
     val nextDueDate: LocalDate? = null,
     
+    val receiptUrl: String? = null,
+    
+    // Payment-related fields
+    @JsonProperty("isPaid")
     val isPaid: Boolean = false,
     
     val paymentTypeId: Long? = null,
     
-    val receiptUrl: String? = null
+    val paymentDate: LocalDateTime? = null,
+    
+    val referenceNumber: String? = null,
+    
+    val transactionId: String? = null
 )
 
 data class ExpenseResponse(
@@ -57,10 +66,20 @@ data class ExpenseResponse(
     val recurrenceFrequency: String?,
     val recurrenceCount: Int?,
     val nextDueDate: LocalDate?,
+    val receiptUrl: String?,
+    
+    // Payment-related fields
     @JsonProperty("isPaid")
     val isPaid: Boolean,
-    val paymentType: PaymentTypeResponse?,
-    val receiptUrl: String?,
+    
+    val paymentType: PaymentTypeResponse? = null,
+    
+    val paymentDate: LocalDateTime? = null,
+    
+    val referenceNumber: String? = null,
+    
+    val transactionId: String? = null,
+    
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     @JsonProperty("isActive")
@@ -80,12 +99,33 @@ data class UpdateExpenseRequest(
     val recurrenceFrequency: String? = null,
     val recurrenceCount: Int? = null,
     val nextDueDate: LocalDate? = null,
+    val receiptUrl: String? = null,
+    
+    // Payment-related fields
     @JsonProperty("isPaid")
     val isPaid: Boolean? = null,
+    
     val paymentTypeId: Long? = null,
-    val receiptUrl: String? = null,
+    
+    val paymentDate: LocalDateTime? = null,
+    
+    val referenceNumber: String? = null,
+    
+    val transactionId: String? = null,
+    
     @JsonProperty("isActive")
     val isActive: Boolean? = null
+)
+
+data class ExpensePaymentRequest(
+    @field:NotNull(message = "Payment type ID is required")
+    val paymentTypeId: Long,
+    
+    val referenceNumber: String? = null,
+    
+    val notes: String? = null,
+    
+    val transactionId: String? = null
 )
 
 data class ExpenseSummaryResponse(

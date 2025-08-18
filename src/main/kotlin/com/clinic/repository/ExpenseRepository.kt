@@ -15,10 +15,6 @@ interface ExpenseRepository : JpaRepository<Expense, Long> {
     
     fun findByUser(user: User): List<Expense>
     
-    fun findByUserAndIsPaidTrue(user: User): List<Expense>
-    
-    fun findByUserAndIsPaidFalse(user: User): List<Expense>
-    
     fun findByUserAndIsRecurringTrue(user: User): List<Expense>
     
     fun findByUserAndCategory(user: User, category: ExpenseCategory): List<Expense>
@@ -30,12 +26,6 @@ interface ExpenseRepository : JpaRepository<Expense, Long> {
     @Query("SELECT e.category, SUM(e.amount) FROM Expense e WHERE e.user = :user GROUP BY e.category")
     fun getCategoryBreakdown(@Param("user") user: User): List<Pair<ExpenseCategory, BigDecimal>>
     
-    @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user = :user AND e.isPaid = true")
-    fun getTotalPaidAmount(@Param("user") user: User): BigDecimal?
-    
-    @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user = :user AND e.isPaid = false")
-    fun getTotalUnpaidAmount(@Param("user") user: User): BigDecimal?
-    
     @Query("SELECT SUM(e.amount) FROM Expense e WHERE e.user = :user AND e.isRecurring = true")
     fun getTotalRecurringAmount(@Param("user") user: User): BigDecimal?
     
@@ -43,4 +33,9 @@ interface ExpenseRepository : JpaRepository<Expense, Long> {
     fun getAverageAmountForPeriod(@Param("user") user: User, @Param("startDate") startDate: LocalDate, @Param("endDate") endDate: LocalDate): BigDecimal?
     
     fun findTop5ByOrderByCreatedAtDesc(): List<Expense>
+    
+    // Payment-related methods
+    fun findByUserAndIsPaidTrue(user: User): List<Expense>
+    
+    fun findByUserAndIsPaidFalse(user: User): List<Expense>
 } 

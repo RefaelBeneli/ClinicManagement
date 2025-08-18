@@ -64,7 +64,16 @@ class MeetingController {
         @Valid @RequestBody paymentUpdate: PaymentUpdateRequest
     ): ResponseEntity<MeetingResponse> {
         return try {
-            val meeting = meetingService.updatePaymentStatus(id, paymentUpdate.isPaid)
+            val meeting = meetingService.updatePaymentStatus(
+                id = id, 
+                isPaid = paymentUpdate.isPaid,
+                paymentTypeId = paymentUpdate.paymentTypeId,
+                amount = paymentUpdate.amount,
+                referenceNumber = paymentUpdate.referenceNumber,
+                notes = paymentUpdate.notes,
+                transactionId = paymentUpdate.transactionId,
+                receiptUrl = paymentUpdate.receiptUrl
+            )
             ResponseEntity.ok(meeting)
         } catch (e: Exception) {
             ResponseEntity.badRequest().build()

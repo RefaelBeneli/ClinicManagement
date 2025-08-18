@@ -68,7 +68,6 @@ data class AdminMeetingResponse(
     val duration: Int,
     val price: BigDecimal,
     val isPaid: Boolean,
-    val paymentDate: LocalDateTime?,
     val status: String,
     val notes: String?,
     val createdAt: LocalDateTime
@@ -82,8 +81,6 @@ data class AdminMeetingRequest(
     val duration: Int,
     val price: BigDecimal,
     val isPaid: Boolean = false,
-    val paymentDate: LocalDateTime? = null,
-    val paymentTypeId: Long? = null,
     val status: String = "SCHEDULED",
     val notes: String? = null
 )
@@ -101,7 +98,6 @@ data class AdminPersonalMeetingResponse(
     val duration: Int,
     val price: BigDecimal,
     val isPaid: Boolean,
-    val paymentDate: LocalDateTime?,
     val status: String,
     val notes: String?,
     val createdAt: LocalDateTime
@@ -117,7 +113,6 @@ data class AdminPersonalMeetingRequest(
     val duration: Int,
     val price: BigDecimal,
     val isPaid: Boolean = false,
-    val paymentDate: LocalDateTime? = null,
     val status: String = "SCHEDULED",
     val notes: String? = null
 )
@@ -139,9 +134,6 @@ data class AdminExpenseResponse(
     val recurrenceFrequency: String?,
     val recurrenceCount: Int?,
     val nextDueDate: LocalDateTime?,
-    val isPaid: Boolean,
-    val paymentTypeId: Long?,
-    val paymentTypeName: String?,
     val receiptUrl: String?,
     val isActive: Boolean,
     val createdAt: LocalDateTime
@@ -160,8 +152,6 @@ data class AdminExpenseCreateRequest(
     val recurrenceFrequency: String? = null,
     val recurrenceCount: Int? = null,
     val nextDueDate: LocalDateTime? = null,
-    val isPaid: Boolean = false,
-    val paymentTypeId: Long? = null,
     val receiptUrl: String? = null
 )
 
@@ -178,8 +168,6 @@ data class AdminExpenseRequest(
     val recurrenceFrequency: String? = null,
     val recurrenceCount: Int? = null,
     val nextDueDate: LocalDateTime? = null,
-    val isPaid: Boolean? = null,
-    val paymentTypeId: Long? = null,
     val receiptUrl: String? = null,
     val isActive: Boolean? = null
 ) 

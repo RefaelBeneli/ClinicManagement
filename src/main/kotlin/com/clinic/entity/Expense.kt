@@ -4,6 +4,7 @@ import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import com.clinic.entity.PaymentType
 
 @Entity
 @Table(name = "expenses")
@@ -50,6 +51,10 @@ data class Expense(
     @Column(name = "next_due_date")
     val nextDueDate: LocalDate? = null,
     
+    @Column(name = "receipt_url", length = 500)
+    val receiptUrl: String? = null,
+    
+    // Payment-related fields
     @Column(name = "is_paid", nullable = false)
     val isPaid: Boolean = false,
     
@@ -57,8 +62,14 @@ data class Expense(
     @JoinColumn(name = "payment_type_id")
     val paymentType: PaymentType? = null,
     
-    @Column(name = "receipt_url", length = 500)
-    val receiptUrl: String? = null,
+    @Column(name = "payment_date")
+    val paymentDate: LocalDateTime? = null,
+    
+    @Column(name = "reference_number", length = 255)
+    val referenceNumber: String? = null,
+    
+    @Column(name = "transaction_id", length = 255)
+    val transactionId: String? = null,
     
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),

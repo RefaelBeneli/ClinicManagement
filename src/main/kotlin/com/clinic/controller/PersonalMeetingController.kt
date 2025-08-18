@@ -65,7 +65,16 @@ class PersonalMeetingController {
         @Valid @RequestBody paymentUpdate: PersonalMeetingPaymentUpdateRequest
     ): ResponseEntity<PersonalMeetingResponse> {
         return try {
-            val meeting = personalMeetingService.updatePaymentStatus(id, paymentUpdate.isPaid)
+            val meeting = personalMeetingService.updatePaymentStatus(
+                id = id, 
+                isPaid = paymentUpdate.isPaid,
+                paymentTypeId = paymentUpdate.paymentTypeId,
+                amount = paymentUpdate.amount,
+                referenceNumber = paymentUpdate.referenceNumber,
+                notes = paymentUpdate.notes,
+                transactionId = paymentUpdate.transactionId,
+                receiptUrl = paymentUpdate.receiptUrl
+            )
             ResponseEntity.ok(meeting)
         } catch (e: Exception) {
             ResponseEntity.badRequest().build()

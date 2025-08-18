@@ -11,7 +11,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: none # Changed from create-drop to none when using Flyway
+      ddl-auto: validate # Let Flyway handle schema, Hibernate only validates
     open-in-view: false # Explicitly configure to eliminate warning
     show-sql: false
     properties:

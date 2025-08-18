@@ -92,6 +92,46 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ session, isOpen, onCl
     if (error) setError('');
   };
 
+  // Custom handler for client selection to auto-fill price
+  const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const clientId = Number(e.target.value);
+    setFormData(prev => ({
+      ...prev,
+      clientId
+    }));
+    
+    // Auto-fill price and duration based on selected client's source defaults
+    if (clientId > 0) {
+      const selectedClient = clientList.find(client => client.id === clientId);
+      const sourcePrice = selectedClient?.source?.price;
+      const sourceDuration = selectedClient?.source?.duration;
+      
+      if (sourcePrice !== undefined) {
+        setFormData(prev => ({
+          ...prev,
+          price: sourcePrice
+        }));
+      }
+      
+      if (sourceDuration !== undefined) {
+        setFormData(prev => ({
+          ...prev,
+          duration: sourceDuration
+        }));
+      }
+    } else {
+      // Reset price and duration when no client is selected
+      setFormData(prev => ({
+        ...prev,
+        price: 0,
+        duration: 60
+      }));
+    }
+    
+    // Clear error when user makes a selection
+    if (error) setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -198,7 +238,7 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ session, isOpen, onCl
                 id="clientId"
                 name="clientId"
                 value={formData.clientId}
-                onChange={handleInputChange}
+                onChange={handleClientChange}
                 required
                 className="enhanced-input"
                 disabled={loading}
@@ -206,10 +246,30 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ session, isOpen, onCl
                 <option value={0}>Select a client</option>
                 {clientList.map(client => (
                   <option key={client.id} value={client.id}>
-                    {client.fullName}
+                    {client.fullName} {client.source ? `(${client.source.name} - ₪${client.source.price})` : ''}
                   </option>
                 ))}
               </select>
+              <small className="form-help">
+                Selecting a client will automatically fill the price and duration based on their source defaults
+              </small>
+              {formData.clientId > 0 && (() => {
+                const selectedClient = clientList.find(client => client.id === formData.clientId);
+                return selectedClient?.source ? (
+                  <div className="client-source-info" style={{
+                    marginTop: '0.5rem',
+                    padding: '0.5rem',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '4px',
+                    fontSize: '0.875rem',
+                    color: '#6c757d'
+                  }}>
+                    <strong>Source:</strong> {selectedClient.source.name} | 
+                    <strong>Default Price:</strong> ₪{selectedClient.source.price} | 
+                    <strong>Duration:</strong> {selectedClient.source.duration} min
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             <div className="enhanced-row">
@@ -247,6 +307,9 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ session, isOpen, onCl
                   placeholder="60"
                   disabled={loading}
                 />
+                <small className="form-help">
+                  Duration is automatically filled based on the selected client's source default
+                </small>
               </div>
             </div>
 
@@ -267,6 +330,9 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ session, isOpen, onCl
                 placeholder="120.00"
                 disabled={loading}
               />
+              <small className="form-help">
+                Price and duration are automatically filled based on the selected client's source defaults
+              </small>
             </div>
 
             <div className="enhanced-group">

@@ -73,8 +73,6 @@ class PersonalMeetingService {
             isRecurring = personalMeeting.isRecurring,
             recurrenceFrequency = personalMeeting.recurrenceFrequency,
             nextDueDate = personalMeeting.nextDueDate,
-            isPaid = personalMeeting.isPaid,
-            paymentTypeId = null,
             receiptUrl = null
         )
 
@@ -137,7 +135,7 @@ class PersonalMeetingService {
         return mapToResponse(savedMeeting)
     }
 
-    fun updatePaymentStatus(id: Long, isPaid: Boolean): PersonalMeetingResponse {
+    fun updatePaymentStatus(id: Long, isPaid: Boolean, paymentTypeId: Long? = null, amount: java.math.BigDecimal? = null, referenceNumber: String? = null, notes: String? = null, transactionId: String? = null, receiptUrl: String? = null): PersonalMeetingResponse {
         val currentUser = authService.getCurrentUser()
         val meeting = personalMeetingRepository.findById(id).orElse(null)
             ?: throw RuntimeException("Personal meeting not found")
@@ -146,12 +144,23 @@ class PersonalMeetingService {
             throw RuntimeException("Personal meeting not found")
         }
 
+        // If marking as paid, require payment type
+        if (isPaid && paymentTypeId == null) {
+            throw RuntimeException("Payment type is required when marking personal meeting as paid")
+        }
+
         val updatedMeeting = meeting.copy(
-            isPaid = isPaid,
-            paymentDate = if (isPaid) LocalDateTime.now() else null
+            isPaid = isPaid
         )
 
         val savedMeeting = personalMeetingRepository.save(updatedMeeting)
+        
+        // If marking as paid, create payment record
+        if (isPaid && paymentTypeId != null) {
+            // Note: This will be handled by the PaymentController when the frontend calls the payment endpoint
+            // The personal meeting is already marked as paid here
+        }
+        
         return mapToResponse(savedMeeting)
     }
 
@@ -305,7 +314,6 @@ class PersonalMeetingService {
             duration = meeting.duration,
             price = meeting.price,
             isPaid = meeting.isPaid,
-            paymentDate = meeting.paymentDate,
             notes = meeting.notes,
             summary = meeting.summary,
             status = meeting.status,
