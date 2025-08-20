@@ -322,6 +322,11 @@
   }
 }
 
+/* Ensure primary buttons in modal footer have white text */
+.modal__footer .btn--primary {
+  color: white !important;
+}
+
 /* 🌟 Special Effects */
 
 /* Glassmorphism variant */
@@ -329,6 +334,69 @@
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Meeting Type Card Selection Styling */
+.meeting-type-card {
+  transition: all 0.3s ease;
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+  cursor: pointer !important;
+  position: relative !important;
+}
+
+.meeting-type-card.selected {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.meeting-type-card.selected .meeting-type-header h4 {
+  color: #1e40af !important;
+}
+
+.meeting-type-card.selected .meeting-type-price {
+  color: #1e40af !important;
+  font-weight: 700 !important;
+}
+
+.meeting-type-card.selected .meeting-type-duration {
+  color: #1e40af !important;
+  font-weight: 600 !important;
+}
+
+/* Enhanced selected state with checkmark */
+.meeting-type-card.selected {
+  position: relative !important;
+}
+
+.meeting-type-card.selected::after {
+  content: '✓' !important;
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  background: #3b82f6 !important;
+  color: white !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: bold !important;
+  font-size: 14px !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Hover effects for meeting type cards */
+.meeting-type-card:hover:not(.selected) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  border-color: #cbd5e1 !important;
 }
 
 /* Dark theme support - DISABLED */
@@ -862,7 +930,7 @@
 
 .add-session-modal .btn-primary.enhanced {
   background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
-  color: white;
+  color: white !important;
   border: none;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
