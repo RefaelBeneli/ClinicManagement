@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Expense, ExpenseRequest } from '../types';
-import { expenses as expensesApi } from '../services/api';
+import { Expense, ExpenseRequest, PaymentType } from '../types';
+import { expenses as expensesApi, paymentTypes as paymentTypesApi } from '../services/api';
+import PaymentTypeSelectionModal from './ui/PaymentTypeSelectionModal';
 import './ExpensePanel.css';
 
 interface ExpensePanelProps {
@@ -50,6 +51,15 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   // Stats state
   const [stats, setStats] = useState<ExpenseStats | null>(null);
 
+  // Payment type modal state
+  const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
+  const [pendingPaymentAction, setPendingPaymentAction] = useState<{
+    type: 'expense';
+    id: number;
+    isPaid: boolean;
+  } | null>(null);
+  const [availablePaymentTypes, setAvailablePaymentTypes] = useState<PaymentType[]>([]);
+
   // Ref to prevent double fetching
   const hasInitialized = useRef(false);
 
@@ -67,6 +77,15 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
       setError('Failed to load expenses');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchPaymentTypes = useCallback(async () => {
+    try {
+      const paymentTypeData = await paymentTypesApi.getActive();
+      setAvailablePaymentTypes(paymentTypeData);
+    } catch (error) {
+      console.error('Error fetching payment types:', error);
     }
   }, []);
 
@@ -96,9 +115,10 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
     if (!hasInitialized.current) {
       hasInitialized.current = true;
       fetchExpenses();
+      fetchPaymentTypes();
       // fetchStats(); // This will be called after expenses are loaded
     }
-  }, [fetchExpenses]);
+  }, [fetchExpenses, fetchPaymentTypes]);
 
   // Handle ESC key
   useEffect(() => {
@@ -173,30 +193,72 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   }, [filterAndSortExpenses]);
 
   const handlePaymentToggle = async (expenseId: number, currentPaidStatus: boolean, paymentTypeId?: number) => {
+    console.log('🔍 handlePaymentToggle called:', { expenseId, currentPaidStatus, paymentTypeId });
+    
     try {
       if (currentPaidStatus) {
-        await expensesApi.markAsUnpaid(expenseId);
+        // Currently paid, marking as unpaid
+        console.log('🔄 Marking expense as unpaid');
+        await expensesApi.updatePayment(expenseId, false);
+        
+        const updatedExpenses = expenses.map(expense =>
+          expense.id === expenseId
+            ? { ...expense, isPaid: false }
+            : expense
+        );
+        
+        setExpenses(updatedExpenses);
+        await fetchStats(updatedExpenses);
+        console.log('✅ Expense marked as unpaid successfully');
       } else {
-        // Marking as paid - require payment type
-        if (!paymentTypeId) {
-          setError('Please select a payment type when marking an expense as paid.');
-          return;
-        }
-        await expensesApi.markAsPaid(expenseId, paymentTypeId);
+        // Currently unpaid, marking as paid - show payment type selection modal
+        console.log('💰 Marking expense as paid, showing payment type modal');
+        setPendingPaymentAction({
+          type: 'expense',
+          id: expenseId,
+          isPaid: true
+        });
+        setShowPaymentTypeModal(true);
+        console.log('✅ Payment type modal should now be visible');
       }
+    } catch (error: any) {
+      console.error('❌ Error updating expense payment status:', error);
+      setError('Failed to update payment status');
+    }
+  };
+
+  const handlePaymentTypeSelected = async (paymentTypeId: number) => {
+    console.log('🔍 handlePaymentTypeSelected called:', { paymentTypeId, pendingPaymentAction });
+    
+    if (!pendingPaymentAction) {
+      console.log('❌ No pending payment action');
+      return;
+    }
+
+    try {
+      const { id: expenseId, isPaid } = pendingPaymentAction;
+      console.log('💰 Marking expense as paid with payment type:', { expenseId, isPaid, paymentTypeId });
       
+      // Mark expense as paid with selected payment type
+      await expensesApi.updatePayment(expenseId, isPaid, paymentTypeId);
+      console.log('✅ API call successful');
+      
+      // Update local state
       const updatedExpenses = expenses.map(expense =>
         expense.id === expenseId
-          ? { ...expense, isPaid: !currentPaidStatus }
+          ? { ...expense, isPaid: true }
           : expense
       );
       
       setExpenses(updatedExpenses);
-      
-      // Recalculate stats with updated expense data
       await fetchStats(updatedExpenses);
+      
+      // Close modal and reset state
+      setShowPaymentTypeModal(false);
+      setPendingPaymentAction(null);
+      console.log('✅ Expense marked as paid successfully');
     } catch (error: any) {
-      console.error('Error updating expense payment status:', error);
+      console.error('❌ Error updating expense payment status:', error);
       setError('Failed to update payment status');
     }
   };
@@ -365,10 +427,13 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Submitting expense form data:', formData);
+      
       if (editingExpense) {
         await expensesApi.update(editingExpense.id, formData);
       } else {
-        await expensesApi.create(formData);
+        const result = await expensesApi.create(formData);
+        console.log('Expense created result:', result);
       }
       await fetchExpenses();
       onRefresh?.();
@@ -751,7 +816,7 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
                   <label>Recurrence Frequency</label>
                   <select
                     value={formData.recurrenceFrequency}
-                    onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value, recurrenceCount: 1 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, recurrenceFrequency: e.target.value }))}
                   >
                     <option value="">Select frequency</option>
                     <option value="DAILY">Daily</option>
@@ -763,13 +828,22 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
                 </div>
               )}
               
-              {formData.isRecurring && formData.recurrenceFrequency && (
-                <div className="form-group">
+              {/* Debug info */}
+              {formData.isRecurring && (
+                <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px', border: '1px solid red', padding: '5px' }}>
+                  Debug: isRecurring={String(formData.isRecurring)}, 
+                  frequency="{formData.recurrenceFrequency}", 
+                  count={formData.recurrenceCount}
+                </div>
+              )}
+              
+              {formData.isRecurring && (
+                <div className="form-group" style={{ display: 'block !important', border: '2px solid green', padding: '10px' }}>
                   <label>
-                    Recurrence Count
+                    Number of Additional Occurrences
                     <span 
                       className="tooltip" 
-                      title="Number of times this expense should repeat. Leave unchecked for specific count, or check 'Infinite' for ongoing recurring expense."
+                      title="Number of additional times this expense should repeat beyond the original. Set to 1 for 2 total expenses, 2 for 3 total expenses, etc."
                     >
                       ℹ️
                     </span>
@@ -811,6 +885,14 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
                       </label>
                     </div>
                   </div>
+                  {formData.recurrenceCount !== null && formData.recurrenceCount !== undefined && (
+                    <div className="recurrence-summary">
+                      <small>
+                        📊 This will create <strong>{formData.recurrenceCount + 1}</strong> total expenses: 
+                        1 original + {formData.recurrenceCount} recurring
+                      </small>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -871,6 +953,37 @@ const ExpensePanel: React.FC<ExpensePanelProps> = ({ onClose, onRefresh }) => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Payment Type Selection Modal */}
+      <PaymentTypeSelectionModal
+        isOpen={showPaymentTypeModal}
+        onClose={() => {
+          setShowPaymentTypeModal(false);
+          setPendingPaymentAction(null);
+        }}
+        onConfirm={handlePaymentTypeSelected}
+        paymentTypes={availablePaymentTypes}
+        title="Select Payment Type"
+      />
+
+      {/* Debug info for payment modal */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ 
+          position: 'fixed', 
+          bottom: '10px', 
+          left: '10px', 
+          background: 'rgba(0,0,0,0.8)', 
+          color: 'white', 
+          padding: '10px', 
+          borderRadius: '5px',
+          fontSize: '12px',
+          zIndex: 9999
+        }}>
+          <div>showPaymentTypeModal: {String(showPaymentTypeModal)}</div>
+          <div>pendingPaymentAction: {JSON.stringify(pendingPaymentAction)}</div>
+          <div>availablePaymentTypes count: {availablePaymentTypes.length}</div>
         </div>
       )}
     </>

@@ -340,6 +340,51 @@
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+/* Selected state for meeting type cards */
+.meeting-type-card.selected {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+.meeting-type-card.selected .meeting-type-header h4 {
+  color: #1e40af;
+}
+
+.meeting-type-card.selected .meeting-type-price {
+  color: #1e40af;
+  font-weight: 700;
+}
+
+.meeting-type-card.selected .meeting-type-duration {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+/* Enhanced selected state with checkmark */
+.meeting-type-card.selected {
+  position: relative;
+}
+
+.meeting-type-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #3b82f6;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
 .source-header,
 .meeting-type-header,
 .integration-header {

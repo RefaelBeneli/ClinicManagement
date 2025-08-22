@@ -945,4 +945,25 @@
 
 .tooltip:hover {
   color: #5a67d8;
+}
+
+/* Recurrence Summary */
+.recurrence-summary {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e6f3ff 100%);
+  border: 1px solid #d1e7ff;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.recurrence-summary small {
+  color: #2c5aa0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.recurrence-summary strong {
+  color: #1e40af;
+  font-weight: 700;
 } 

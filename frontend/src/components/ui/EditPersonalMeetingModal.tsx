@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PersonalMeeting, UpdatePersonalMeetingRequest, PersonalMeetingStatus, PersonalMeetingTypeEntity } from '../../types';
 import { personalMeetings } from '../../services/api';
+import DateTimePicker from './DateTimePicker';
 import './Modal.css';
 
 interface EditPersonalMeetingModalProps {
@@ -14,7 +15,7 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
   const [meetingTypes, setMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
   const [formData, setFormData] = useState<UpdatePersonalMeetingRequest>({
     therapistName: '',
-    meetingType: undefined,
+    meetingTypeId: 0,
     providerType: '',
     providerCredentials: '',
     meetingDate: '',
@@ -51,10 +52,10 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
     if (meeting) {
       setFormData({
         therapistName: meeting.therapistName,
-        meetingType: meeting.meetingType,
+        meetingTypeId: meeting.meetingType?.id || 0,
         providerType: meeting.providerType,
         providerCredentials: meeting.providerCredentials || '',
-        meetingDate: meeting.meetingDate.split('T')[0],
+        meetingDate: meeting.meetingDate,
         duration: meeting.duration,
         price: meeting.price,
         isPaid: meeting.isPaid,
@@ -208,17 +209,15 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
 
               <div className="enhanced-group">
                 <label htmlFor="meetingDate" className="form-label">
-                  Meeting Date <span className="required">*</span>
+                  Meeting Date & Time <span className="required">*</span>
                 </label>
-                <input
-                  type="date"
-                  id="meetingDate"
-                  name="meetingDate"
-                  value={formData.meetingDate}
-                  onChange={handleInputChange}
-                  required
-                  className="enhanced-input"
+                <DateTimePicker
+                  value={formData.meetingDate || ''}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, meetingDate: value }));
+                  }}
                   disabled={loading}
+                  placeholder="Select date and time"
                 />
               </div>
             </div>
@@ -227,13 +226,13 @@ const EditPersonalMeetingModal: React.FC<EditPersonalMeetingModalProps> = ({ mee
               <label htmlFor="meetingType" className="form-label">Meeting Type</label>
               <select
                 id="meetingType"
-                name="meetingType"
-                value={formData.meetingType?.id || ''}
+                name="meetingTypeId"
+                value={formData.meetingTypeId || ''}
                 onChange={(e) => {
                   const selectedType = meetingTypes.find(type => type.id === parseInt(e.target.value));
                   setFormData(prev => ({
                     ...prev,
-                    meetingType: selectedType
+                    meetingTypeId: selectedType?.id || 0
                   }));
                 }}
                 className="enhanced-input"

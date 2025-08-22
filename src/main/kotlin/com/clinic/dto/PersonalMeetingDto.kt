@@ -39,7 +39,9 @@ data class PersonalMeetingRequest(
     
     val recurrenceFrequency: String? = null, // "weekly", "monthly", "quarterly"
     
-    val nextDueDate: LocalDate? = null
+    val nextDueDate: LocalDate? = null,
+    
+    val totalSessions: Int? = null, // Total number of sessions in the recurring series
 )
 
 data class PersonalMeetingResponse(
@@ -60,6 +62,9 @@ data class PersonalMeetingResponse(
     val isRecurring: Boolean,
     val recurrenceFrequency: String?,
     val nextDueDate: LocalDate?,
+    val totalSessions: Int?,
+    val sessionNumber: Int?,
+    val parentMeetingId: Long?,
     val createdAt: LocalDateTime,
     @JsonProperty("isActive")
     val isActive: Boolean
@@ -81,7 +86,10 @@ data class UpdatePersonalMeetingRequest(
     @JsonProperty("isRecurring")
     val isRecurring: Boolean?,
     val recurrenceFrequency: String?,
-    val nextDueDate: LocalDate?
+    val nextDueDate: LocalDate?,
+    val totalSessions: Int?,
+    val sessionNumber: Int?,
+    val parentMeetingId: Long?
 )
 
 data class PersonalMeetingPaymentUpdateRequest(

@@ -26,4 +26,14 @@ interface PaymentRepository : JpaRepository<Payment, Long> {
     
     @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.user.id = :userId AND p.status = 'COMPLETED' AND p.paymentDate BETWEEN :startDate AND :endDate")
     fun getTotalPaymentsByUserAndDateRange(@Param("userId") userId: Long, @Param("startDate") startDate: LocalDateTime, @Param("endDate") endDate: LocalDateTime): java.math.BigDecimal?
+    
+    // Find only active payments
+    fun findByIsActiveTrue(): List<Payment>
+    
+    fun findByUserIdAndIsActiveTrue(userId: Long): List<Payment>
+    
+    fun findBySessionIdAndSessionTypeAndIsActiveTrue(sessionId: Long, sessionType: SessionType): List<Payment>
+    
+    @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.user.id = :userId AND p.status = 'COMPLETED' AND p.isActive = true AND p.paymentDate BETWEEN :startDate AND :endDate")
+    fun getTotalActivePaymentsByUserAndDateRange(@Param("userId") userId: Long, @Param("startDate") startDate: LocalDateTime, @Param("endDate") endDate: LocalDateTime): java.math.BigDecimal?
 }

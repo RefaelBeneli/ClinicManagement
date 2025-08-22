@@ -4,6 +4,7 @@ import com.clinic.entity.*
 import com.clinic.repository.PaymentRepository
 import com.clinic.repository.MeetingRepository
 import com.clinic.repository.PersonalMeetingRepository
+import com.clinic.repository.ExpenseRepository
 import com.clinic.repository.PaymentTypeRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,6 +16,7 @@ class PaymentService(
     private val paymentRepository: PaymentRepository,
     private val meetingRepository: MeetingRepository,
     private val personalMeetingRepository: PersonalMeetingRepository,
+    private val expenseRepository: ExpenseRepository,
     private val paymentTypeRepository: PaymentTypeRepository
 ) {
     
@@ -101,31 +103,82 @@ class PaymentService(
     }
     
     /**
-     * Get all payments for a specific session
+     * Create a payment record when an expense is marked as paid
+     */
+    @Transactional
+    fun createPaymentForExpense(
+        expenseId: Long,
+        paymentTypeId: Long,
+        amount: BigDecimal? = null,
+        referenceNumber: String? = null,
+        notes: String? = null,
+        transactionId: String? = null,
+        receiptUrl: String? = null
+    ): Payment {
+        val expense = expenseRepository.findById(expenseId)
+            .orElseThrow { IllegalArgumentException("Expense not found with id: $expenseId") }
+        
+        val paymentType = paymentTypeRepository.findById(paymentTypeId)
+            .orElseThrow { IllegalArgumentException("Payment type not found with id: $paymentTypeId") }
+        
+        val paymentAmount = amount ?: expense.amount
+        
+        val payment = Payment(
+            user = expense.user,
+            sessionId = expense.id,
+            sessionType = SessionType.EXPENSE,
+            paymentType = paymentType,
+            amount = paymentAmount,
+            paymentDate = LocalDateTime.now(),
+            referenceNumber = referenceNumber,
+            notes = notes,
+            transactionId = transactionId,
+            receiptUrl = receiptUrl
+        )
+        
+        return paymentRepository.save(payment)
+    }
+    
+    /**
+     * Get all active payments for a specific session
      */
     fun getPaymentsForSession(sessionId: Long, sessionType: SessionType): List<Payment> {
+        return paymentRepository.findBySessionIdAndSessionTypeAndIsActiveTrue(sessionId, sessionType)
+    }
+    
+    /**
+     * Get all active payments for a user
+     */
+    fun getPaymentsByUser(userId: Long): List<Payment> {
+        return paymentRepository.findByUserIdAndIsActiveTrue(userId)
+    }
+    
+    /**
+     * Get active payments by date range
+     */
+    fun getPaymentsByDateRange(startDate: LocalDateTime, endDate: LocalDateTime): List<Payment> {
+        return paymentRepository.findByPaymentDateBetween(startDate, endDate).filter { it.isActive }
+    }
+    
+    /**
+     * Get total active payments for a user in a date range
+     */
+    fun getTotalPaymentsByUserAndDateRange(userId: Long, startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
+        return paymentRepository.getTotalActivePaymentsByUserAndDateRange(userId, startDate, endDate) ?: BigDecimal.ZERO
+    }
+    
+    /**
+     * Get all payments for a specific session (including inactive for audit purposes)
+     */
+    fun getAllPaymentsForSession(sessionId: Long, sessionType: SessionType): List<Payment> {
         return paymentRepository.findBySessionIdAndSessionType(sessionId, sessionType)
     }
     
     /**
-     * Get all payments for a user
+     * Get all payments for a user (including inactive for audit purposes)
      */
-    fun getPaymentsByUser(userId: Long): List<Payment> {
+    fun getAllPaymentsByUser(userId: Long): List<Payment> {
         return paymentRepository.findByUserId(userId)
-    }
-    
-    /**
-     * Get payments by date range
-     */
-    fun getPaymentsByDateRange(startDate: LocalDateTime, endDate: LocalDateTime): List<Payment> {
-        return paymentRepository.findByPaymentDateBetween(startDate, endDate)
-    }
-    
-    /**
-     * Get total payments for a user in a date range
-     */
-    fun getTotalPaymentsByUserAndDateRange(userId: Long, startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
-        return paymentRepository.getTotalPaymentsByUserAndDateRange(userId, startDate, endDate) ?: BigDecimal.ZERO
     }
     
     /**
@@ -172,5 +225,30 @@ class PaymentService(
         
         paymentRepository.save(updatedOriginalPayment)
         return paymentRepository.save(refundPayment)
+    }
+    
+    /**
+     * Soft delete payment when marking session as unpaid
+     * This preserves payment history for audit purposes
+     */
+    @Transactional
+    fun deactivatePaymentForSession(sessionId: Long, sessionType: SessionType): Boolean {
+        val payments = paymentRepository.findBySessionIdAndSessionType(sessionId, sessionType)
+        
+        if (payments.isEmpty()) {
+            return false // No payments to deactivate
+        }
+        
+        // Soft delete all payments for this session
+        payments.forEach { payment ->
+            val deactivatedPayment = payment.copy(
+                status = PaymentStatus.INACTIVE,
+                isActive = false,
+                updatedAt = LocalDateTime.now()
+            )
+            paymentRepository.save(deactivatedPayment)
+        }
+        
+        return true
     }
 }

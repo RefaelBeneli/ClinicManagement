@@ -138,3 +138,4 @@ After this fix, test:
 - **Removed from**: `frontend/src/components/EnhancedSystemConfiguration.css`
 
 The meeting type card selection visual feedback should now work correctly, providing clear indication when a meeting type is chosen in the personal sessions modal.
+

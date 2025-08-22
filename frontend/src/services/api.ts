@@ -104,15 +104,16 @@ const transformExpenseResponse = (data: any): any => {
     if (data.id && data.name) {
       const transformed = {
         ...data,
+        // Keep both fields for backward compatibility
         paid: data.isPaid !== undefined ? data.isPaid : data.paid,
         active: data.isActive !== undefined ? data.isActive : data.active,
-        // Remove the "isPaid" and "isActive" properties to avoid confusion
-        isPaid: undefined,
-        isActive: undefined
+        // Keep isPaid and isActive as the primary fields
+        isPaid: data.isPaid !== undefined ? data.isPaid : data.paid,
+        isActive: data.isActive !== undefined ? data.isActive : data.active
       };
       console.log('🔄 Transformed expense:', { 
         original: { isPaid: data.isPaid, paid: data.paid, isActive: data.isActive, active: data.active },
-        transformed: { paid: transformed.paid, active: transformed.active }
+        transformed: { isPaid: transformed.isPaid, paid: transformed.paid, isActive: transformed.isActive, active: transformed.active }
       });
       return transformed;
     }
@@ -762,18 +763,29 @@ export const expenses = {
     return response.data;
   },
 
-  markAsPaid: async (expenseId: number, paymentTypeId: number, referenceNumber?: string, notes?: string, transactionId?: string) => {
-    const payload: any = { paymentTypeId };
+  updatePayment: async (expenseId: number, isPaid: boolean, paymentTypeId?: number, amount?: number, referenceNumber?: string, notes?: string, transactionId?: string, receiptUrl?: string) => {
+    console.log('🔧 expenses.updatePayment called with:', { expenseId, isPaid, paymentTypeId, amount, referenceNumber, notes, transactionId, receiptUrl });
+    console.log('🔧 Making PUT request to:', `/expenses/${expenseId}/payment`);
+    
+    const payload: any = { isPaid };
+    
+    // Only include paymentTypeId when marking as paid (required by backend)
+    if (isPaid && paymentTypeId) {
+      payload.paymentTypeId = paymentTypeId;
+    }
+    
+    // Include optional fields if provided
+    if (amount !== undefined) payload.amount = amount;
     if (referenceNumber) payload.referenceNumber = referenceNumber;
     if (notes) payload.notes = notes;
     if (transactionId) payload.transactionId = transactionId;
+    if (receiptUrl) payload.receiptUrl = receiptUrl;
+    
+    console.log('🔧 Request payload:', payload);
     
     const response = await apiClient.put(`/expenses/${expenseId}/payment`, payload);
-    return response.data;
-  },
-
-  markAsUnpaid: async (expenseId: number) => {
-    const response = await apiClient.put(`/expenses/${expenseId}/unpaid`);
+    
+    console.log('🔧 Response received:', response);
     return response.data;
   },
 };

@@ -55,7 +55,10 @@ data class Payment(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     
     @Column(name = "updated_at", nullable = false)
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(name = "is_active", nullable = false)
+    val isActive: Boolean = true
 )
 
 enum class SessionType {
@@ -69,5 +72,6 @@ enum class PaymentStatus {
     COMPLETED,
     FAILED,
     REFUNDED,
-    CANCELLED
+    CANCELLED,
+    INACTIVE
 }

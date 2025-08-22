@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Meeting, MeetingRequest, UpdateMeetingRequest, MeetingStatus, Client } from '../../types';
 import { meetings, clients } from '../../services/api';
+import DateTimePicker from './DateTimePicker';
 import './Modal.css';
 
 interface AddSessionModalProps {
@@ -277,15 +278,14 @@ const AddSessionModal: React.FC<AddSessionModalProps> = ({ session, isOpen, onCl
                 <label htmlFor="meetingDate" className="form-label">
                   Date & Time <span className="required">*</span>
                 </label>
-                <input
-                  type="datetime-local"
-                  id="meetingDate"
-                  name="meetingDate"
+                <DateTimePicker
                   value={formData.meetingDate}
-                  onChange={handleInputChange}
-                  required
-                  className="enhanced-input"
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, meetingDate: value }));
+                    if (error) setError('');
+                  }}
                   disabled={loading}
+                  placeholder="Select date and time"
                 />
               </div>
 

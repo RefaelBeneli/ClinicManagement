@@ -560,7 +560,7 @@ body {
 /* Primary Button */
 .btn--primary {
   background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
-  color: white;
+  color: white !important;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
@@ -573,6 +573,12 @@ body {
 .btn--primary:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Ensure all primary button variants have white text */
+.btn-primary,
+.btn--primary {
+  color: white !important;
 }
 
 /* Secondary Button */

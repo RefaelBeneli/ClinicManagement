@@ -244,7 +244,7 @@ export interface PersonalMeeting {
 
 export interface PersonalMeetingRequest {
   therapistName: string;
-  meetingType?: PersonalMeetingTypeEntity;
+  meetingTypeId: number; // Changed from meetingType to match backend
   providerType?: string;
   providerCredentials?: string;
   meetingDate: string;
@@ -255,6 +255,7 @@ export interface PersonalMeetingRequest {
   isRecurring?: boolean;
   recurrenceFrequency?: string;
   nextDueDate?: string;
+  totalSessions?: number; // Total number of sessions in the recurring series
   // Payment tracking fields
   isPaid?: boolean;
   paymentDate?: string;
@@ -262,7 +263,7 @@ export interface PersonalMeetingRequest {
 
 export interface UpdatePersonalMeetingRequest {
   therapistName?: string;
-  meetingType?: PersonalMeetingTypeEntity;
+  meetingTypeId?: number; // Changed from meetingType to match backend
   providerType?: string;
   providerCredentials?: string;
   meetingDate?: string;

@@ -59,7 +59,7 @@
 /* Primary Button */
 .btn--primary {
   background-color: var(--primary-600);
-  color: white;
+  color: white !important;
   border-color: var(--primary-600);
   box-shadow: var(--shadow-sm);
 }
@@ -75,6 +75,11 @@
   background-color: var(--primary-800);
   border-color: var(--primary-800);
   box-shadow: var(--shadow-sm);
+}
+
+/* Ensure all primary button variants have white text */
+.btn-primary {
+  color: white !important;
 }
 
 /* Secondary Button */

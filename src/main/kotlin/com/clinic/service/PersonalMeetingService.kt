@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import com.clinic.service.PaymentService
 
 @Service
 class PersonalMeetingService {
@@ -29,36 +30,46 @@ class PersonalMeetingService {
     @Autowired
     private lateinit var expenseService: ExpenseService
 
+    @Autowired
+    private lateinit var paymentService: PaymentService
+
     fun createPersonalMeeting(meetingRequest: PersonalMeetingRequest): PersonalMeetingResponse {
         val currentUser = authService.getCurrentUser()
 
         val meetingType = personalMeetingTypeRepository.findById(meetingRequest.meetingTypeId)
             .orElseThrow { RuntimeException("Personal meeting type not found with id: ${meetingRequest.meetingTypeId}") }
 
-        val meeting = PersonalMeeting(
-            user = currentUser,
-            therapistName = meetingRequest.therapistName,
-            meetingType = meetingType,
-            providerType = meetingRequest.providerType,
-            providerCredentials = meetingRequest.providerCredentials,
-            meetingDate = meetingRequest.meetingDate,
-            duration = meetingRequest.duration ?: 60,
-            price = meetingRequest.price,
-            notes = meetingRequest.notes,
-            summary = meetingRequest.summary,
-            isRecurring = meetingRequest.isRecurring,
-            recurrenceFrequency = meetingRequest.recurrenceFrequency,
-            nextDueDate = meetingRequest.nextDueDate
-        )
+        if (meetingRequest.isRecurring) {
+            return createRecurringPersonalMeetings(meetingRequest, currentUser, meetingType)
+        } else {
+            val meeting = PersonalMeeting(
+                user = currentUser,
+                therapistName = meetingRequest.therapistName,
+                meetingType = meetingType,
+                providerType = meetingRequest.providerType,
+                providerCredentials = meetingRequest.providerCredentials,
+                meetingDate = meetingRequest.meetingDate,
+                duration = meetingRequest.duration ?: 60,
+                price = meetingRequest.price,
+                notes = meetingRequest.notes,
+                summary = meetingRequest.summary,
+                isRecurring = false,
+                recurrenceFrequency = null,
+                nextDueDate = null,
+                totalSessions = null,
+                sessionNumber = null,
+                parentMeetingId = null
+            )
 
-        val savedMeeting = personalMeetingRepository.save(meeting)
+            val savedMeeting = personalMeetingRepository.save(meeting)
 
-        // If this is a session with a Guide, automatically create a recurring expense
-        if (meetingRequest.providerType.equals("Guide", ignoreCase = true)) {
-            createGuideExpense(savedMeeting)
+            // If this is a session with a Guide, automatically create a recurring expense
+            if (meetingRequest.providerType.equals("Guide", ignoreCase = true)) {
+                createGuideExpense(savedMeeting)
+            }
+
+            return mapToResponse(savedMeeting)
         }
-
-        return mapToResponse(savedMeeting)
     }
 
     private fun createGuideExpense(personalMeeting: PersonalMeeting) {
@@ -81,6 +92,87 @@ class PersonalMeetingService {
         } catch (e: Exception) {
             // Log the error but don't fail the personal meeting creation
             println("Failed to create guide expense: ${e.message}")
+        }
+    }
+
+    private fun createRecurringPersonalMeetings(
+        meetingRequest: PersonalMeetingRequest,
+        currentUser: com.clinic.entity.User,
+        meetingType: com.clinic.entity.PersonalMeetingType
+    ): PersonalMeetingResponse {
+        if (meetingRequest.recurrenceFrequency == null) {
+            throw RuntimeException("Recurrence frequency is required for recurring personal meetings")
+        }
+
+        // Default to 12 sessions if not specified (monthly for a year, weekly for 3 months, etc.)
+        val totalSessions = meetingRequest.totalSessions ?: 12
+        
+        println("🔄 Creating recurring personal meetings: totalSessions=$totalSessions, frequency=${meetingRequest.recurrenceFrequency}")
+        
+        val meetings = mutableListOf<PersonalMeeting>()
+        var currentDate = meetingRequest.meetingDate
+
+        // Create the first (parent) meeting
+        val parentMeeting = PersonalMeeting(
+            user = currentUser,
+            therapistName = meetingRequest.therapistName,
+            meetingType = meetingType,
+            providerType = meetingRequest.providerType,
+            providerCredentials = meetingRequest.providerCredentials,
+            meetingDate = currentDate,
+            duration = meetingRequest.duration ?: 60,
+            price = meetingRequest.price,
+            notes = meetingRequest.notes,
+            summary = meetingRequest.summary,
+            isRecurring = true,
+            recurrenceFrequency = meetingRequest.recurrenceFrequency,
+            nextDueDate = meetingRequest.nextDueDate,
+            totalSessions = totalSessions,
+            sessionNumber = 1,
+            parentMeetingId = null
+        )
+        val savedParentMeeting = personalMeetingRepository.save(parentMeeting)
+        meetings.add(savedParentMeeting)
+        println("✅ Created parent personal meeting (session 1)")
+
+        // Create subsequent meetings
+        for (sessionNumber in 2..totalSessions) {
+            currentDate = calculateNextPersonalMeetingDate(currentDate, meetingRequest.recurrenceFrequency)
+            
+            val meeting = PersonalMeeting(
+                user = currentUser,
+                therapistName = meetingRequest.therapistName,
+                meetingType = meetingType,
+                providerType = meetingRequest.providerType,
+                providerCredentials = meetingRequest.providerCredentials,
+                meetingDate = currentDate,
+                duration = meetingRequest.duration ?: 60,
+                price = meetingRequest.price,
+                notes = meetingRequest.notes,
+                summary = meetingRequest.summary,
+                isRecurring = true,
+                recurrenceFrequency = meetingRequest.recurrenceFrequency,
+                nextDueDate = meetingRequest.nextDueDate,
+                totalSessions = totalSessions,
+                sessionNumber = sessionNumber,
+                parentMeetingId = savedParentMeeting.id
+            )
+            meetings.add(personalMeetingRepository.save(meeting))
+            println("✅ Created personal meeting session $sessionNumber")
+        }
+
+        println("🎉 Total personal meetings created: ${meetings.size}")
+        return mapToResponse(savedParentMeeting)
+    }
+
+    private fun calculateNextPersonalMeetingDate(currentDate: LocalDateTime, frequency: String): LocalDateTime {
+        return when (frequency.lowercase()) {
+            "weekly" -> currentDate.plusWeeks(1)
+            "bi-weekly", "biweekly" -> currentDate.plusWeeks(2)
+            "monthly" -> currentDate.plusMonths(1)
+            "quarterly" -> currentDate.plusMonths(3)
+            "yearly" -> currentDate.plusYears(1)
+            else -> currentDate.plusWeeks(1) // Default to weekly
         }
     }
 
@@ -136,6 +228,10 @@ class PersonalMeetingService {
     }
 
     fun updatePaymentStatus(id: Long, isPaid: Boolean, paymentTypeId: Long? = null, amount: java.math.BigDecimal? = null, referenceNumber: String? = null, notes: String? = null, transactionId: String? = null, receiptUrl: String? = null): PersonalMeetingResponse {
+        println("🔧 updatePaymentStatus called with: isPaid=$isPaid, paymentTypeId=$paymentTypeId")
+        println("🔧 isPaid type: ${isPaid::class.simpleName}, value: $isPaid")
+        println("🔧 paymentTypeId type: ${paymentTypeId?.let { it::class.simpleName } ?: "null"}, value: $paymentTypeId")
+        
         val currentUser = authService.getCurrentUser()
         val meeting = personalMeetingRepository.findById(id).orElse(null)
             ?: throw RuntimeException("Personal meeting not found")
@@ -146,19 +242,45 @@ class PersonalMeetingService {
 
         // If marking as paid, require payment type
         if (isPaid && paymentTypeId == null) {
+            println("🔧 ERROR: Payment type required for paid meeting")
             throw RuntimeException("Payment type is required when marking personal meeting as paid")
         }
+        
+        if (!isPaid) {
+            println("🔧 Marking meeting as unpaid - no payment type needed")
+        }
 
-        val updatedMeeting = meeting.copy(
-            isPaid = isPaid
+        var updatedMeeting = meeting.copy(
+            isPaid = isPaid,
+            paymentDate = if (isPaid) LocalDateTime.now() else null
         )
 
         val savedMeeting = personalMeetingRepository.save(updatedMeeting)
         
-        // If marking as paid, create payment record
         if (isPaid && paymentTypeId != null) {
-            // Note: This will be handled by the PaymentController when the frontend calls the payment endpoint
-            // The personal meeting is already marked as paid here
+            // If marking as paid, create payment record
+            try {
+                paymentService.createPaymentForPersonalMeeting(
+                    personalMeetingId = id,
+                    paymentTypeId = paymentTypeId,
+                    amount = amount,
+                    referenceNumber = referenceNumber,
+                    notes = notes,
+                    transactionId = transactionId,
+                    receiptUrl = receiptUrl
+                )
+            } catch (e: Exception) {
+                // Log the error but don't fail the personal meeting update
+                println("Failed to create payment record: ${e.message}")
+            }
+        } else if (!isPaid) {
+            // If marking as unpaid, soft delete existing payment records
+            try {
+                paymentService.deactivatePaymentForSession(id, com.clinic.entity.SessionType.PERSONAL_MEETING)
+            } catch (e: Exception) {
+                // Log the error but don't fail the personal meeting update
+                println("Failed to deactivate payment records: ${e.message}")
+            }
         }
         
         return mapToResponse(savedMeeting)
@@ -320,6 +442,9 @@ class PersonalMeetingService {
             isRecurring = meeting.isRecurring,
             recurrenceFrequency = meeting.recurrenceFrequency,
             nextDueDate = meeting.nextDueDate,
+            totalSessions = meeting.totalSessions,
+            sessionNumber = meeting.sessionNumber,
+            parentMeetingId = meeting.parentMeetingId,
             createdAt = meeting.createdAt,
             isActive = meeting.isActive
         )

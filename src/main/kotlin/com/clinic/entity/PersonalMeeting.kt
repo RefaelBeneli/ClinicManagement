@@ -66,6 +66,15 @@ data class PersonalMeeting(
     @Column(name = "next_due_date")
     val nextDueDate: LocalDate? = null,
     
+    @Column(name = "total_sessions")
+    val totalSessions: Int? = null, // Total number of sessions in the recurring series
+    
+    @Column(name = "session_number")
+    val sessionNumber: Int? = null, // Which session number this is (1, 2, 3, etc.)
+    
+    @Column(name = "parent_meeting_id")
+    val parentMeetingId: Long? = null, // Link to the parent recurring session
+    
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
     

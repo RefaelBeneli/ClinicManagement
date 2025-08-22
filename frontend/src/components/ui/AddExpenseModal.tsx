@@ -30,6 +30,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose, onSu
     expenseDate: new Date().toISOString().split('T')[0],
     isRecurring: false,
     recurrenceFrequency: '',
+    recurrenceCount: 1,
     isPaid: false,
     paymentTypeId: undefined,
     receiptUrl: ''
@@ -64,6 +65,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose, onSu
         expenseDate: new Date().toISOString().split('T')[0],
         isRecurring: false,
         recurrenceFrequency: '',
+        recurrenceCount: 1,
         isPaid: false,
         paymentTypeId: undefined,
         receiptUrl: ''
@@ -134,15 +136,11 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose, onSu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validation
-    if (!formData.name.trim()) {
-      setError('Expense name is required');
-      return;
-    }
     
-    if (!formData.amount || formData.amount <= 0) {
-      setError('Please enter a valid amount');
+    console.log('🔄 Submitting expense form data:', formData);
+    
+    if (!formData.name.trim()) {
+      setError('Please enter an expense name');
       return;
     }
     
@@ -155,8 +153,8 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose, onSu
     setError('');
 
     try {
-      await expenses.create(formData);
-      console.log('✅ Expense created successfully');
+      const result = await expenses.create(formData);
+      console.log('✅ Expense created successfully:', result);
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -370,6 +368,26 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose, onSu
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div className="enhanced-group">
+                  <label htmlFor="recurrenceCount" className="form-label">
+                    Number of Additional Occurrences
+                  </label>
+                  <input
+                    type="number"
+                    id="recurrenceCount"
+                    name="recurrenceCount"
+                    value={formData.recurrenceCount || ''}
+                    onChange={handleInputChange}
+                    className="enhanced-input"
+                    placeholder="1"
+                    min="1"
+                    max="365"
+                  />
+                  <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                    This will create {(formData.recurrenceCount || 1) + 1} total expenses: 1 original + {formData.recurrenceCount || 1} recurring
+                  </small>
                 </div>
               </div>
             )}

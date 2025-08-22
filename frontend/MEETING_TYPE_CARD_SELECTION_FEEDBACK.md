@@ -138,3 +138,4 @@ Added comprehensive visual feedback styles for the `meeting-type-card.selected` 
 - `frontend/src/components/EnhancedSystemConfiguration.css` - Added meeting type card selection styling
 
 The meeting type cards now provide clear visual feedback, making it obvious when a user has successfully chosen a meeting type in the personal sessions modal. The selected card will have a blue gradient background, blue text, and a checkmark icon for immediate visual confirmation.
+

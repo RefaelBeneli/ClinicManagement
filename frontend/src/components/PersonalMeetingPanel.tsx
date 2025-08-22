@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PersonalMeeting, PersonalMeetingStatus, PersonalMeetingTypeEntity, PersonalMeetingRequest, UpdatePersonalMeetingRequest } from '../types';
 import { personalMeetings as personalMeetingsApi } from '../services/api';
+import DateTimePicker from './ui/DateTimePicker';
 import './PersonalMeetingPanel.css';
 
 interface PersonalMeetingPanelProps {
@@ -43,7 +44,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const [editingMeeting, setEditingMeeting] = useState<PersonalMeeting | null>(null);
   const [formData, setFormData] = useState<PersonalMeetingRequest>({
     therapistName: '',
-    meetingType: undefined,
+    meetingTypeId: 0,
     providerType: 'Therapist',
     providerCredentials: '',
     meetingDate: '',
@@ -55,8 +56,15 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     recurrenceFrequency: '',
     nextDueDate: '',
     isPaid: false,
-    paymentDate: ''
+    paymentDate: '',
+    totalSessions: 12
   });
+
+  // Add payment type state
+  const [paymentTypes, setPaymentTypes] = useState<Array<{id: number, name: string}>>([]);
+  const [selectedPaymentTypeId, setSelectedPaymentTypeId] = useState<number | null>(null);
+  const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
+  const [pendingPaymentAction, setPendingPaymentAction] = useState<{meetingId: number, isPaid: boolean} | null>(null);
 
   // Stats state
   const [stats, setStats] = useState<PersonalMeetingStats | null>(null);
@@ -107,6 +115,21 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       }
     };
     loadMeetingTypes();
+  }, []);
+
+  // Load payment types on mount
+  useEffect(() => {
+    const loadPaymentTypes = async () => {
+      try {
+        // You'll need to implement this API call
+        const types = await fetch('/api/payment-types').then(res => res.json());
+        setPaymentTypes(types);
+      } catch (error) {
+        console.error('Error loading payment types:', error);
+      }
+    };
+
+    loadPaymentTypes();
   }, []);
 
   useEffect(() => {
@@ -207,22 +230,29 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   };
 
   const handlePaymentToggle = async (meetingId: number, currentPaidStatus: boolean) => {
-    try {
-      const updatedMeeting = await personalMeetingsApi.updatePayment(meetingId, !currentPaidStatus);
-      
-      const updatedMeetings = personalMeetings.map(meeting =>
-        meeting.id === meetingId ? updatedMeeting : meeting
-      );
-      
-      setPersonalMeetings(updatedMeetings);
-      
-      // Recalculate stats with updated meeting data
-      await fetchStats(updatedMeetings);
-      
-      onRefresh?.();
-    } catch (error: any) {
-      console.error('Error updating payment status:', error);
-      setError('Failed to update payment status');
+    if (!currentPaidStatus) {
+      // If marking as paid, show payment type selection modal
+      setPendingPaymentAction({ meetingId, isPaid: true });
+      setShowPaymentTypeModal(true);
+    } else {
+      // If marking as unpaid, no payment type needed
+      try {
+        const updatedMeeting = await personalMeetingsApi.updatePayment(meetingId, false);
+        
+        const updatedMeetings = personalMeetings.map(meeting =>
+          meeting.id === meetingId ? updatedMeeting : meeting
+        );
+        
+        setPersonalMeetings(updatedMeetings);
+        
+        // Recalculate stats with updated meeting data
+        await fetchStats(updatedMeetings);
+        
+        onRefresh?.();
+      } catch (error: any) {
+        console.error('Error updating payment status:', error);
+        setError('Failed to update payment status');
+      }
     }
   };
 
@@ -247,7 +277,7 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
 
   const handleMeetingTypeUpdate = useCallback(async (meetingId: number, meetingType: PersonalMeetingTypeEntity) => {
     try {
-      await personalMeetingsApi.update(meetingId, { meetingType });
+      await personalMeetingsApi.update(meetingId, { meetingTypeId: meetingType.id });
       // Update local state instead of refetching to prevent scroll
       setPersonalMeetings(prevMeetings =>
         prevMeetings.map(meeting =>
@@ -367,10 +397,14 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     try {
       const updateData: UpdatePersonalMeetingRequest = {
         therapistName: formData.therapistName,
+        meetingTypeId: formData.meetingTypeId,
+        providerType: formData.providerType,
+        providerCredentials: formData.providerCredentials,
         meetingDate: formData.meetingDate,
         duration: formData.duration,
         price: formData.price,
-        notes: formData.notes
+        notes: formData.notes,
+        summary: formData.summary
       };
       const updatedMeeting = await personalMeetingsApi.update(editingMeeting.id, updateData);
       setPersonalMeetings(prev =>
@@ -426,11 +460,20 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
   const resetForm = () => {
     setFormData({
       therapistName: '',
+      meetingTypeId: 0,
+      providerType: 'Therapist',
+      providerCredentials: '',
       meetingDate: '',
       duration: 60,
       price: 0,
       notes: '',
-      summary: ''
+      summary: '',
+      isRecurring: false,
+      recurrenceFrequency: '',
+      nextDueDate: '',
+      isPaid: false,
+      paymentDate: '',
+      totalSessions: 12
     });
   };
 
@@ -439,11 +482,20 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
     setEditingMeeting(meeting);
     setFormData({
       therapistName: meeting.therapistName,
-      meetingDate: meeting.meetingDate.split('T')[0] + 'T' + meeting.meetingDate.split('T')[1]?.substring(0, 5) || '',
+      meetingTypeId: meeting.meetingType?.id || 0,
+      providerType: meeting.providerType || 'Therapist',
+      providerCredentials: meeting.providerCredentials || '',
+      meetingDate: meeting.meetingDate,
       duration: meeting.duration,
       price: meeting.price,
       notes: meeting.notes || '',
-      summary: meeting.summary || ''
+      summary: meeting.summary || '',
+      isRecurring: meeting.isRecurring || false,
+      recurrenceFrequency: meeting.recurrenceFrequency || '',
+      nextDueDate: meeting.nextDueDate || '',
+      isPaid: meeting.isPaid || false,
+      paymentDate: meeting.paymentDate || '',
+      totalSessions: 12
     });
     setShowAddForm(true);
   };
@@ -472,6 +524,49 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
       case PersonalMeetingStatus.CANCELLED: return '#e74c3c';
       case PersonalMeetingStatus.NO_SHOW: return '#f39c12';
       default: return '#95a5a6';
+    }
+  };
+
+  // Handle payment status change
+  const handlePaymentStatusChange = async (meetingId: number, isPaid: boolean) => {
+    if (isPaid) {
+      // If marking as paid, show payment type selection modal
+      setPendingPaymentAction({ meetingId, isPaid });
+      setShowPaymentTypeModal(true);
+    } else {
+      // If marking as unpaid, no payment type needed
+      try {
+        await personalMeetingsApi.updatePayment(meetingId, false);
+        await fetchPersonalMeetings();
+      } catch (error) {
+        console.error('Error updating payment status:', error);
+      }
+    }
+  };
+
+  // Handle payment type selection and mark as paid
+  const handlePaymentTypeSelection = async (paymentTypeId: number) => {
+    if (!pendingPaymentAction) return;
+
+    try {
+      const { meetingId, isPaid } = pendingPaymentAction;
+      
+      // Create payment record and mark as paid
+      await personalMeetingsApi.updatePayment(
+        meetingId, 
+        isPaid, 
+        paymentTypeId,
+        undefined, // amount - will use meeting price
+        undefined, // referenceNumber
+        undefined  // notes
+      );
+      
+      await fetchPersonalMeetings();
+      setShowPaymentTypeModal(false);
+      setPendingPaymentAction(null);
+      setSelectedPaymentTypeId(null);
+    } catch (error) {
+        console.error('Error updating payment status:', error);
     }
   };
 
@@ -607,13 +702,13 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
               <div className="form-group">
                 <label>Session Type *</label>
                 <select
-                  value={formData.meetingType?.id || ''}
+                  value={formData.meetingTypeId || ''}
                   onChange={(e) => {
                     const selectedType = meetingTypes.find(type => type.id === parseInt(e.target.value));
                     if (selectedType) {
                       setFormData(prev => ({
                         ...prev,
-                        meetingType: selectedType,
+                        meetingTypeId: selectedType.id,
                         duration: getDefaultDuration(selectedType),
                         price: getDefaultPrice(selectedType)
                       }));
@@ -645,11 +740,10 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                 
               <div className="form-group">
                 <label>Date & Time *</label>
-                <input
-                  type="datetime-local"
-                  required
+                <DateTimePicker
                   value={formData.meetingDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, meetingDate: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, meetingDate: value }))}
+                  placeholder="Select date and time"
                 />
               </div>
 
@@ -697,15 +791,32 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                 </div>
                 
                 {(formData.isPaid || false) && (
-                  <div className="form-group">
-                    <label>Payment Date</label>
-                    <input
-                      type="date"
-                      value={formData.paymentDate || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, paymentDate: e.target.value }))}
-                      max={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
+                  <>
+                    <div className="form-group">
+                      <label>Payment Type *</label>
+                      <select
+                        value={selectedPaymentTypeId || ''}
+                        onChange={(e) => setSelectedPaymentTypeId(parseInt(e.target.value) || null)}
+                        required
+                        className="form-select"
+                      >
+                        <option value="">Select payment type...</option>
+                        {paymentTypes.map(type => (
+                          <option key={type.id} value={type.id}>{type.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>Payment Date</label>
+                      <input
+                        type="date"
+                        value={formData.paymentDate || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, paymentDate: e.target.value }))}
+                        max={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -820,12 +931,11 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
                         disabled={meeting.active === false}
                         placeholder="Therapist name"
                       />
-                      <input
-                        type="datetime-local"
-                        value={meeting.meetingDate.split('T')[0] + 'T' + meeting.meetingDate.split('T')[1]?.substring(0, 5) || ''}
-                        onChange={(e) => handleDateUpdate(meeting.id, e.target.value)}
-                        className="inline-input"
+                      <DateTimePicker
+                        value={meeting.meetingDate}
+                        onChange={(value) => handleDateUpdate(meeting.id, value)}
                         disabled={meeting.active === false}
+                        placeholder="Select date and time"
                       />
                     </div>
                     <div className="meeting-actions">
@@ -978,6 +1088,54 @@ const PersonalMeetingPanel: React.FC<PersonalMeetingPanelProps> = ({ onClose, on
           )}
         </div>
       </div>
+
+      {showPaymentTypeModal && (
+        <div className="modal-overlay" onClick={() => setShowPaymentTypeModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h3>Select Payment Type</h3>
+              <button 
+                className="modal__close-button" 
+                onClick={() => setShowPaymentTypeModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal__body">
+              <p>Please select a payment type to mark this session as paid:</p>
+              <div className="payment-type-grid">
+                {paymentTypes.map(type => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    className={`payment-type-card ${selectedPaymentTypeId === type.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedPaymentTypeId(type.id)}
+                  >
+                    {type.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="modal__footer">
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => setShowPaymentTypeModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={!selectedPaymentTypeId}
+                onClick={() => handlePaymentTypeSelection(selectedPaymentTypeId!)}
+              >
+                Confirm Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

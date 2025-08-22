@@ -1392,10 +1392,18 @@ const TherapistPanel: React.FC = () => {
             break;
           // Handle payment changes from the selector
           case 'PAID':
-            await personalMeetings.updatePayment(meetingId, true);
+            // For paid meetings, we need to show payment type selection
+            // This will be handled by the payment type modal
+            setPendingPaymentAction({
+              type: 'personalMeeting',
+              id: meetingId,
+              isPaid: true
+            });
+            setShowPaymentTypeModal(true);
             break;
           case 'UNPAID':
-            await personalMeetings.updatePayment(meetingId, false);
+            // For unpaid meetings, we can call the API directly
+            await personalMeetings.updatePayment(meetingId, false, undefined);
             break;
           // Handle activation changes from the selector
           case 'ACTIVATE':
@@ -1726,22 +1734,40 @@ const TherapistPanel: React.FC = () => {
 
   // Handle payment type selection from modal
   const handlePaymentTypeSelected = async (paymentTypeId: number) => {
-    if (!pendingPaymentAction) return;
+    console.log('🔍 handlePaymentTypeSelected called with paymentTypeId:', paymentTypeId);
+    console.log('🔍 pendingPaymentAction:', pendingPaymentAction);
+    
+    if (!pendingPaymentAction) {
+      console.error('❌ No pending payment action found');
+      return;
+    }
     
     try {
       const { type, id, isPaid } = pendingPaymentAction;
+      console.log('🔍 Processing payment action:', { type, id, isPaid });
       
       if (type === 'meeting') {
+        console.log('🔍 Processing meeting payment');
         await handleMeetingPaymentChange(id, isPaid, paymentTypeId);
       } else if (type === 'personalMeeting') {
+        console.log('🔍 Processing personal meeting payment');
         await handlePersonalMeetingPaymentToggle(id, !isPaid, paymentTypeId);
       } else if (type === 'expense') {
-        await handleExpensePaymentToggle(id, !isPaid, paymentTypeId);
+        console.log('🔍 Processing expense payment');
+        // For expenses, we need to get the current status from the expenses list
+        const currentExpense = expenseList.find(exp => exp.id === id);
+        if (currentExpense) {
+          console.log('🔍 Current expense status:', { id, currentPaidStatus: currentExpense.isPaid, desiredStatus: isPaid });
+          await handleExpensePaymentToggle(id, currentExpense.isPaid, paymentTypeId);
+        } else {
+          console.error('❌ Expense not found in list:', id);
+        }
       }
       
       // Clear the pending action
       setPendingPaymentAction(null);
       setShowPaymentTypeModal(false);
+      console.log('✅ Payment action completed successfully');
     } catch (error) {
       console.error('❌ Failed to process payment type selection:', error);
       alert('Failed to update payment status. Please try again.');
@@ -1750,21 +1776,21 @@ const TherapistPanel: React.FC = () => {
 
   const handleExpensePaymentToggle = async (expenseId: number, currentPaidStatus: boolean, paymentTypeId?: number) => {
     try {
-  
+      console.log('🔍 handleExpensePaymentToggle called:', { expenseId, currentPaidStatus, paymentTypeId });
       
-      const newStatus = !currentPaidStatus;
-      
-      if (currentPaidStatus) {
-        // Marking as unpaid
-        await expenses.markAsUnpaid(expenseId);
-      } else {
-        // Marking as paid - require payment type
-        if (!paymentTypeId) {
-          alert('Please select a payment type when marking an expense as paid.');
-          return;
+              if (currentPaidStatus) {
+          // Currently paid, marking as unpaid
+          console.log('🔄 Marking expense as unpaid');
+          await expenses.updatePayment(expenseId, false);
+        } else {
+          // Currently unpaid, marking as paid - require payment type
+          console.log('💰 Marking expense as paid with payment type:', paymentTypeId);
+          if (!paymentTypeId) {
+            alert('Please select a payment type when marking an expense as paid.');
+            return;
+          }
+          await expenses.updatePayment(expenseId, true, paymentTypeId);
         }
-        await expenses.markAsPaid(expenseId, paymentTypeId);
-      }
       
       console.log('✅ Expense payment status updated successfully');
       await fetchExpenses();
@@ -1775,18 +1801,23 @@ const TherapistPanel: React.FC = () => {
   };
 
   // Handle expense payment toggle with modal
-  const handleExpensePaymentToggleWithModal = (expenseId: number, currentPaidStatus: boolean) => {
-    if (currentPaidStatus) {
+  const handleExpensePaymentToggleWithModal = (expenseId: number, newPaidStatus: boolean) => {
+    console.log('🔍 handleExpensePaymentToggleWithModal called:', { expenseId, newPaidStatus });
+    
+    if (newPaidStatus === false) {
       // Marking as unpaid - no payment type needed
-      handleExpensePaymentToggle(expenseId, currentPaidStatus);
+      console.log('🔄 Marking expense as unpaid, calling handleExpensePaymentToggle directly');
+      handleExpensePaymentToggle(expenseId, true); // true = current status (paid), false = new status (unpaid)
     } else {
       // Marking as paid - show payment type selection modal
+      console.log('💰 Marking expense as paid, showing payment type modal');
       setPendingPaymentAction({
         type: 'expense',
         id: expenseId,
         isPaid: true
       });
       setShowPaymentTypeModal(true);
+      console.log('✅ Payment type modal should now be visible');
     }
   };
 
@@ -1893,11 +1924,11 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
-  const handlePersonalMeetingTypeUpdate = async (meetingId: number, meetingType: PersonalMeetingTypeEntity) => {
-    try {
-      await personalMeetings.update(meetingId, { meetingType });
-      await fetchPersonalMeetings();
-    } catch (error: any) {
+      const handlePersonalMeetingTypeUpdate = async (meetingId: number, meetingType: PersonalMeetingTypeEntity) => {
+      try {
+        await personalMeetings.update(meetingId, { meetingTypeId: meetingType.id });
+        await fetchPersonalMeetings();
+      } catch (error: any) {
       console.error('Error updating meeting type:', error);
       alert('Failed to update meeting type');
     }
@@ -3330,7 +3361,7 @@ const TherapistPanel: React.FC = () => {
                       <td>
                         <select
                           value={meeting.isPaid ? 'paid' : 'unpaid'}
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const newPaymentStatus = e.target.value === 'paid';
                             console.log('🎯 Payment status changed for personal meeting:', meeting.id, 'New status:', newPaymentStatus);
                             
@@ -3345,8 +3376,14 @@ const TherapistPanel: React.FC = () => {
                               // Reset the select to unpaid until payment type is selected
                               e.target.value = 'unpaid';
                             } else {
-                              // If marking as unpaid, no payment type needed
-                              handlePersonalMeetingPaymentToggle(meeting.id, newPaymentStatus);
+                              // If marking as unpaid, no payment type needed - call directly
+                              try {
+                                await personalMeetings.updatePayment(meeting.id, false, undefined);
+                                await fetchPersonalMeetings();
+                              } catch (error) {
+                                console.error('Error updating payment status:', error);
+                                alert('Failed to update payment status. Please try again.');
+                              }
                             }
                           }}
                           className="payment-select"
@@ -4138,6 +4175,7 @@ const TherapistPanel: React.FC = () => {
       <PaymentTypeSelectionModal
         isOpen={showPaymentTypeModal}
         onClose={() => {
+          console.log('🔍 PaymentTypeSelectionModal onClose called');
           setShowPaymentTypeModal(false);
           setPendingPaymentAction(null);
         }}
@@ -4145,6 +4183,8 @@ const TherapistPanel: React.FC = () => {
         paymentTypes={paymentTypes}
         title="Select Payment Type"
       />
+      
+
 
       {/* Sessions/Meetings Selector Modals */}
       {showMeetingPaymentSelector && (

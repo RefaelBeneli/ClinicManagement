@@ -38,4 +38,8 @@ interface ExpenseRepository : JpaRepository<Expense, Long> {
     fun findByUserAndIsPaidTrue(user: User): List<Expense>
     
     fun findByUserAndIsPaidFalse(user: User): List<Expense>
+    
+    // Custom query to fetch expenses with payment type relationship loaded
+    @Query("SELECT DISTINCT e FROM Expense e LEFT JOIN FETCH e.paymentType WHERE e.user = :user")
+    fun findByUserWithPaymentType(@Param("user") user: User): List<Expense>
 } 

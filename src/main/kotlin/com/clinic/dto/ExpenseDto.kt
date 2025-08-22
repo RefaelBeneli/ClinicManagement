@@ -118,14 +118,21 @@ data class UpdateExpenseRequest(
 )
 
 data class ExpensePaymentRequest(
-    @field:NotNull(message = "Payment type ID is required")
-    val paymentTypeId: Long,
+    @field:NotNull(message = "Payment status is required")
+    @JsonProperty("isPaid")
+    val isPaid: Boolean,
+    
+    val paymentTypeId: Long? = null,
+    
+    val amount: java.math.BigDecimal? = null,
     
     val referenceNumber: String? = null,
     
     val notes: String? = null,
     
-    val transactionId: String? = null
+    val transactionId: String? = null,
+    
+    val receiptUrl: String? = null
 )
 
 data class ExpenseSummaryResponse(

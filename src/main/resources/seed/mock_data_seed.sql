@@ -627,35 +627,35 @@ VALUES
 
 -- Therapist 3 - Skill Development Sessions
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist3_id, 'Dr. Rachel Green', 'PERSONAL_THERAPY', 'Therapist', 'Child and Adolescent Specialist',
+(@therapist3_id, 'Dr. Rachel Green', @personal_therapy_id, 'Therapist', 'Child and Adolescent Specialist',
  NOW() - INTERVAL 3 DAY, 60, 130.00, 'Personal therapy for child therapist', 'Personal therapy session focusing on therapist self-care and professional development. Discussed work-life balance, stress management techniques, and maintaining professional boundaries. Explored strategies for preventing burnout and maintaining personal well-being while supporting clients effectively.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 3 DAY),
 
-(@therapist3_id, 'Dr. Maria Rodriguez', 'PROFESSIONAL_DEVELOPMENT', 'Mentor', 'Play Therapy Expert',
+(@therapist3_id, 'Dr. Maria Rodriguez', @professional_development_id, 'Mentor', 'Play Therapy Expert',
  NOW() - INTERVAL 10 DAY, 120, 220.00, 'Advanced play therapy techniques', 'Professional development workshop on advanced play therapy techniques and child psychology. Learned new intervention strategies, assessment tools, and evidence-based practices for working with children and families. Enhanced skills in play therapy and family therapy approaches.', 'COMPLETED', TRUE, TRUE, 'QUARTERLY', NOW() + INTERVAL 65 DAY, TRUE, NOW() - INTERVAL 10 DAY),
 
-(@therapist3_id, 'Dr. Robert Kim', 'SUPERVISION', 'Supervisor', 'Family Therapy Specialist',
+(@therapist3_id, 'Dr. Robert Kim', @supervision_id, 'Supervisor', 'Family Therapy Specialist',
  NOW() - INTERVAL 17 DAY, 90, 170.00, 'Family therapy supervision', 'Supervision session covering family therapy cases and ethical considerations. Reviewed treatment plans for family clients, discussed systemic approaches, and explored family dynamics and communication patterns.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 17 DAY),
 
-(@therapist3_id, 'Dr. Maria Rodriguez', 'PROFESSIONAL_DEVELOPMENT', 'Mentor', 'Play Therapy Expert',
+(@therapist3_id, 'Dr. Maria Rodriguez', @professional_development_id, 'Mentor', 'Play Therapy Expert',
  NOW() + INTERVAL 65 DAY, 120, 220.00, 'Advanced play therapy workshop', 'Scheduled professional development workshop on advanced play therapy techniques. Will cover specialized play therapy approaches, family play therapy, and integration with other child therapy modalities.', 'SCHEDULED', FALSE, TRUE, 'QUARTERLY', NOW() + INTERVAL 130 DAY, TRUE, NOW());
 
 -- Guide Sessions (should create automatic expenses)
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist1_id, 'Dr. Elena Guide', 'PERSONAL_THERAPY', 'Guide', 'Spiritual Wellness Coach',
+(@therapist1_id, 'Dr. Elena Guide', @personal_therapy_id, 'Guide', 'Spiritual Wellness Coach',
  NOW() - INTERVAL 2 DAY, 90, 180.00, 'Spiritual wellness coaching session', 'Spiritual wellness coaching session focusing on personal growth and spiritual development. Explored mindfulness practices, meditation techniques, and spiritual self-care strategies. Enhanced personal well-being and spiritual connection.', 'COMPLETED', TRUE, TRUE, 'WEEKLY', NOW() + INTERVAL 5 DAY, TRUE, NOW() - INTERVAL 2 DAY),
 
-(@therapist2_id, 'Dr. Carlos Guide', 'MINDFULNESS_SESSION', 'Guide', 'Meditation and Mindfulness Expert',
+(@therapist2_id, 'Dr. Carlos Guide', @personal_therapy_id, 'Guide', 'Meditation and Mindfulness Expert',
  NOW() - INTERVAL 9 DAY, 60, 160.00, 'Mindfulness and meditation training', 'Mindfulness and meditation training session focusing on stress reduction and mental clarity. Learned advanced meditation techniques, breathing exercises, and mindfulness practices for personal and professional use.', 'COMPLETED', TRUE, TRUE, 'MONTHLY', NOW() + INTERVAL 21 DAY, TRUE, NOW() - INTERVAL 9 DAY),
 
-(@therapist3_id, 'Dr. Aisha Guide', 'WELLNESS_COACHING', 'Guide', 'Holistic Health Practitioner',
+(@therapist3_id, 'Dr. Aisha Guide', @personal_therapy_id, 'Guide', 'Holistic Health Practitioner',
  NOW() - INTERVAL 16 DAY, 120, 200.00, 'Holistic wellness coaching', 'Holistic wellness coaching session covering physical, mental, and spiritual well-being. Explored nutrition, exercise, stress management, and lifestyle balance strategies for optimal health and wellness.', 'COMPLETED', TRUE, TRUE, 'QUARTERLY', NOW() + INTERVAL 74 DAY, TRUE, NOW() - INTERVAL 16 DAY);
 
 -- ADDITIONAL PERSONAL MEETINGS FOR ALL THERAPISTS
@@ -699,77 +699,77 @@ VALUES
 
 -- Therapist 8 - Geriatric Psychology Personal Development
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist8_id, 'Dr. Aaron Cohen', 'PERSONAL_THERAPY', 'Therapist', 'Geriatric Psychology Specialist',
+(@therapist8_id, 'Dr. Aaron Cohen', @personal_therapy_id, 'Therapist', 'Geriatric Psychology Specialist',
  NOW() - INTERVAL 4 DAY, 60, 150.00, 'Personal therapy for geriatric psychologist', 'Personal therapy session focusing on therapist self-care and professional development. Discussed work-life balance, stress management techniques, and maintaining professional boundaries. Explored strategies for preventing burnout and maintaining personal well-being while supporting clients effectively.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 4 DAY),
 
-(@therapist8_id, 'Dr. Maria Johnson', 'PROFESSIONAL_DEVELOPMENT', 'Mentor', 'Elder Care Expert',
+(@therapist8_id, 'Dr. Maria Johnson', @professional_development_id, 'Mentor', 'Elder Care Expert',
  NOW() - INTERVAL 11 DAY, 120, 230.00, 'Advanced geriatric care training', 'Professional development workshop on advanced geriatric psychology techniques and elder care practices. Learned new intervention strategies, assessment tools, and evidence-based practices for working with elderly clients and their families.', 'COMPLETED', TRUE, TRUE, 'QUARTERLY', NOW() + INTERVAL 70 DAY, TRUE, NOW() - INTERVAL 11 DAY),
 
-(@therapist8_id, 'Dr. Robert Kim', 'SUPERVISION', 'Supervisor', 'Geriatric Therapy Specialist',
+(@therapist8_id, 'Dr. Robert Kim', @supervision_id, 'Supervisor', 'Geriatric Therapy Specialist',
  NOW() - INTERVAL 18 DAY, 90, 190.00, 'Geriatric psychology supervision', 'Supervision session covering geriatric psychology cases and ethical considerations. Reviewed treatment plans for elderly clients, discussed age-related approaches, and explored family dynamics and elder care patterns.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 18 DAY),
 
-(@therapist8_id, 'Dr. Maria Johnson', 'PROFESSIONAL_DEVELOPMENT', 'Mentor', 'Elder Care Expert',
+(@therapist8_id, 'Dr. Maria Johnson', @professional_development_id, 'Mentor', 'Elder Care Expert',
  NOW() + INTERVAL 70 DAY, 120, 230.00, 'Advanced geriatric care workshop', 'Scheduled professional development workshop on advanced geriatric psychology techniques. Will cover specialized elder care approaches, family therapy for elderly, and integration with other geriatric therapy modalities.', 'SCHEDULED', FALSE, TRUE, 'QUARTERLY', NOW() + INTERVAL 140 DAY, TRUE, NOW());
 
 -- Therapist 9 - Sports Psychology Personal Development
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist9_id, 'Dr. Rebecca Stern', 'PERSONAL_THERAPY', 'Therapist', 'Sports Psychology Specialist',
+(@therapist9_id, 'Dr. Rebecca Stern', @personal_therapy_id, 'Therapist', 'Sports Psychology Specialist',
  NOW() - INTERVAL 6 DAY, 60, 170.00, 'Personal therapy for sports psychologist', 'Personal therapy session focusing on therapist self-care and professional development. Discussed work-life balance, stress management techniques, and maintaining professional boundaries. Explored strategies for preventing burnout and maintaining personal well-being while supporting clients effectively.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 6 DAY),
 
-(@therapist9_id, 'Dr. David Wilson', 'TEACHING_SESSION', 'Teacher', 'Performance Psychology Trainer',
+(@therapist9_id, 'Dr. David Wilson', @teaching_session_id, 'Teacher', 'Performance Psychology Trainer',
  NOW() - INTERVAL 13 DAY, 180, 350.00, 'Advanced performance psychology training', 'Teaching session on specialized therapeutic approaches for sports psychology and performance enhancement. Enhanced skills in performance psychology, mental training techniques, and evidence-based practices for working with athletes and performers.', 'COMPLETED', TRUE, TRUE, 'MONTHLY', NOW() + INTERVAL 17 DAY, TRUE, NOW() - INTERVAL 13 DAY),
 
-(@therapist9_id, 'Dr. Sarah Chen', 'SUPERVISION', 'Supervisor', 'Athletic Performance Expert',
+(@therapist9_id, 'Dr. Sarah Chen', @supervision_id, 'Supervisor', 'Athletic Performance Expert',
  NOW() - INTERVAL 20 DAY, 90, 210.00, 'Sports psychology supervision', 'Supervision session covering sports psychology cases and ethical considerations. Reviewed treatment plans for athlete clients, discussed performance enhancement approaches, and explored mental training and psychological preparation strategies.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 20 DAY),
 
-(@therapist9_id, 'Dr. David Wilson', 'TEACHING_SESSION', 'Teacher', 'Performance Psychology Trainer',
+(@therapist9_id, 'Dr. David Wilson', @teaching_session_id, 'Teacher', 'Performance Psychology Trainer',
  NOW() + INTERVAL 17 DAY, 180, 350.00, 'Advanced performance psychology workshop', 'Scheduled teaching session on advanced performance psychology techniques and case conceptualization. Will cover specialized sports psychology approaches, mental training protocols, and integration with other performance enhancement modalities.', 'SCHEDULED', FALSE, TRUE, 'MONTHLY', NOW() + INTERVAL 47 DAY, TRUE, NOW());
 
 -- Therapist 10 - Corporate Psychology Personal Development
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist10_id, 'Dr. Daniel Friedman', 'PERSONAL_THERAPY', 'Therapist', 'Corporate Psychology Specialist',
+(@therapist10_id, 'Dr. Daniel Friedman', @personal_therapy_id, 'Therapist', 'Corporate Psychology Specialist',
  NOW() - INTERVAL 2 DAY, 60, 180.00, 'Personal therapy for corporate psychologist', 'Personal therapy session focusing on therapist self-care and professional development. Discussed work-life balance, stress management techniques, and maintaining professional boundaries. Explored strategies for preventing burnout and maintaining personal well-being while supporting clients effectively.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 2 DAY),
 
-(@therapist10_id, 'Dr. Jennifer Park', 'TEACHING_SESSION', 'Teacher', 'Executive Coaching Trainer',
+(@therapist10_id, 'Dr. Jennifer Park', @teaching_session_id, 'Teacher', 'Executive Coaching Trainer',
  NOW() - INTERVAL 9 DAY, 180, 400.00, 'Advanced executive coaching training', 'Teaching session on specialized therapeutic approaches for corporate psychology and executive coaching. Enhanced skills in organizational psychology, leadership development, and evidence-based practices for working with executives and corporate clients.', 'COMPLETED', TRUE, TRUE, 'MONTHLY', NOW() + INTERVAL 21 DAY, TRUE, NOW() - INTERVAL 9 DAY),
 
-(@therapist10_id, 'Dr. Michael Brown', 'SUPERVISION', 'Supervisor', 'Organizational Psychology Expert',
+(@therapist10_id, 'Dr. Michael Brown', @supervision_id, 'Supervisor', 'Organizational Psychology Expert',
  NOW() - INTERVAL 16 DAY, 90, 220.00, 'Corporate psychology supervision', 'Supervision session covering corporate psychology cases and ethical considerations. Reviewed treatment plans for executive clients, discussed organizational approaches, and explored workplace dynamics and corporate culture patterns.', 'COMPLETED', TRUE, FALSE, NULL, NULL, TRUE, NOW() - INTERVAL 16 DAY),
 
-(@therapist10_id, 'Dr. Jennifer Park', 'TEACHING_SESSION', 'Teacher', 'Executive Coaching Trainer',
+(@therapist10_id, 'Dr. Jennifer Park', @teaching_session_id, 'Teacher', 'Executive Coaching Trainer',
  NOW() + INTERVAL 21 DAY, 180, 400.00, 'Advanced executive coaching workshop', 'Scheduled teaching session on advanced executive coaching techniques and case conceptualization. Will cover specialized corporate psychology approaches, leadership development protocols, and integration with other organizational enhancement modalities.', 'SCHEDULED', FALSE, TRUE, 'MONTHLY', NOW() + INTERVAL 51 DAY, TRUE, NOW());
 
 -- Additional Guide Sessions for all therapists (creates automatic expenses)
 INSERT INTO personal_meetings (
-        user_id, therapist_name, meeting_type, provider_type, provider_credentials,
+        user_id, therapist_name, meeting_type_id, provider_type, provider_credentials,
         meeting_date, duration, price, notes, summary, status, is_paid, is_recurring, 
         recurrence_frequency, next_due_date, is_active, created_at)
 VALUES 
-(@therapist6_id, 'Dr. Elena Guide', 'PERSONAL_THERAPY', 'Guide', 'Addiction Recovery Coach',
+(@therapist6_id, 'Dr. Elena Guide', @personal_therapy_id, 'Guide', 'Addiction Recovery Coach',
  NOW() - INTERVAL 1 DAY, 90, 190.00, 'Addiction recovery coaching session', 'Addiction recovery coaching session focusing on personal growth and recovery support. Explored mindfulness practices, recovery strategies, and spiritual self-care approaches. Enhanced personal well-being and recovery connection.', 'COMPLETED', TRUE, TRUE, 'WEEKLY', NOW() + INTERVAL 6 DAY, TRUE, NOW() - INTERVAL 1 DAY),
 
-(@therapist7_id, 'Dr. Carlos Guide', 'MINDFULNESS_SESSION', 'Guide', 'Child Mindfulness Expert',
+(@therapist7_id, 'Dr. Carlos Guide', @personal_therapy_id, 'Guide', 'Child Mindfulness Expert',
  NOW() - INTERVAL 8 DAY, 60, 170.00, 'Child mindfulness training session', 'Child mindfulness training session focusing on stress reduction and mental clarity for working with children. Learned advanced meditation techniques, breathing exercises, and mindfulness practices for child therapy applications.', 'COMPLETED', TRUE, TRUE, 'MONTHLY', NOW() + INTERVAL 22 DAY, TRUE, NOW() - INTERVAL 8 DAY),
 
-(@therapist8_id, 'Dr. Aisha Guide', 'WELLNESS_COACHING', 'Guide', 'Elder Wellness Practitioner',
+(@therapist8_id, 'Dr. Aisha Guide', @personal_therapy_id, 'Guide', 'Elder Wellness Practitioner',
  NOW() - INTERVAL 15 DAY, 120, 210.00, 'Elder wellness coaching session', 'Elder wellness coaching session covering physical, mental, and spiritual well-being for working with elderly clients. Explored nutrition, exercise, stress management, and lifestyle balance strategies for optimal elder care.', 'COMPLETED', TRUE, TRUE, 'QUARTERLY', NOW() + INTERVAL 75 DAY, TRUE, NOW() - INTERVAL 15 DAY),
 
-(@therapist9_id, 'Dr. Marcus Guide', 'PERFORMANCE_COACHING', 'Guide', 'Athletic Performance Coach',
+(@therapist9_id, 'Dr. Marcus Guide', @personal_therapy_id, 'Guide', 'Athletic Performance Coach',
  NOW() - INTERVAL 7 DAY, 90, 240.00, 'Athletic performance coaching session', 'Athletic performance coaching session focusing on personal growth and performance enhancement. Explored mindfulness practices, performance techniques, and athletic self-care strategies. Enhanced personal well-being and performance connection.', 'COMPLETED', TRUE, TRUE, 'WEEKLY', NOW() + INTERVAL 3 DAY, TRUE, NOW() - INTERVAL 7 DAY),
 
-(@therapist10_id, 'Dr. Sophia Guide', 'EXECUTIVE_COACHING', 'Guide', 'Corporate Wellness Expert',
+(@therapist10_id, 'Dr. Sophia Guide', @personal_therapy_id, 'Guide', 'Corporate Wellness Expert',
  NOW() - INTERVAL 14 DAY, 120, 280.00, 'Corporate wellness coaching session', 'Corporate wellness coaching session covering physical, mental, and spiritual well-being for working with corporate clients. Explored nutrition, exercise, stress management, and lifestyle balance strategies for optimal corporate wellness.', 'COMPLETED', TRUE, TRUE, 'MONTHLY', NOW() + INTERVAL 16 DAY, TRUE, NOW() - INTERVAL 14 DAY);
 
 -- 6. Diverse Expenses for all therapists ----------------------------------------

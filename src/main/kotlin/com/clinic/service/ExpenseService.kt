@@ -12,11 +12,13 @@ import com.clinic.entity.Payment
 import com.clinic.entity.PaymentType
 import com.clinic.entity.SessionType
 import com.clinic.dto.PaymentTypeResponse
+import com.clinic.service.PaymentService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import com.clinic.entity.PaymentStatus
 
 @Service
 class ExpenseService {
@@ -33,6 +35,8 @@ class ExpenseService {
     @Autowired
     private lateinit var paymentTypeRepository: PaymentTypeRepository
 
+    @Autowired
+    private lateinit var paymentService: PaymentService
 
     @Autowired
     private lateinit var authService: AuthService
@@ -40,12 +44,16 @@ class ExpenseService {
     fun createExpense(expenseRequest: ExpenseRequest): ExpenseResponse {
         val currentUser = authService.getCurrentUser()
         
+        println("🔍 Received expense request: isRecurring=${expenseRequest.isRecurring}, frequency=${expenseRequest.recurrenceFrequency}, count=${expenseRequest.recurrenceCount}")
+        
         val category = expenseCategoryRepository.findById(expenseRequest.categoryId)
             .orElseThrow { RuntimeException("Expense category not found with id: ${expenseRequest.categoryId}") }
         
-        if (expenseRequest.isRecurring && expenseRequest.recurrenceCount != null && expenseRequest.recurrenceCount > 1) {
+        if (expenseRequest.isRecurring && expenseRequest.recurrenceFrequency != null && expenseRequest.recurrenceCount != null) {
+            println("✅ Creating recurring expenses with count=${expenseRequest.recurrenceCount}")
             return createRecurringExpenses(expenseRequest, currentUser, category)
         } else {
+            println("❌ Not creating recurring expenses. Conditions: isRecurring=${expenseRequest.isRecurring}, frequency=${expenseRequest.recurrenceFrequency}, count=${expenseRequest.recurrenceCount}")
             val expense = Expense(
                 user = currentUser,
                 name = expenseRequest.name,
@@ -77,7 +85,8 @@ class ExpenseService {
         }
 
         val recurrenceCount = expenseRequest.recurrenceCount ?: 1
-        println("🔄 Creating recurring expenses: count=$recurrenceCount, frequency=${expenseRequest.recurrenceFrequency}")
+        val totalExpenses = recurrenceCount + 1 // Original expense + recurring ones
+        println("🔄 Creating recurring expenses: total=$totalExpenses, frequency=${expenseRequest.recurrenceFrequency}")
         
         val expenses = mutableListOf<Expense>()
         var currentDate = expenseRequest.expenseDate
@@ -95,7 +104,7 @@ class ExpenseService {
             isRecurring = true,
             recurrenceFrequency = expenseRequest.recurrenceFrequency,
             recurrenceCount = recurrenceCount,
-            nextDueDate = if (recurrenceCount > 1) calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency) else null,
+            nextDueDate = if (totalExpenses > 1) calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency) else null,
             receiptUrl = expenseRequest.receiptUrl
         )
         val savedParentExpense = expenseRepository.save(parentExpense)
@@ -103,7 +112,7 @@ class ExpenseService {
         println("✅ Created parent expense (occurrence 1)")
 
         // Create subsequent expenses
-        for (occurrence in 2..recurrenceCount) {
+        for (occurrence in 2..totalExpenses) {
             currentDate = calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency)
             
             val expense = Expense(
@@ -118,7 +127,7 @@ class ExpenseService {
                 isRecurring = true,
                 recurrenceFrequency = expenseRequest.recurrenceFrequency,
                 recurrenceCount = recurrenceCount,
-                nextDueDate = if (occurrence < recurrenceCount) calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency) else null,
+                nextDueDate = if (occurrence < totalExpenses) calculateNextExpenseDate(currentDate, expenseRequest.recurrenceFrequency) else null,
                 receiptUrl = expenseRequest.receiptUrl
             )
             expenses.add(expenseRepository.save(expense))
@@ -142,7 +151,7 @@ class ExpenseService {
 
     fun getAllExpenses(): List<ExpenseResponse> {
         val currentUser = authService.getCurrentUser()
-        return expenseRepository.findByUser(currentUser)
+        return expenseRepository.findByUserWithPaymentType(currentUser)
             .map { mapToResponse(it) }
     }
 
@@ -279,67 +288,75 @@ class ExpenseService {
         )
     }
 
-    // Payment-related methods
-    fun markExpenseAsPaid(
+    // Payment-related methods - following the same pattern as PersonalMeetingService
+    fun updatePaymentStatus(
         expenseId: Long, 
-        paymentTypeId: Long, 
+        isPaid: Boolean, 
+        paymentTypeId: Long? = null, 
+        amount: java.math.BigDecimal? = null, 
         referenceNumber: String? = null, 
         notes: String? = null, 
-        transactionId: String? = null
+        transactionId: String? = null, 
+        receiptUrl: String? = null
     ): ExpenseResponse {
+        println("🔧 updatePaymentStatus called with: isPaid=$isPaid, paymentTypeId=$paymentTypeId")
+        
         val currentUser = authService.getCurrentUser()
         val expense = expenseRepository.findById(expenseId)
             .filter { it.user.id == currentUser.id }
             .orElseThrow { RuntimeException("Expense not found") }
         
-        // Get payment type
-        val paymentType = paymentTypeRepository.findById(paymentTypeId)
-            .orElseThrow { RuntimeException("Payment type not found") }
+        // If marking as paid, require payment type
+        if (isPaid && paymentTypeId == null) {
+            println("🔧 ERROR: Payment type required for paid expense")
+            throw RuntimeException("Payment type is required when marking expense as paid")
+        }
         
-        // Update expense as paid
+        if (!isPaid) {
+            println("🔧 Marking expense as unpaid - no payment type needed")
+        }
+
+        // Update expense payment status
         val updatedExpense = expense.copy(
-            isPaid = true,
-            paymentType = paymentType,
-            paymentDate = LocalDateTime.now(),
-            referenceNumber = referenceNumber,
-            transactionId = transactionId
+            isPaid = isPaid,
+            paymentType = if (isPaid) paymentTypeRepository.findById(paymentTypeId!!).orElseThrow { RuntimeException("Payment type not found") } else null,
+            paymentDate = if (isPaid) LocalDateTime.now() else null,
+            referenceNumber = if (isPaid) referenceNumber else null,
+            transactionId = if (isPaid) transactionId else null
+
         )
         val savedExpense = expenseRepository.save(updatedExpense)
         
-        // Create payment record
-        val payment = Payment(
-            user = currentUser,
-            sessionId = expense.id,
-            sessionType = SessionType.EXPENSE,
-            paymentType = paymentType,
-            amount = expense.amount,
-            paymentDate = LocalDateTime.now(),
-            referenceNumber = referenceNumber,
-            notes = notes,
-            transactionId = transactionId
-        )
-        paymentRepository.save(payment)
+        if (isPaid && paymentTypeId != null) {
+            // If marking as paid, create payment record via PaymentService
+            try {
+                paymentService.createPaymentForExpense(
+                    expenseId = expenseId,
+                    paymentTypeId = paymentTypeId,
+                    amount = amount,
+                    referenceNumber = referenceNumber,
+                    notes = notes,
+                    transactionId = transactionId,
+                    receiptUrl = receiptUrl
+                )
+            } catch (e: Exception) {
+                // Log the error but don't fail the expense update
+                println("Failed to create payment record: ${e.message}")
+            }
+        } else if (!isPaid) {
+            // If marking as unpaid, soft delete existing payment records
+            try {
+                paymentService.deactivatePaymentForSession(expenseId, SessionType.EXPENSE)
+            } catch (e: Exception) {
+                // Log the error but don't fail the expense update
+                println("Failed to deactivate payment records: ${e.message}")
+            }
+        }
         
         return mapToResponse(savedExpense)
     }
 
-    fun markExpenseAsUnpaid(expenseId: Long): ExpenseResponse {
-        val currentUser = authService.getCurrentUser()
-        val expense = expenseRepository.findById(expenseId)
-            .filter { it.user.id == currentUser.id }
-            .orElseThrow { RuntimeException("Expense not found") }
-        
-        val updatedExpense = expense.copy(
-            isPaid = false,
-            paymentType = null,
-            paymentDate = null,
-            referenceNumber = null,
-            transactionId = null
-        )
-        val savedExpense = expenseRepository.save(updatedExpense)
-        
-        return mapToResponse(savedExpense)
-    }
+
 
 
 
@@ -361,7 +378,7 @@ class ExpenseService {
             
             // Payment-related fields
             isPaid = expense.isPaid,
-            paymentType = expense.paymentType?.let { PaymentTypeResponse(it.id, it.name, it.isActive, it.createdAt, it.updatedAt) },
+            paymentType = expense.paymentType?.let { PaymentTypeResponse.fromEntity(it) },
             paymentDate = expense.paymentDate,
             referenceNumber = expense.referenceNumber,
             transactionId = expense.transactionId,

@@ -99,33 +99,26 @@ class ExpenseController {
         }
     }
 
-    // Payment-related endpoints
+    // Payment-related endpoints - unified endpoint following PersonalMeeting pattern
     @PutMapping("/{id}/payment")
-    fun markExpenseAsPaid(
+    fun updatePaymentStatus(
         @PathVariable id: Long,
         @Valid @RequestBody paymentRequest: ExpensePaymentRequest
     ): ResponseEntity<*> {
         return try {
-            val expense = expenseService.markExpenseAsPaid(
+            val expense = expenseService.updatePaymentStatus(
                 expenseId = id,
+                isPaid = paymentRequest.isPaid,
                 paymentTypeId = paymentRequest.paymentTypeId,
+                amount = paymentRequest.amount,
                 referenceNumber = paymentRequest.referenceNumber,
                 notes = paymentRequest.notes,
-                transactionId = paymentRequest.transactionId
+                transactionId = paymentRequest.transactionId,
+                receiptUrl = paymentRequest.receiptUrl
             )
             ResponseEntity.ok(expense)
         } catch (e: Exception) {
-            ResponseEntity.badRequest().body(MessageResponse("Error marking expense as paid: ${e.message}"))
-        }
-    }
-
-    @PutMapping("/{id}/unpaid")
-    fun markExpenseAsUnpaid(@PathVariable id: Long): ResponseEntity<*> {
-        return try {
-            val expense = expenseService.markExpenseAsUnpaid(id)
-            ResponseEntity.ok(expense)
-        } catch (e: Exception) {
-            ResponseEntity.badRequest().body(MessageResponse("Error marking expense as unpaid: ${e.message}"))
+            ResponseEntity.badRequest().body(MessageResponse("Error updating expense payment status: ${e.message}"))
         }
     }
 
