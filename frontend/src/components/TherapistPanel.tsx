@@ -1914,6 +1914,16 @@ const TherapistPanel: React.FC = () => {
     }
   };
 
+  const handleClientSourceUpdate = async (clientId: number, sourceId: number) => {
+    try {
+      await clients.update(clientId, { sourceId });
+      await fetchClients();
+    } catch (error: any) {
+      console.error('Error updating client source:', error);
+      alert('Failed to update client source');
+    }
+  };
+
   const handlePersonalMeetingTherapistUpdate = async (meetingId: number, therapistName: string) => {
     try {
       await personalMeetings.update(meetingId, { therapistName });
@@ -2628,7 +2638,21 @@ const TherapistPanel: React.FC = () => {
                         </button>
                       </td>
                       <td>{new Date(client.createdAt).toLocaleDateString()}</td>
-                      <td>{client.source?.name || 'No source'}</td>
+                      <td>
+                        <select
+                          value={client.source?.id || 0}
+                          onChange={(e) => handleClientSourceUpdate(client.id, parseInt(e.target.value) || 0)}
+                          className="inline-select"
+                          disabled={!client.active}
+                        >
+                          <option value={0}>Select a Source</option>
+                          {meetingSources.map(source => (
+                            <option key={source.id} value={source.id}>
+                              {source.name} - ₪{source.price}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                       <td>
                         <button 
                           className="btn-small"
