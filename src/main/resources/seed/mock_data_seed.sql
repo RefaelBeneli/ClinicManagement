@@ -316,9 +316,9 @@ SET @daniel_patel_id := (SELECT id FROM clients WHERE full_name = 'Daniel Patel'
 -- THERAPIST 1 - HIGH VOLUME PRACTICE (Multiple sessions per day with overlapping times)
 
 -- Get source IDs for meetings
-SET @private_source_id := (SELECT id FROM meeting_sources WHERE name = 'Private');
-SET @natal_source_id := (SELECT id FROM meeting_sources WHERE name = 'Natal');
-SET @clalit_source_id := (SELECT id FROM meeting_sources WHERE name = 'Clalit');
+SET @private_source_id := (SELECT id FROM client_sources WHERE name = 'Private');
+SET @natal_source_id := (SELECT id FROM client_sources WHERE name = 'Natal');
+SET @clalit_source_id := (SELECT id FROM client_sources WHERE name = 'Clalit');
 
 -- Get payment type IDs
 SET @bank_transfer_id := (SELECT id FROM payment_types WHERE name = 'Bank Transfer');

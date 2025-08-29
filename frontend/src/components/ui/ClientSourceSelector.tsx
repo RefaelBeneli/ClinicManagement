@@ -1,6 +1,6 @@
 import React from 'react';
 import { MeetingSource } from '../../types';
-import './MeetingSourceSelector.css';
+import './ClientSourceSelector.css';
 
 interface ClientSourceSelectorProps {
   sources: MeetingSource[];
@@ -22,9 +22,9 @@ const ClientSourceSelector: React.FC<ClientSourceSelectorProps> = ({
   const selectedSource = sources.find(s => s.id === selectedSourceId);
 
   return (
-    <div className={`meeting-source-selector ${className}`}>
+    <div className={`client-source-selector ${className}`}>
       <label className="selector-label">
-        Meeting Source *
+                  Client Source *
       </label>
       
       <div className="source-options">

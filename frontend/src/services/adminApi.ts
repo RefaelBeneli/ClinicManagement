@@ -40,7 +40,7 @@ export const adminApi = {
   deleteExpense: (id: number) => api.delete(`/admin/expenses/${id}`),
   
   // System Settings - Enum management
-  getMeetingSources: () => api.get('/admin/meeting-sources'),
+      getClientSources: () => api.get('/admin/client-sources'),
   createMeetingSource: (sourceData: any) => api.post('/admin/meeting-sources', sourceData),
   updateMeetingSource: (id: number, sourceData: any) => api.put(`/admin/meeting-sources/${id}`, sourceData),
   deleteMeetingSource: (id: number) => api.delete(`/admin/meeting-sources/${id}`),

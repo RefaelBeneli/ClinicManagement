@@ -55,18 +55,7 @@ CREATE TABLE client_sources (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create meeting_sources table
-CREATE TABLE meeting_sources (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    duration INT NOT NULL DEFAULT 60,
-    price DECIMAL(10,2) NOT NULL,
-    no_show_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    default_sessions INT NOT NULL DEFAULT 1,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+
 
 -- Create clients table
 CREATE TABLE clients (
@@ -260,11 +249,7 @@ INSERT INTO client_sources (name, duration, price, no_show_price, default_sessio
 ('Natal', 45, 150.00, 75.00, 1),
 ('Clalit', 50, 120.00, 60.00, 1);
 
--- Insert seed data for meeting_sources
-INSERT INTO meeting_sources (name, duration, price, no_show_price, default_sessions) VALUES
-('Private', 60, 150.00, 0.00, 1),
-('Natal', 60, 150.00, 0.00, 1),
-('Clalit', 60, 150.00, 0.00, 1);
+
 
 -- Insert default personal meeting types
 INSERT INTO personal_meeting_types (name, duration, price, is_recurring, recurrence_frequency) VALUES
@@ -289,7 +274,6 @@ CREATE INDEX idx_users_approved_by ON users(approved_by);
 
 -- Source indexes
 CREATE INDEX idx_client_sources_active ON client_sources(is_active);
-CREATE INDEX idx_meeting_sources_active ON meeting_sources(is_active);
 
 -- Client indexes
 CREATE INDEX idx_clients_user_id ON clients(user_id);

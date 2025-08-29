@@ -147,7 +147,7 @@ const TherapistPanel: React.FC = () => {
   const [meetingList, setMeetingList] = useState<Meeting[]>([]);
   const [personalMeetingList, setPersonalMeetingList] = useState<PersonalMeeting[]>([]);
   const [expenseList, setExpenseList] = useState<Expense[]>([]);
-  const [meetingSources, setMeetingSources] = useState<ClientSourceResponse[]>([]);
+  const [clientSources, setClientSources] = useState<ClientSourceResponse[]>([]);
   const [meetingTypes, setMeetingTypes] = useState<PersonalMeetingTypeEntity[]>([]);
   const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,7 +179,8 @@ const TherapistPanel: React.FC = () => {
     isPaid: 'ALL',
     price: '',
     duration: '',
-    clientSource: 'ALL'
+    clientSource: 'ALL',
+    isActive: 'ALL'
   });
 
   const [personalMeetingFilters, setPersonalMeetingFilters] = useState({
@@ -188,13 +189,15 @@ const TherapistPanel: React.FC = () => {
     status: 'ALL',
     isPaid: 'ALL',
     price: '',
-    duration: ''
+    duration: '',
+    isActive: 'ALL'
   });
 
   const [expenseFilters, setExpenseFilters] = useState({
     category: 'ALL',
     isPaid: 'ALL',
-    expenseDate: ''
+    expenseDate: '',
+    isActive: 'ALL'
   });
 
   // Bulk operations for meetings
@@ -408,6 +411,8 @@ const TherapistPanel: React.FC = () => {
     setExpensePagination({ currentPage: 1, itemsPerPage });
   };
 
+
+
   // Clear all filters
   const clearClientFilters = () => {
     setClientFilters({
@@ -424,7 +429,8 @@ const TherapistPanel: React.FC = () => {
         isPaid: 'ALL',
         price: '',
         duration: '',
-        clientSource: 'ALL'
+        clientSource: 'ALL',
+        isActive: 'ALL'
       });
       setMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
     };
@@ -436,7 +442,8 @@ const TherapistPanel: React.FC = () => {
       status: 'ALL',
       isPaid: 'ALL',
       price: '',
-      duration: ''
+      duration: '',
+      isActive: 'ALL'
     });
     setPersonalMeetingPagination(prev => ({ ...prev, currentPage: 1 }));
   };
@@ -445,7 +452,8 @@ const TherapistPanel: React.FC = () => {
       setExpenseFilters({
         category: 'ALL',
         isPaid: 'ALL',
-        expenseDate: ''
+        expenseDate: '',
+        isActive: 'ALL'
       });
       setExpensePagination(prev => ({ ...prev, currentPage: 1 }));
     };
@@ -543,6 +551,10 @@ const TherapistPanel: React.FC = () => {
         meeting.client?.source?.name === meetingFilters.clientSource
       );
     }
+    if (meetingFilters.isActive !== 'ALL') {
+      const isActive = meetingFilters.isActive === 'ACTIVE';
+      filtered = filtered.filter(meeting => meeting.active === isActive);
+    }
 
     // Apply sorting
     return filtered.sort((a, b) => {
@@ -621,6 +633,10 @@ const TherapistPanel: React.FC = () => {
         meeting.duration.toString().includes(personalMeetingFilters.duration)
       );
     }
+    if (personalMeetingFilters.isActive !== 'ALL') {
+      const isActive = personalMeetingFilters.isActive === 'ACTIVE';
+      filtered = filtered.filter(meeting => meeting.active === isActive);
+    }
 
     // Apply sorting
     return filtered.sort((a, b) => {
@@ -685,6 +701,10 @@ const TherapistPanel: React.FC = () => {
       filtered = filtered.filter(expense => 
         new Date(expense.expenseDate).toLocaleDateString().includes(expenseFilters.expenseDate)
       );
+    }
+    if (expenseFilters.isActive !== 'ALL') {
+      const isActive = expenseFilters.isActive === 'ACTIVE';
+      filtered = filtered.filter(expense => expense.isActive === isActive);
     }
 
     // Apply sorting
@@ -760,21 +780,33 @@ const TherapistPanel: React.FC = () => {
     }
   }, []);
 
+  // Debounce mechanism to prevent rapid successive calls
+  const [lastFetchExpensesCall, setLastFetchExpensesCall] = useState(0);
+  
   const fetchExpenses = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastFetchExpensesCall < 1000) { // Prevent calls within 1 second
+      console.log('🔧 fetchExpenses call blocked - too soon after last call');
+      return;
+    }
+    
+    console.log('🔧 fetchExpenses called from:', new Error().stack?.split('\n')[2]?.trim() || 'unknown location');
+    setLastFetchExpensesCall(now);
+    
     try {
       const expensesData = await expenses.getAll();
       setExpenseList(expensesData);
     } catch (error) {
       console.error('Failed to fetch expenses:', error);
     }
-  }, []);
+  }, [lastFetchExpensesCall]);
 
-  const fetchMeetingSources = async () => {
+  const fetchClientSources = async () => {
     try {
       const sources = await meetings.getActiveSources();
-      setMeetingSources(sources);
+      setClientSources(sources);
     } catch (error) {
-      console.error('❌ Failed to fetch meeting sources:', error);
+      console.error('❌ Failed to fetch client sources:', error);
     }
   };
 
@@ -894,7 +926,7 @@ const TherapistPanel: React.FC = () => {
           fetchMeetings(),
           fetchPersonalMeetings(),
           fetchExpenses(),
-          fetchMeetingSources()
+          fetchClientSources()
         ]);
         
         // Load meeting types
@@ -1164,11 +1196,18 @@ const TherapistPanel: React.FC = () => {
 
   // Expense selector handlers
   const handleExpensePaymentSelect = async (isPaid: boolean) => {
-    if (!pendingExpensePaymentChange) return;
+    console.log('🔧 Expense payment selector called:', { isPaid, pendingExpensePaymentChange });
+    
+    if (!pendingExpensePaymentChange) {
+      console.error('❌ No pending expense payment change');
+      return;
+    }
     
     setShowExpensePaymentSelector(false);
     
     const paymentStatus = isPaid ? 'PAID' : 'UNPAID';
+    console.log('🔧 Executing bulk action:', paymentStatus, 'for', pendingExpensePaymentChange.selectedIds);
+    
     await handleBulkExpenseActionExecute(paymentStatus, pendingExpensePaymentChange.selectedIds);
     
     setPendingExpensePaymentChange(null);
@@ -1516,35 +1555,72 @@ const TherapistPanel: React.FC = () => {
   // Bulk operations for expenses
   const expenseBulkActions: BulkAction[] = [
     {
-      id: 'changePayment',
-      label: 'Change Payment Status',
+      id: 'markAsPaid',
+      label: 'Mark as Paid',
       icon: '💰',
       color: '#28a745',
+      requiresConfirmation: false
+    },
+    {
+      id: 'markAsUnpaid',
+      label: 'Mark as Unpaid',
+      icon: '💸',
+      color: '#ffc107',
+      requiresConfirmation: false
+    },
+    {
+      id: 'changePayment',
+      label: 'Change Payment Status',
+      icon: '⚙️',
+      color: '#17a2b8',
       requiresConfirmation: false
     },
     {
       id: 'changeActivation',
       label: 'Change Activation Status',
       icon: '🔄',
-      color: '#17a2b8',
+      color: '#6c757d',
       requiresConfirmation: false
     }
   ];
 
+  // Debug effect for expense selection
+  useEffect(() => {
+    console.log('🔧 Expense selection changed:', { 
+      selectedExpenses, 
+      totalExpenses: sortedExpenseList?.length || 0,
+      bulkActions: expenseBulkActions 
+    });
+  }, [selectedExpenses, expenseBulkActions]);
+
   const handleExpenseSelect = (expenseId: number, selected: boolean) => {
     const expenseKey = expenseId.toString();
+    console.log('🔧 Expense selection changed:', { expenseId, expenseKey, selected });
+    
     if (selected) {
-      setSelectedExpenses(prev => [...prev, expenseKey]);
+      setSelectedExpenses(prev => {
+        const newSelection = [...prev, expenseKey];
+        console.log('🔧 New expense selection:', newSelection);
+        return newSelection;
+      });
     } else {
-      setSelectedExpenses(prev => prev.filter(id => id !== expenseKey));
+      setSelectedExpenses(prev => {
+        const newSelection = prev.filter(id => id !== expenseKey);
+        console.log('🔧 New expense selection:', newSelection);
+        return newSelection;
+      });
     }
   };
 
   const handleSelectAllExpenses = (selected: boolean) => {
+    console.log('🔧 Select all expenses called:', { selected, totalExpenses: sortedExpenseList.length });
+    
     if (selected) {
       const allExpenseIds = sortedExpenseList.map(e => e.id.toString());
+      console.log('🔧 Selecting all expenses:', allExpenseIds);
       setSelectedExpenses(allExpenseIds);
     } else {
+      console.log('🔧 Clearing all expense selections');
       setSelectedExpenses([]);
     }
   };
@@ -1554,6 +1630,8 @@ const TherapistPanel: React.FC = () => {
   };
 
   const handleBulkExpenseActionExecute = async (actionId: string, selectedIds: string[]) => {
+    console.log('🔧 Bulk expense action executed:', { actionId, selectedIds });
+    
     // Handle selector actions
     if (actionId === 'changePayment') {
       setPendingExpensePaymentChange({ actionId, selectedIds });
@@ -1579,20 +1657,34 @@ const TherapistPanel: React.FC = () => {
     try {
       for (let i = 0; i < selectedIds.length; i++) {
         const expenseId = parseInt(selectedIds[i]);
+        console.log(`🔧 Processing expense ${i + 1}/${selectedIds.length}:`, expenseId, actionId);
         
         switch (actionId) {
+          // Handle direct payment changes
+          case 'markAsPaid':
+            console.log(`🔧 Marking expense ${expenseId} as paid`);
+            await expenses.update(expenseId, { isPaid: true });
+            break;
+          case 'markAsUnpaid':
+            console.log(`🔧 Marking expense ${expenseId} as unpaid`);
+            await expenses.update(expenseId, { isPaid: false });
+            break;
           // Handle payment changes from selector
           case 'PAID':
+            console.log(`🔧 Marking expense ${expenseId} as paid`);
             await expenses.update(expenseId, { isPaid: true });
             break;
           case 'UNPAID':
+            console.log(`🔧 Marking expense ${expenseId} as unpaid`);
             await expenses.update(expenseId, { isPaid: false });
             break;
           // Handle activation changes from selector
           case 'ACTIVATE':
+            console.log(`🔧 Activating expense ${expenseId}`);
             await expenses.activate(expenseId);
             break;
           case 'DEACTIVATE':
+            console.log(`🔧 Deactivating expense ${expenseId}`);
             await expenses.deactivate(expenseId);
             break;
         }
@@ -1604,15 +1696,18 @@ const TherapistPanel: React.FC = () => {
         } : undefined);
       }
 
+      // Refresh the expenses data after bulk operation (only once)
+      console.log('🔧 Bulk operation completed, refreshing expenses data...');
+      await fetchExpenses();
+      
+      // Clear the selection after successful operation
+      setSelectedExpenses([]);
+
       setExpenseBulkProgress(prev => prev ? {
         ...prev,
         status: 'completed',
         message: `Successfully processed ${selectedIds.length} expenses`
       } : undefined);
-
-      // Refresh data and clear selection
-      await fetchExpenses();
-      handleClearExpenseSelection();
 
       setTimeout(() => {
         setExpenseBulkProgress(undefined);
@@ -2506,7 +2601,7 @@ const TherapistPanel: React.FC = () => {
                     type="select"
                     options={[
                       { value: 'ALL', label: 'All Sources' },
-                      ...meetingSources.map(source => ({
+                      ...clientSources.map(source => ({
                         value: source.name,
                         label: source.name
                       }))
@@ -2646,7 +2741,7 @@ const TherapistPanel: React.FC = () => {
                           disabled={!client.active}
                         >
                           <option value={0}>Select a Source</option>
-                          {meetingSources.map(source => (
+                          {clientSources.map(source => (
                             <option key={source.id} value={source.id}>
                               {source.name} - ₪{source.price}
                             </option>
@@ -2830,10 +2925,23 @@ const TherapistPanel: React.FC = () => {
                     type="select"
                     options={[
                       { value: 'ALL', label: 'All Sources' },
-                      ...meetingSources.map(source => ({
+                      ...clientSources.map(source => ({
                         value: source.name,
                         label: source.name
                       }))
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Active Status:</label>
+                  <FilterInput
+                    value={meetingFilters.isActive}
+                    onChange={(value) => handleMeetingFilter('isActive', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'ACTIVE', label: 'Active' },
+                      { value: 'INACTIVE', label: 'Inactive' }
                     ]}
                   />
                 </div>
@@ -3212,6 +3320,19 @@ const TherapistPanel: React.FC = () => {
                       { value: 'ALL', label: 'All' },
                       { value: 'PAID', label: 'Paid' },
                       { value: 'UNPAID', label: 'Unpaid' }
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Active Status:</label>
+                  <FilterInput
+                    value={personalMeetingFilters.isActive}
+                    onChange={(value) => handlePersonalMeetingFilter('isActive', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'ACTIVE', label: 'Active' },
+                      { value: 'INACTIVE', label: 'Inactive' }
                     ]}
                   />
                 </div>
@@ -3842,6 +3963,19 @@ const TherapistPanel: React.FC = () => {
                       { value: 'ALL', label: 'All' },
                       { value: 'PAID', label: 'Paid' },
                       { value: 'UNPAID', label: 'Unpaid' }
+                    ]}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label className="filter-label">Active Status:</label>
+                  <FilterInput
+                    value={expenseFilters.isActive}
+                    onChange={(value) => handleExpenseFilter('isActive', value)}
+                    type="select"
+                    options={[
+                      { value: 'ALL', label: 'All' },
+                      { value: 'ACTIVE', label: 'Active' },
+                      { value: 'INACTIVE', label: 'Inactive' }
                     ]}
                   />
                 </div>

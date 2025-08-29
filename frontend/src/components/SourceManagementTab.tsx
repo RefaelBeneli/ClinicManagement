@@ -135,7 +135,7 @@ const SourceManagementTab: React.FC = () => {
   return (
     <div className="source-management">
       <div className="header">
-        <h2>Meeting Sources</h2>
+                        <h2>Client Sources</h2>
         <button 
           className="btn btn-primary"
           onClick={() => setIsCreateModalOpen(true)}

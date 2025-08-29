@@ -191,10 +191,29 @@ class ExpenseService {
             nextDueDate = updateRequest.nextDueDate,
             receiptUrl = updateRequest.receiptUrl,
             isActive = updateRequest.isActive ?: expense.isActive,
+            // Payment-related fields
+            isPaid = updateRequest.isPaid ?: expense.isPaid,
+            paymentType = updateRequest.paymentTypeId?.let { paymentTypeId ->
+                paymentTypeRepository.findById(paymentTypeId).orElse(null)
+            } ?: expense.paymentType,
+            paymentDate = if (updateRequest.isPaid == true) LocalDateTime.now() else expense.paymentDate,
+            referenceNumber = updateRequest.referenceNumber ?: expense.referenceNumber,
+            transactionId = updateRequest.transactionId ?: expense.transactionId,
             updatedAt = LocalDateTime.now()
         )
+        
+        // If marking as paid without payment type, keep existing payment type or set to null
+        // This allows bulk operations to work without requiring payment type selection
+        val finalExpense = if (updateRequest.isPaid == true && updateRequest.paymentTypeId == null) {
+            updatedExpense.copy(
+                paymentType = expense.paymentType, // Keep existing payment type if any
+                paymentDate = LocalDateTime.now()
+            )
+        } else {
+            updatedExpense
+        }
 
-        val savedExpense = expenseRepository.save(updatedExpense)
+        val savedExpense = expenseRepository.save(finalExpense)
         return mapToResponse(savedExpense)
     }
 

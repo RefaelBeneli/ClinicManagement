@@ -652,8 +652,8 @@ const AdminPanel: React.FC = () => {
         {activeTab === 'sources' && (
           <div className="admin-sources">
             <div className="section-header">
-              <h3>🏷️ Meeting Sources</h3>
-              <p>Manage meeting sources and their default values</p>
+                              <h3>🏷️ Client Sources</h3>
+                <p>Manage client sources and their default values</p>
             </div>
             <SourceManagementTab />
           </div>

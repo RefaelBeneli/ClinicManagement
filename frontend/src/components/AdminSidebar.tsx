@@ -144,9 +144,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       items: [
         {
           id: 'sources',
-          label: 'Meeting Sources',
+          label: 'Client Sources',
           icon: '🏥',
-          description: 'Configure meeting sources'
+          description: 'Configure client sources'
         },
         {
           id: 'meeting-types',

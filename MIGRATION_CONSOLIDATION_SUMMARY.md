@@ -17,7 +17,7 @@ The Clinic Management System now uses a **single, comprehensive migration file**
 - ✅ `payment_types` - Payment method definitions
 - ✅ `expense_categories` - Expense categorization
 - ✅ `client_sources` - Client source configurations
-- ✅ `meeting_sources` - Meeting source configurations
+- ✅ `client_sources` - Client source configurations (consolidated from meeting_sources)
 
 ### 2. **Business Tables**
 - ✅ `clients` - Client information and relationships

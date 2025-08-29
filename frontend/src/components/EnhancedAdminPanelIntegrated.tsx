@@ -347,7 +347,7 @@ const EnhancedAdminPanelIntegrated: React.FC = () => {
                 {activeSection === 'expenses' && 'Expense Management'}
                 {activeSection === 'expense-categories' && 'Expense Categories'}
                 {activeSection === 'payment-types' && 'Payment Types'}
-                {activeSection === 'sources' && 'Meeting Sources'}
+                {activeSection === 'sources' && 'Client Sources'}
                 {activeSection === 'meeting-types' && 'Meeting Types'}
                 {activeSection === 'calendar' && 'Calendar'}
                 {activeSection === 'analytics' && 'Analytics'}

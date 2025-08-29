@@ -8,6 +8,7 @@ import com.clinic.dto.ClientResponse
 import com.clinic.entity.Meeting
 import com.clinic.entity.MeetingStatus
 import com.clinic.entity.RecurrenceFrequency
+import com.clinic.entity.SessionType
 import com.clinic.repository.MeetingRepository
 import com.clinic.repository.ClientRepository
 
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import com.clinic.service.PaymentService
 
 @Service
 class MeetingService {
@@ -27,6 +29,9 @@ class MeetingService {
 
     @Autowired
     private lateinit var authService: AuthService
+
+    @Autowired
+    private lateinit var paymentService: PaymentService
     
 
 
@@ -210,10 +215,30 @@ class MeetingService {
 
         val savedMeeting = meetingRepository.save(updatedMeeting)
         
-        // If marking as paid, create payment record
+        // If marking as paid, create payment record via PaymentService
         if (isPaid && paymentTypeId != null) {
-            // Note: This will be handled by the PaymentController when the frontend calls the payment endpoint
-            // The meeting is already marked as paid here
+            try {
+                paymentService.createPaymentForMeeting(
+                    meetingId = id,
+                    paymentTypeId = paymentTypeId,
+                    amount = amount,
+                    referenceNumber = referenceNumber,
+                    notes = notes,
+                    transactionId = transactionId,
+                    receiptUrl = receiptUrl
+                )
+            } catch (e: Exception) {
+                // Log the error but don't fail the meeting update
+                println("Failed to create payment record: ${e.message}")
+            }
+        } else if (!isPaid) {
+            // If marking as unpaid, soft delete existing payment records
+            try {
+                paymentService.deactivatePaymentForSession(id, SessionType.MEETING)
+            } catch (e: Exception) {
+                // Log the error but don't fail the meeting update
+                println("Failed to deactivate payment records: ${e.message}")
+            }
         }
         
         return mapToResponse(savedMeeting)

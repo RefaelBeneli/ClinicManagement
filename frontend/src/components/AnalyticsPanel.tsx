@@ -761,7 +761,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
               <div className="metric-header">
                 <div className="metric-icon">💰</div>
                 <div className="metric-info">
-                  <h3>Gross Revenue</h3>
+                  <h3>Net Revenue</h3>
                   <div className="metric-growth">
                     <span 
                       className={`growth-indicator ${getGrowthColor(analytics.revenue.growth)}`}
@@ -772,17 +772,17 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                       </div>
                       </div>
                     </div>
-              <div className="metric-value" title="Total income from all sessions in the selected time period">
-                {formatCurrency(analytics.revenue.gross)}
+              <div className="metric-value" title="Revenue remaining after subtracting all business expenses in the selected time period">
+                {formatCurrency(analytics.revenue.net)}
                       </div>
               <div className="metric-details">
                 <div className="detail-item">
-                  <span title="Revenue remaining after subtracting all business expenses">Net Revenue:</span>
+                  <span title="Total income from all sessions before expenses">Gross Revenue:</span>
                   <span 
-                    className={analytics.revenue.net >= 0 ? 'positive' : 'negative'}
-                    title="Gross revenue minus total expenses for the period"
+                    className="positive"
+                    title="Total income from all sessions in the selected time period"
                   >
-                    {formatCurrency(analytics.revenue.net)}
+                    {formatCurrency(analytics.revenue.gross)}
                   </span>
                       </div>
                 <div className="detail-item">
@@ -793,7 +793,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                     </div>
                 <div className="detail-item">
                   <span title="Percentage of total revenue that has been successfully collected">Collection Rate:</span>
-                  <span title="Percentage of gross revenue that has been collected">
+                  <span title="Percentage of net revenue that has been collected">
                     {formatPercentage(analytics.revenue.collectionRate)}
                   </span>
                   </div>
@@ -890,7 +890,7 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
                   <span title="What percentage of revenue is being spent on business expenses">Expense Ratio:</span>
                   <span 
                     className={analytics.expenses.ratio > 50 ? 'negative' : 'neutral'}
-                    title="Percentage of gross revenue spent on expenses (lower is better)"
+                    title="Percentage of net revenue spent on expenses (lower is better)"
                   >
                     {formatPercentage(analytics.expenses.ratio)}
                       </span>
@@ -989,15 +989,15 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ onClose }) => {
             )}
 
               {(analytics.revenue.gross > 0 || analytics.expenses.total > 0) && (
-                <div className="chart-card">
-                  <h3 title="Compares total gross revenue with total expenses">
+                                <div className="chart-card">
+                  <h3 title="Compares total net revenue with total expenses">
                     Revenue vs Expenses
                   </h3>
-                  <SimpleChart
-                    data={[
-                      { label: 'Gross Revenue', value: analytics.revenue.gross, color: '#43e97b' },
+                    <SimpleChart
+                      data={[
+                      { label: 'Net Revenue', value: analytics.revenue.net, color: '#43e97b' },
                       { label: 'Total Expenses', value: analytics.expenses.total, color: '#fa709a' }
-                    ]}
+                      ]}
                     title=""
                     type="pie"
                     height={250}

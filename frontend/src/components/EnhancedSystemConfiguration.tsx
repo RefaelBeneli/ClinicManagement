@@ -68,7 +68,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
   const { user: currentUser, token } = useAuth();
   
   // Data states
-  const [meetingSources, setMeetingSources] = useState<MeetingSource[]>([]);
+  const [clientSources, setClientSources] = useState<MeetingSource[]>([]);
   const [personalMeetingTypes, setPersonalMeetingTypes] = useState<PersonalMeetingType[]>([]);
   const [integrations, setIntegrations] = useState<SystemIntegration[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSetting[]>([]);
@@ -170,7 +170,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
       setLoading(true);
       setError(null);
       
-      // Fetch meeting sources
+              // Fetch client sources
       const sourcesResponse = await fetch(`${apiUrl}/client-sources`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -257,7 +257,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
         }
       }
       
-      setMeetingSources(sources);
+              setClientSources(sources);
       setPersonalMeetingTypes(meetingTypes);
       setIntegrations(integrationsList);
       
@@ -335,7 +335,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
     // Determine which data to filter based on active tab
     switch (activeTab) {
       case 'sources':
-        filtered = [...meetingSources];
+        filtered = [...clientSources];
         break;
       case 'meeting-types':
         filtered = [...personalMeetingTypes];
@@ -385,7 +385,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
 
     // Update filtered data based on active tab
     // Note: In a real implementation, you'd have separate filtered states for each tab
-  }, [meetingSources, personalMeetingTypes, integrations, systemSettings, searchValue, searchFilters, activeTab]);
+  }, [clientSources, personalMeetingTypes, integrations, systemSettings, searchValue, searchFilters, activeTab]);
 
   // Initialize on mount
   useEffect(() => {
@@ -397,10 +397,10 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
 
   // Initialize filters when data is loaded
   useEffect(() => {
-    if (meetingSources.length > 0 || personalMeetingTypes.length > 0 || integrations.length > 0) {
-      initializeSearchFilters();
-    }
-  }, [initializeSearchFilters, meetingSources.length, personalMeetingTypes.length, integrations.length]);
+          if (clientSources.length > 0 || personalMeetingTypes.length > 0 || integrations.length > 0) {
+        initializeSearchFilters();
+      }
+    }, [initializeSearchFilters, clientSources.length, personalMeetingTypes.length, integrations.length]);
 
   // Apply filters when data or filters change
   useEffect(() => {
@@ -457,7 +457,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
     const suggestions: string[] = [];
     
     // Add source suggestions
-    meetingSources.forEach(source => {
+          clientSources.forEach(source => {
       suggestions.push(source.name);
     });
     
@@ -480,7 +480,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
     suggestions.push('Active', 'Inactive');
     
     return suggestions;
-  }, [meetingSources, personalMeetingTypes, integrations, systemSettings]);
+  }, [clientSources, personalMeetingTypes, integrations, systemSettings]);
 
   // Bulk operations
   const handleItemSelect = (itemKey: string, isSelected: boolean) => {
@@ -496,7 +496,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
     let currentItems: any[] = [];
     switch (activeTab) {
       case 'sources':
-        currentItems = meetingSources;
+        currentItems = clientSources;
         break;
       case 'meeting-types':
         currentItems = personalMeetingTypes;
@@ -756,7 +756,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
           <div className="stat-icon sources">📊</div>
           <div className="stat-details">
             <div className="stat-value">{systemStats.totalSources}</div>
-            <div className="stat-label">Meeting Sources</div>
+                            <div className="stat-label">Client Sources</div>
           </div>
         </div>
         <div className="stat-card">
@@ -823,7 +823,7 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
             className={`tab-button ${activeTab === 'sources' ? 'active' : ''}`}
             onClick={() => setActiveTab('sources')}
           >
-            📊 Meeting Sources
+                            📊 Client Sources
           </button>
           <button 
             className={`tab-button ${activeTab === 'meeting-types' ? 'active' : ''}`}
@@ -855,13 +855,13 @@ const EnhancedSystemConfiguration: React.FC<EnhancedSystemConfigurationProps> = 
         <div className={`tab-content ${activeTab === 'sources' ? 'active' : ''}`}>
           <div className="sources-section">
             <div className="section-header">
-              <h3>Meeting Sources ({meetingSources.length})</h3>
+                              <h3>Client Sources ({clientSources.length})</h3>
               <button className="btn-primary" onClick={handleAddSource}>
                 ➕ Add Source
               </button>
             </div>
             <div className="sources-grid">
-              {meetingSources.map((source) => (
+                              {clientSources.map((source) => (
                 <div key={source.id} className="source-card">
                   <div className="source-header">
                     <h4>{source.name}</h4>

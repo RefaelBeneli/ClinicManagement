@@ -16,7 +16,7 @@ interface SystemEnum {
 
 const SystemSettingsTab: React.FC = () => {
   const [activeSection, setActiveSection] = useState('meeting-sources');
-  const [meetingSources, setMeetingSources] = useState<SystemEnum[]>([]);
+  const [clientSources, setClientSources] = useState<SystemEnum[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<SystemEnum[]>([]);
   const [paymentTypes, setPaymentTypes] = useState<SystemEnum[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +40,7 @@ const SystemSettingsTab: React.FC = () => {
       
       // Mock data for now
       setTimeout(() => {
-        setMeetingSources([
+        setClientSources([
           { id: 1, name: 'Private', description: 'Private client referrals', isDefault: true, sortOrder: 1, isActive: true },
           { id: 2, name: 'Natal', description: 'Natal clinic referrals', isDefault: false, sortOrder: 2, isActive: true },
           { id: 3, name: 'Clalit', description: 'Clalit health services', isDefault: false, sortOrder: 3, isActive: true },
@@ -76,7 +76,7 @@ const SystemSettingsTab: React.FC = () => {
   const getCurrentData = () => {
     switch (activeSection) {
       case 'meeting-sources':
-        return meetingSources;
+        return clientSources;
       case 'expense-categories':
         return expenseCategories;
       case 'payment-types':
@@ -89,7 +89,7 @@ const SystemSettingsTab: React.FC = () => {
   const getCurrentDataSetter = () => {
     switch (activeSection) {
       case 'meeting-sources':
-        return setMeetingSources;
+        return setClientSources;
       case 'expense-categories':
         return setExpenseCategories;
       case 'payment-types':
@@ -102,7 +102,7 @@ const SystemSettingsTab: React.FC = () => {
   const getSectionTitle = () => {
     switch (activeSection) {
       case 'meeting-sources':
-        return 'Meeting Sources';
+        return 'Client Sources';
       case 'expense-categories':
         return 'Expense Categories';
       case 'payment-types':
@@ -239,7 +239,7 @@ const SystemSettingsTab: React.FC = () => {
           className={`section-btn ${activeSection === 'meeting-sources' ? 'active' : ''}`}
           onClick={() => setActiveSection('meeting-sources')}
         >
-          Meeting Sources
+                          Client Sources
         </button>
         <button
           className={`section-btn ${activeSection === 'expense-categories' ? 'active' : ''}`}
